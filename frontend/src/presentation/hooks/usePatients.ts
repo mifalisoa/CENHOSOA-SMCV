@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { patientRepository } from '../../infrastructure/repositories/PatientRepository';
-import type { Patient, CreatePatientDTO, PaginatedPatients } from '../../core/entities/Patient';
+import type { Patient, CreatePatientDTO } from '../../core/entities/Patient';
 
 export function usePatients(type?: 'externe' | 'hospitalise') {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -10,103 +10,97 @@ export function usePatients(type?: 'externe' | 'hospitalise') {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const fetchPatients = useCallback(async () => {
+  // Helper pour extraire le message d'erreur proprement sans utiliser "any"
+  const getErrorMessage = (err: unknown): string => {
+    const error = err as { response?: { data?: { error?: string } } };
+    return error.response?.data?.error || 'Une erreur est survenue';
+  };
+
+  const fetchPatients = useCallback(async (currentPage: number) => {
     try {
       setLoading(true);
       setError(null);
       
       let result;
       if (type === 'externe') {
-        result = await patientRepository.getExternes(page, 10);
+        result = await patientRepository.getExternes(currentPage, 10);
       } else if (type === 'hospitalise') {
-        result = await patientRepository.getHospitalises(page, 10);
+        result = await patientRepository.getHospitalises(currentPage, 10);
       } else {
-        result = await patientRepository.getAll(page, 10);
+        result = await patientRepository.getAll(currentPage, 10);
       }
       
       setPatients(result.data);
       setTotalPages(result.pagination.totalPages);
       setTotal(result.pagination.total);
-    } catch (err: any) {
-      const message = err.response?.data?.error || 'Erreur lors du chargement des patients';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
       setError(message);
       console.error('❌ [usePatients] Erreur:', err);
     } finally {
       setLoading(false);
     }
-  }, [page, type]);
+  }, [type]);
 
-  // ✅ AJOUT : Fonction pour récupérer un patient par ID
-  const getPatientById = async (id: number): Promise<Patient> => {
+  const getPatientById = useCallback(async (id: number): Promise<Patient> => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔵 [Hook] Chargement patient ID:', id);
-      
       const patient = await patientRepository.getById(id);
-      console.log('✅ [Hook] Patient chargé:', patient);
-      
       return patient;
-    } catch (err: any) {
-      const message = err.response?.data?.error || 'Erreur lors du chargement du patient';
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
       setError(message);
-      console.error('❌ [Hook] Erreur getPatientById:', err);
       throw new Error(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const createPatient = async (data: CreatePatientDTO): Promise<Patient> => {
+  const createPatient = useCallback(async (data: CreatePatientDTO): Promise<Patient> => {
     try {
-      console.log('🔵 [Hook] Création patient:', data);
       const patient = await patientRepository.create(data);
-      console.log('✅ [Hook] Patient créé:', patient);
-      
-      await fetchPatients(); // Rafraîchir la liste
+      await fetchPatients(page);
       return patient;
-    } catch (err: any) {
-      console.error('❌ [Hook] Erreur création:', err);
-      const message = err.response?.data?.error || 'Erreur lors de la création du patient';
-      throw new Error(message);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err));
     }
-  };
+  }, [fetchPatients, page]);
 
-  const updatePatient = async (id: number, data: Partial<CreatePatientDTO>) => {
+  const updatePatient = useCallback(async (id: number, data: Partial<CreatePatientDTO>) => {
     try {
       await patientRepository.update(id, data);
-      await fetchPatients();
-    } catch (err: any) {
-      const message = err.response?.data?.error || 'Erreur lors de la mise à jour';
-      throw new Error(message);
+      await fetchPatients(page);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err));
     }
-  };
+  }, [fetchPatients, page]);
 
-  const deletePatient = async (id: number) => {
+  const deletePatient = useCallback(async (id: number) => {
     try {
       await patientRepository.delete(id);
-      await fetchPatients();
-    } catch (err: any) {
-      const message = err.response?.data?.error || 'Erreur lors de la suppression';
-      throw new Error(message);
+      await fetchPatients(page);
+    } catch (err: unknown) {
+      throw new Error(getErrorMessage(err));
     }
-  };
+  }, [fetchPatients, page]);
 
-  const searchPatients = async (query: string) => {
+  const searchPatients = useCallback(async (query: string) => {
     try {
       setLoading(true);
       const results = await patientRepository.search(query);
       setPatients(results);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur recherche:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // ✅ Correction de l'avertissement exhaustive-deps
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
+    fetchPatients(page);
+  }, [type, page, fetchPatients]); 
 
   return {
     patients,
@@ -116,11 +110,11 @@ export function usePatients(type?: 'externe' | 'hospitalise') {
     totalPages,
     total,
     setPage,
-    getPatientById, // ✅ EXPORT de la nouvelle fonction
+    getPatientById,
     createPatient,
     updatePatient,
     deletePatient,
     searchPatients,
-    refetch: fetchPatients,
+    refetch: () => fetchPatients(page),
   };
 }

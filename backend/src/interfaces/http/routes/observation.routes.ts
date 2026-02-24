@@ -21,7 +21,7 @@ router.use(authMiddleware);
  */
 router.post(
   '/',
-  roleMiddleware(['medecin', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'admin']), // ✅ Ajout de 'docteur'
   observationController.create
 );
 
@@ -33,7 +33,7 @@ router.post(
  */
 router.get(
   '/patient/:patientId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'infirmier', 'admin']), // ✅ Ajout de 'docteur'
   observationController.getByPatientId
 );
 
@@ -44,7 +44,7 @@ router.get(
  */
 router.get(
   '/admission/:admissionId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'infirmier', 'admin']), // ✅ Ajout de 'docteur'
   observationController.getByAdmissionId
 );
 
@@ -55,7 +55,7 @@ router.get(
  */
 router.get(
   '/:id',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'infirmier', 'admin']), // ✅ Ajout de 'docteur'
   observationController.getById
 );
 
@@ -66,7 +66,7 @@ router.get(
  */
 router.put(
   '/:id',
-  roleMiddleware(['medecin', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'admin']), // ✅ Ajout de 'docteur'
   observationController.update
 );
 
@@ -77,7 +77,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  roleMiddleware(['medecin', 'admin']),
+  roleMiddleware(['medecin', 'docteur', 'admin']), // ✅ Ajout de 'docteur'
   observationController.delete
 );
 

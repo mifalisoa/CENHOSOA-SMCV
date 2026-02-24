@@ -1,58 +1,42 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './presentation/store/AuthContext';
 import { ProtectedRoute } from './presentation/pages/auth/ProtectedRoute';
 import LoginPage from './presentation/pages/auth/LoginPage';
-import DashboardPage from './presentation/pages/dashboard/DashboardPage';
+import AdminLayout from './presentation/components/layout/AdminLayout';
+import DashboardHome from './presentation/pages/dashboard/sections/admin/DashboardHome';
+import PatientsExternesView from './presentation/pages/dashboard/sections/admin/PatientsExternesView';
 import PatientDossierPage from './presentation/pages/patients/PatientDossierPage';
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Route publique - Login */}
+          {/* Route publique */}
           <Route path="/login" element={<LoginPage />} />
-          
-          {/* Route protégée - Dashboard principal */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Redirection de la racine vers le dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* 404 - Redirection vers le dashboard */}
+
+          {/* Routes protégées avec AdminLayout */}
+          <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardHome />} />
+            <Route path="/patients-externes" element={<PatientsExternesView />} />
+            <Route path="/patients-hospitalises" element={<div className="p-8">Patients hospitalisés</div>} />
+            <Route path="/users" element={<div className="p-8">Utilisateurs</div>} />
+            <Route path="/beds" element={<div className="p-8">Lits</div>} />
+            <Route path="/statistics" element={<div className="p-8">Statistiques</div>} />
+            <Route path="/security" element={<div className="p-8">Sécurité</div>} />
+            <Route path="/appointments" element={<div className="p-8">Planning</div>} />
+            <Route path="/patients/:id/dossier" element={<PatientDossierPage />} />
+          </Route>
+
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/patients/:id/dossier" element={<PatientDossierPage />} />
         </Routes>
-        
-        {/* Notifications Toast globales */}
-        <Toaster 
-          position="top-right" 
-          richColors 
-          closeButton 
-          duration={3000}
-          toastOptions={{
-            className: 'toaster-custom',
-            style: {
-              background: 'white',
-              color: '#1f2937',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }
-          }}
-        />
+
+        <Toaster position="top-right" richColors closeButton duration={3000} />
       </AuthProvider>
-    </Router>
+    </BrowserRouter>
   );
 }
 

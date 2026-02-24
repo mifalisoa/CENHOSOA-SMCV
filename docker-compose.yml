@@ -1,0 +1,44 @@
+services:
+  # Base de données
+  db:
+    image: postgres:15-alpine
+    container_name: cenhosoa_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password # Mets le même que dans ton .env
+      POSTGRES_DB: cenhosoa_medical
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Backend
+  backend:
+    build: ./backend
+    container_name: cenhosoa_backend
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:your_password@db:5432/cenhosoa_medical
+      PORT: 3000
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: cenhosoa_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

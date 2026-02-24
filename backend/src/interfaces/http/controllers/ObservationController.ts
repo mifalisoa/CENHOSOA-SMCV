@@ -60,22 +60,11 @@ export class ObservationController {
 
   getByPatientId = async (req: Request, res: Response): Promise<void> => {
     try {
-      const patientId = parseInt(req.params.patientId as string, 10); // Correction TS2345
+      const patientId = parseInt(req.params.patientId as string, 10);
       const type = req.query.type as 'externe' | 'hospitalise' | undefined;
 
       if (isNaN(patientId)) {
-        res.status(400).json({
-          success: false,
-          message: 'ID patient invalide',
-        });
-        return;
-      }
-
-      if (type && !['externe', 'hospitalise'].includes(type)) {
-        res.status(400).json({
-          success: false,
-          message: 'Type d\'observation invalide. Utilisez "externe" ou "hospitalise"',
-        });
+        res.status(400).json({ success: false, message: 'ID patient invalide' });
         return;
       }
 
@@ -87,11 +76,16 @@ export class ObservationController {
         data: observations,
         count: observations.length,
       });
-    } catch (error) {
-      console.error('Erreur récupération observations:', error);
+    } catch (error: any) { // Le ": any" permet d'accéder à .message et .stack
+      console.error('❌ ERREUR BACKEND DÉTECTÉE :');
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+
       res.status(500).json({
         success: false,
         message: 'Erreur serveur lors de la récupération des observations',
+        error: error.message,
+        stack: error.stack 
       });
     }
   };

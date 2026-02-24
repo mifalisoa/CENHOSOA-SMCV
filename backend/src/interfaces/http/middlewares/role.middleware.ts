@@ -1,48 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
 
-interface AuthRequest extends Request {
-  user?: {
-    id_utilisateur: number;
-    email: string;
-    role: string;
-  };
-}
-
-/**
- * Middleware de vérification des rôles
- * Accepte un tableau de rôles autorisés
- */
 export const roleMiddleware = (allowedRoles: string | string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: any, res: Response, next: NextFunction) => {
     try {
-      // Vérifier que l'utilisateur est authentifié
       if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Non authentifié',
+        return res.status(401).json({ success: false, message: 'Non authentifié' });
+      }
+
+      // On récupère le rôle depuis la propriété réelle identifiée dans les logs
+      const userRole = req.user.role_user || req.user.role;
+
+      if (!userRole) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Accès refusé - Aucun rôle défini pour cet utilisateur' 
         });
       }
 
-      // Convertir en tableau si c'est une string
-      const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      
+      // Normalisation pour éviter les erreurs de casse (ex: 'Admin' vs 'admin')
+      const normalizedUserRole = String(userRole).trim().toLowerCase();
+      const normalizedAllowedRoles = rolesArray.map(r => r.trim().toLowerCase());
 
-      // Vérifier si le rôle de l'utilisateur est autorisé
-      if (!roles.includes(req.user.role)) {
+      if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
+        console.warn(`[Perms] Accès refusé pour ${req.user.email_user}. Rôle: ${userRole}`);
         return res.status(403).json({
           success: false,
-          message: 'Accès refusé - Permissions insuffisantes',
-          required_roles: roles,
-          your_role: req.user.role,
+          message: 'Permissions insuffisantes',
+          debug: { current: userRole, required: rolesArray }
         });
       }
 
       next();
     } catch (error) {
       console.error('Erreur roleMiddleware:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Erreur serveur lors de la vérification des rôles',
-      });
+      return res.status(500).json({ success: false, message: 'Erreur serveur (permissions)' });
     }
   };
 };
