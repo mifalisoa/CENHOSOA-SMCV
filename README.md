@@ -1,8 +1,8 @@
-# 🏥 CENHOSOA-SMCV - Système de Gestion Médicale
+#  CENHOSOA-SMCV - Système de Gestion Médicale
 
 Système de gestion hospitalière développé pour le **Centre Hospitalier CENHOSOA** - Service de Maladies Cardio-Vasculaires.
 
-## 📋 Description
+##  Description
 
 Application web complète de gestion des dossiers patients avec :
 - Gestion des patients externes et hospitalisés
@@ -14,7 +14,7 @@ Application web complète de gestion des dossiers patients avec :
 - Documents patients
 - Comptes rendus d'hospitalisation
 
-## 🚀 Technologies
+##  Technologies
 
 ### Backend
 - **Node.js** avec **Express**
@@ -32,7 +32,7 @@ Application web complète de gestion des dossiers patients avec :
 - **Axios** (HTTP client)
 - **date-fns** (manipulation de dates)
 
-## 📦 Installation
+##  Installation
 
 ### Prérequis
 - Node.js 18+ 
@@ -55,7 +55,7 @@ npm install
 npm run dev
 ```
 
-## 🗄️ Base de données
+##  Base de données
 
 ### Créer la base de données
 ```sql
@@ -68,12 +68,12 @@ cd backend
 psql -U postgres -d postgres -f migrations/init.sql
 ```
 
-## 🔐 Utilisateur par défaut
+##  Utilisateur par défaut
 
 - **Email** : `admin@cenhosoa.mg`
 - **Mot de passe** : `Admin@2025`
 
-## 📁 Structure du projet
+##  Structure du projet
 ```
 CENHOSOA-SMCV/
 ├── backend/                 # API Node.js/Express
@@ -96,15 +96,15 @@ CENHOSOA-SMCV/
 └── README.md
 ```
 
-## 🌟 Fonctionnalités
+##  Fonctionnalités
 
-### ✅ Gestion des patients
+###  Gestion des patients
 - Création de patients externes
 - Hospitalisation de patients
 - Recherche et filtrage
 - Historique complet
 
-### ✅ Dossier médical
+### Dossier médical
 - Observations médicales (externes/hospitalisés)
 - Bilans biologiques (créatinine, glycémie, CRP, etc.)
 - Soins médicaux (ETT, ETO)
@@ -113,20 +113,20 @@ CENHOSOA-SMCV/
 - Documents patients (PDF, images, vidéos)
 - Comptes rendus d'hospitalisation
 
-### ✅ Sécurité
+###  Sécurité
 - Authentification JWT
 - Contrôle d'accès par rôle (admin, médecin, infirmier, secrétaire)
 - Hashage des mots de passe
 - Protection des routes API
 
-## 👥 Rôles utilisateur
+##  Rôles utilisateur
 
 - **Admin** : Accès complet
 - **Médecin** : Création/modification des observations, prescriptions
 - **Infirmier** : Soins infirmiers, lecture des dossiers
 - **Secrétaire** : Gestion administrative des patients
 
-## 🔄 API Endpoints
+##  API Endpoints
 
 ### Authentification
 - `POST /api/auth/login` - Connexion
@@ -143,14 +143,8 @@ CENHOSOA-SMCV/
 
 [... autres endpoints ...]
 
-## 📝 License
 
-Copyright © 2026 CENHOSOA. Tous droits réservés.
 
 ## 👨‍💻 Développement
 
-Développé par l'équipe CENHOSOA avec ❤️
-
----
-
-**🏥 Pour la santé de nos patients**
+Développé par ANDRIANANDRAINA Mifalisoa Jacquis
