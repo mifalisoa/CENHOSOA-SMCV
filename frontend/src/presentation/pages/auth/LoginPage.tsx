@@ -50,8 +50,13 @@ export default function LoginPage() {
       await login(email, password);
       toast.success('Connexion réussie !');
       navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Email ou mot de passe incorrect');
+    } catch (error: unknown) {
+      // Logic to safely handle the error without using 'any'
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Email ou mot de passe incorrect';
+        
+      toast.error(errorMessage);
     }
   };
 
@@ -65,30 +70,31 @@ export default function LoginPage() {
       >
         <div className="flex flex-col md:flex-row">
           
-         {/* Left Panel - Branding (Logo Seul) */}
-<motion.div
-  initial={{ x: -50, opacity: 0 }}
-  animate={{ x: 0, opacity: 1 }}
-  transition={{ delay: 0.2, duration: 0.5 }}
-  className="w-full md:w-1/2 bg-gradient-to-br from-cyan-500 to-cyan-600 p-12 flex flex-col items-center justify-center text-white relative overflow-hidden min-h-[600px]"
->
-  {/* Cercles décoratifs en arrière-plan */}
-  <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full -translate-x-48 -translate-y-48"></div>
-  <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full translate-x-48 translate-y-48"></div>
-  
-  <div className="relative z-10 flex items-center justify-center w-full h-full">
-    {/* Logo CENHOSOA - SANS CADRE, TRÈS GRAND */}
-    <motion.img 
-      src="/logo.png" 
-      alt="CENHOSOA Logo" 
-      className="w-[300px] h-[300px] object-contain drop-shadow-2xl"
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay: 0.4, duration: 0.6, type: "spring", stiffness: 100 }}
-      whileHover={{ scale: 1.05 }}
-    />
-  </div>
-</motion.div>
+          {/* Left Panel - Branding (Logo Seul) */}
+          <motion.div
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="w-full md:w-1/2 bg-gradient-to-br from-cyan-500 to-cyan-600 p-12 flex flex-col items-center justify-center text-white relative overflow-hidden min-h-[600px]"
+          >
+            {/* Cercles décoratifs en arrière-plan */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full -translate-x-48 -translate-y-48"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full translate-x-48 translate-y-48"></div>
+            
+            <div className="relative z-10 flex items-center justify-center w-full h-full">
+              {/* Logo CENHOSOA - SANS CADRE, TRÈS GRAND */}
+              <motion.img 
+                src="/logo.png" 
+                alt="CENHOSOA Logo" 
+                className="w-[300px] h-[300px] object-contain drop-shadow-2xl"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.6, type: "spring", stiffness: 100 }}
+                whileHover={{ scale: 1.05 }}
+              />
+            </div>
+          </motion.div>
+
           {/* Right Panel - Login Form */}
           <motion.div
             initial={{ x: 50, opacity: 0 }}

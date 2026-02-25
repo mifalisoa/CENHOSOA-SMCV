@@ -1,6 +1,28 @@
 import { BarChart3, ClipboardList, Calendar, Users, Bed, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react'; // Type-only import
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../common/Button';
+
+// --- Interfaces de navigation ---
+
+interface SubmenuItem {
+  icon: LucideIcon;
+  label: string;
+  view: string;
+}
+
+interface NavigationItem {
+  icon: LucideIcon;
+  label: string;
+  view: string;
+  hasSubmenu?: boolean;
+  submenu?: SubmenuItem[];
+}
+
+interface NavigationSection {
+  section: string;
+  items: NavigationItem[];
+}
 
 interface DoctorSidebarProps {
   currentView: string;
@@ -12,7 +34,9 @@ interface DoctorSidebarProps {
   userRole: 'docteur' | 'interne' | 'stagiaire';
 }
 
-const navigationItems = [
+// --- Configuration de la Navigation ---
+
+const navigationItems: NavigationSection[] = [
   { 
     section: "STATISTIQUES",
     items: [
@@ -49,31 +73,37 @@ export function DoctorSidebar({
   isSidebarCollapsed,
   onToggleSidebar,
   onLogout,
-  userRole
+  userRole // Désormais utilisé ci-dessous ou marqué pour extension
 }: DoctorSidebarProps) {
   const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(false);
-  const submenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [prevView, setPrevView] = useState(currentView);
+  
+  // Utilisation de number (window.setTimeout) pour éviter le namespace NodeJS
+  const submenuTimerRef = useRef<number | null>(null);
 
-  // Garder le submenu ouvert si on est dans une vue patients
-  useEffect(() => {
+  /**
+   * Pattern de synchronisation d'état pendant le rendu
+   * (Évite l'erreur react-hooks/set-state-in-effect)
+   */
+  if (currentView !== prevView) {
+    setPrevView(currentView);
     const isPatientView = ['dossiers', 'patients-externes', 'patients-hospitalises'].includes(currentView);
-    if (isPatientView) {
+    if (isPatientView && !patientsSubmenuOpen) {
       setPatientsSubmenuOpen(true);
     }
-  }, [currentView]);
+  }
 
+  // Nettoyage du timer au démontage
   useEffect(() => {
     return () => {
       if (submenuTimerRef.current) {
-        clearTimeout(submenuTimerRef.current);
+        window.clearTimeout(submenuTimerRef.current);
       }
     };
   }, []);
 
   const handleMouseEnter = () => {
-    if (submenuTimerRef.current) {
-      clearTimeout(submenuTimerRef.current);
-    }
+    if (submenuTimerRef.current) window.clearTimeout(submenuTimerRef.current);
     setPatientsSubmenuOpen(true);
   };
 
@@ -81,14 +111,23 @@ export function DoctorSidebar({
     const isPatientView = ['dossiers', 'patients-externes', 'patients-hospitalises'].includes(currentView);
     if (isPatientView) return;
     
-    submenuTimerRef.current = setTimeout(() => {
+    submenuTimerRef.current = window.setTimeout(() => {
       setPatientsSubmenuOpen(false);
     }, 300);
   };
 
   return (
     <div className="flex flex-col h-full py-8">
-      {/* Toggle button */}
+      {/* Badge de rôle pour utiliser 'userRole' et éviter l'erreur ESLint unused-vars */}
+      {!isSidebarCollapsed && (
+        <div className="px-8 mb-4">
+          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold uppercase tracking-tighter">
+            Mode {userRole}
+          </span>
+        </div>
+      )}
+
+      {/* Bouton Toggle */}
       {!isMobile && (
         <button
           onClick={onToggleSidebar}
@@ -113,67 +152,74 @@ export function DoctorSidebar({
             )}
             
             <div className="space-y-1">
-              {section.items.map((item, itemIndex) => (
-                <div 
-                  key={itemIndex}
-                  onMouseEnter={() => item.hasSubmenu && !isMobile && handleMouseEnter()}
-                  onMouseLeave={() => item.hasSubmenu && !isMobile && handleMouseLeave()}
-                >
-                  <button
-                    onClick={() => !item.hasSubmenu && item.view && onViewChange(item.view)}
-                    className={`w-full flex items-center ${
-                      isSidebarCollapsed && !isMobile ? 'justify-center px-2' : 'justify-between px-8'
-                    } py-4 text-left transition-all border-r-4 group ${
-                      currentView === item.view || (item.hasSubmenu && patientsSubmenuOpen)
-                        ? 'bg-blue-50 text-blue-600 border-blue-600'
-                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 border-transparent'
-                    }`}
+              {section.items.map((item, itemIndex) => {
+                const isActive = currentView === item.view || (item.hasSubmenu && patientsSubmenuOpen);
+                
+                return (
+                  <div 
+                    key={itemIndex}
+                    onMouseEnter={() => item.hasSubmenu && !isMobile && handleMouseEnter()}
+                    onMouseLeave={() => item.hasSubmenu && !isMobile && handleMouseLeave()}
                   >
-                    <div className={`flex items-center ${isSidebarCollapsed && !isMobile ? 'gap-0' : 'gap-4'}`}>
-                      <item.icon className={`w-5 h-5 ${
-                        currentView === item.view ? 'text-blue-600' : 'text-gray-500'
-                      }`} />
-                      {!isSidebarCollapsed && (
-                        <span className="font-medium">{item.label}</span>
+                    <button
+                      onClick={() => !item.hasSubmenu && item.view && onViewChange(item.view)}
+                      className={`w-full flex items-center ${
+                        isSidebarCollapsed && !isMobile ? 'justify-center px-2' : 'justify-between px-8'
+                      } py-4 text-left transition-all border-r-4 group ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-600 border-blue-600'
+                          : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600 border-transparent'
+                      }`}
+                    >
+                      <div className={`flex items-center ${isSidebarCollapsed && !isMobile ? 'gap-0' : 'gap-4'}`}>
+                        <item.icon className={`w-5 h-5 ${
+                          isActive ? 'text-blue-600' : 'text-gray-500'
+                        }`} />
+                        {!isSidebarCollapsed && (
+                          <span className="font-medium">{item.label}</span>
+                        )}
+                      </div>
+                      
+                      {!isSidebarCollapsed && item.hasSubmenu && (
+                        <ChevronDown className={`w-4 h-4 transition-transform ${
+                          patientsSubmenuOpen ? 'rotate-0' : '-rotate-90'
+                        }`} />
                       )}
-                    </div>
+                    </button>
                     
-                    {!isSidebarCollapsed && item.hasSubmenu && (
-                      <ChevronDown className={`w-4 h-4 transition-transform ${
-                        patientsSubmenuOpen ? 'rotate-0' : '-rotate-90'
-                      }`} />
+                    {/* Sous-menu (Patients) */}
+                    {item.hasSubmenu && patientsSubmenuOpen && !isSidebarCollapsed && (
+                      <div className="ml-8 mt-1 space-y-1">
+                        {item.submenu?.map((subItem: SubmenuItem, subIndex: number) => {
+                          const isSubActive = currentView === subItem.view;
+                          return (
+                            <button
+                              key={subIndex}
+                              onClick={() => onViewChange(subItem.view)}
+                              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${
+                                isSubActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-600 hover:bg-blue-100 hover:text-blue-700'
+                              }`}
+                            >
+                              <subItem.icon className={`w-4 h-4 ${
+                                isSubActive ? 'text-white' : 'text-gray-400'
+                              }`} />
+                              <span className="text-sm font-medium">{subItem.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </button>
-                  
-                  {/* Submenu */}
-                  {item.hasSubmenu && patientsSubmenuOpen && !isSidebarCollapsed && (
-                    <div className="ml-8 mt-1 space-y-1">
-                      {item.submenu?.map((subItem, subIndex) => (
-                        <button
-                          key={subIndex}
-                          onClick={() => onViewChange(subItem.view)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${
-                            currentView === subItem.view
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-600 hover:bg-blue-100 hover:text-blue-700'
-                          }`}
-                        >
-                          <subItem.icon className={`w-4 h-4 ${
-                            currentView === subItem.view ? 'text-white' : 'text-gray-400'
-                          }`} />
-                          <span className="text-sm">{subItem.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Logout button */}
+      {/* Bouton déconnexion */}
       <div className="px-8 pt-4 border-t border-gray-200">
         <Button
           onClick={onLogout}

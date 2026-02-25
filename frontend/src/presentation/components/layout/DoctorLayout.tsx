@@ -1,4 +1,5 @@
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { DoctorSidebar } from './DoctorSidebar';
 import { DoctorHeader } from './DoctorHeader';
 import { useMobileMenu } from '../../hooks/useMobileMenu';

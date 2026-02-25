@@ -43,7 +43,7 @@ export function AdminSidebar({
   onLogout
 }: AdminSidebarProps) {
   const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(false);
-  const submenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const submenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {

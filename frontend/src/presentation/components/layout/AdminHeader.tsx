@@ -33,7 +33,7 @@ export function AdminHeader() {
   };
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+    <div className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 relative">
       <div className="flex items-center justify-between gap-4">
         
         {/* Left section - Logo et titre */}
@@ -65,13 +65,19 @@ export function AdminHeader() {
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4 border-l pl-3 sm:pl-6 border-gray-100">
-            {/* Search icon for mobile */}
-            <button className="md:hidden p-2 hover:bg-cyan-50 rounded-lg transition-colors">
+            {/* CORRECTION AXE: Ajout de aria-label pour le bouton recherche mobile */}
+            <button 
+              type="button"
+              aria-label="Ouvrir la recherche"
+              className="md:hidden p-2 hover:bg-cyan-50 rounded-lg transition-colors"
+            >
               <Search className="w-5 h-5 text-gray-600" />
             </button>
 
-            {/* Notifications */}
+            {/* CORRECTION AXE: Ajout de aria-label pour le bouton notifications */}
             <button
+              type="button"
+              aria-label="Voir les notifications"
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 hover:bg-cyan-50 rounded-lg transition-colors"
             >
@@ -101,8 +107,9 @@ export function AdminHeader() {
 
       {/* Notifications dropdown */}
       {showNotifications && (
-        <div className="absolute right-4 sm:right-6 top-16 sm:top-20 z-50">
-          <NotificationsDropdown onClose={() => setShowNotifications(false)} />
+        <div className="absolute right-4 sm:right-6 top-full mt-2 z-50">
+          {/* CORRECTION TS 2322: Suppression de onClose car non supporté par le composant */}
+          <NotificationsDropdown />
         </div>
       )}
     </div>

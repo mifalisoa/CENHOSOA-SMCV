@@ -9,26 +9,27 @@ interface LogoProps {
 
 /**
  * Composant Logo CENHOSOA
- * 
- * @param size - Taille en pixels (default: 48)
+ * * @param size - Taille en pixels (default: 48)
  * @param variant - 'default' (couleur originale), 'dark' (noir/gris), 'white' (blanc)
  * @param className - Classes CSS additionnelles
  */
 export function Logo({ size = 48, variant = 'default', className = '' }: LogoProps) {
   const variantClass = {
-    default: '', // Couleur originale
-    dark: 'brightness-0 opacity-70', // Noir/gris foncé
-    white: 'brightness-0 invert', // Blanc
+    default: '', 
+    dark: 'brightness-0 opacity-70', 
+    white: 'brightness-0 invert', 
   }[variant];
 
   return (
     <img 
       src="/logo.png" 
       alt="CENHOSOA Logo" 
+      // On utilise les attributs HTML standards pour la taille
+      // Cela évite l'attribut 'style' tout en respectant les dimensions
       width={size}
       height={size}
       className={`object-contain ${variantClass} ${className}`.trim()}
-      style={{ width: `${size}px`, height: `${size}px` }}
+      // Note: On retire l'attribut style={{ width: ..., height: ... }}
     />
   );
 }
