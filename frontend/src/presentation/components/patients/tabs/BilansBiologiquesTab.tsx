@@ -4,6 +4,7 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateBilanBiologiqueDTO } from '../../../../core/entities/BilanBiologique';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Plus, Beaker, Calendar, Clock, User, Building2 } from 'lucide-react';
 import AddBilanBiologiqueModal from './AddBilanBiologiqueModal';
 
 interface BilansBiologiquesTabProps {
@@ -36,20 +37,19 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center border-b pb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Bilans biologiques ({bilans.length})
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 border-b pb-3 sm:pb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+          Bilans biologiques <span className="text-gray-500">({bilans.length})</span>
         </h3>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-sm font-medium flex items-center gap-2"
+          className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Nouveau bilan
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">Nouveau bilan</span>
+          <span className="sm:hidden">Nouveau</span>
         </button>
       </div>
 
@@ -64,40 +64,50 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
 
       {/* Liste des bilans */}
       {bilans.length === 0 ? (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <p className="text-sm text-gray-500 font-medium mb-3">Aucun bilan biologique enregistré</p>
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 sm:p-12 text-center">
+          <Beaker className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3" />
+          <p className="text-sm text-gray-500 font-medium mb-4">Aucun bilan biologique enregistré</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md text-sm"
           >
             Créer le premier bilan
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {bilans.map((bilan) => (
             <div
               key={bilan.id_bilan}
-              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all border-l-4 border-l-purple-500"
+              className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:shadow-md transition-all border-l-4 border-l-cyan-500"
             >
               {/* En-tête du bilan */}
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-800">
-                      🧪 {bilan.type_bilan || 'Bilan biologique'}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0 mb-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-cyan-100 text-cyan-800 flex items-center gap-1">
+                      <Beaker className="w-3 h-3" />
+                      {bilan.type_bilan || 'Bilan biologique'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Prélèvement : {format(new Date(bilan.date_prelevement), 'dd MMMM yyyy', { locale: fr })} à {bilan.heure_prelevement}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {format(new Date(bilan.date_prelevement), 'dd MMM yyyy', { locale: fr })}
+                    </span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {bilan.heure_prelevement}
+                    </span>
+                  </div>
                 </div>
                 {bilan.prescripteur && (
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900">Dr. {bilan.prescripteur}</p>
+                  <div className="text-left sm:text-right">
+                    <p className="text-sm font-bold text-gray-900 flex items-center gap-1 sm:justify-end">
+                      <User className="w-4 h-4 text-gray-500" />
+                      Dr. {bilan.prescripteur}
+                    </p>
                     <p className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Prescripteur</p>
                   </div>
                 )}
@@ -105,52 +115,52 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
 
               {/* Résultats principaux */}
               {(bilan.creatinine || bilan.glycemie || bilan.crp || bilan.inr || bilan.nfs) && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mt-4">
                   {bilan.creatinine && (
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
-                      <p className="text-xs text-blue-700 font-semibold mb-1">Créatinine</p>
-                      <p className="text-lg font-bold text-blue-900">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2 sm:p-3 border border-blue-200">
+                      <p className="text-[10px] sm:text-xs text-blue-700 font-semibold mb-1">Créatinine</p>
+                      <p className="text-base sm:text-lg font-bold text-blue-900">
                         {bilan.creatinine}
-                        <span className="text-xs font-normal ml-1">mg/L</span>
+                        <span className="text-[10px] sm:text-xs font-normal ml-1">mg/L</span>
                       </p>
-                      <p className="text-[10px] text-blue-600 mt-0.5">Norme: 7-13</p>
+                      <p className="text-[9px] sm:text-[10px] text-blue-600 mt-0.5">Norme: 7-13</p>
                     </div>
                   )}
                   {bilan.glycemie && (
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
-                      <p className="text-xs text-green-700 font-semibold mb-1">Glycémie</p>
-                      <p className="text-lg font-bold text-green-900">
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2 sm:p-3 border border-green-200">
+                      <p className="text-[10px] sm:text-xs text-green-700 font-semibold mb-1">Glycémie</p>
+                      <p className="text-base sm:text-lg font-bold text-green-900">
                         {bilan.glycemie}
-                        <span className="text-xs font-normal ml-1">g/L</span>
+                        <span className="text-[10px] sm:text-xs font-normal ml-1">g/L</span>
                       </p>
-                      <p className="text-[10px] text-green-600 mt-0.5">Norme: 0.7-1.1</p>
+                      <p className="text-[9px] sm:text-[10px] text-green-600 mt-0.5">Norme: 0.7-1.1</p>
                     </div>
                   )}
                   {bilan.crp && (
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-3 border border-red-200">
-                      <p className="text-xs text-red-700 font-semibold mb-1">CRP</p>
-                      <p className="text-lg font-bold text-red-900">
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-2 sm:p-3 border border-red-200">
+                      <p className="text-[10px] sm:text-xs text-red-700 font-semibold mb-1">CRP</p>
+                      <p className="text-base sm:text-lg font-bold text-red-900">
                         {bilan.crp}
-                        <span className="text-xs font-normal ml-1">mg/L</span>
+                        <span className="text-[10px] sm:text-xs font-normal ml-1">mg/L</span>
                       </p>
-                      <p className="text-[10px] text-red-600 mt-0.5">Norme: &lt;5</p>
+                      <p className="text-[9px] sm:text-[10px] text-red-600 mt-0.5">Norme: &lt;5</p>
                     </div>
                   )}
                   {bilan.inr && (
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
-                      <p className="text-xs text-purple-700 font-semibold mb-1">INR</p>
-                      <p className="text-lg font-bold text-purple-900">{bilan.inr}</p>
-                      <p className="text-[10px] text-purple-600 mt-0.5">Norme: 0.8-1.2</p>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2 sm:p-3 border border-purple-200">
+                      <p className="text-[10px] sm:text-xs text-purple-700 font-semibold mb-1">INR</p>
+                      <p className="text-base sm:text-lg font-bold text-purple-900">{bilan.inr}</p>
+                      <p className="text-[9px] sm:text-[10px] text-purple-600 mt-0.5">Norme: 0.8-1.2</p>
                     </div>
                   )}
                   {bilan.nfs && (
-                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-3 border border-yellow-200">
-                      <p className="text-xs text-yellow-700 font-semibold mb-1">NFS</p>
-                      <p className="text-lg font-bold text-yellow-900">
+                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-2 sm:p-3 border border-yellow-200">
+                      <p className="text-[10px] sm:text-xs text-yellow-700 font-semibold mb-1">NFS</p>
+                      <p className="text-base sm:text-lg font-bold text-yellow-900">
                         {bilan.nfs}
-                        <span className="text-xs font-normal ml-1">×10³</span>
+                        <span className="text-[10px] sm:text-xs font-normal ml-1">×10³</span>
                       </p>
-                      <p className="text-[10px] text-yellow-600 mt-0.5">Norme: 4-10</p>
+                      <p className="text-[9px] sm:text-[10px] text-yellow-600 mt-0.5">Norme: 4-10</p>
                     </div>
                   )}
                 </div>
@@ -175,9 +185,7 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
               {/* Laboratoire */}
               {bilan.laboratoire && (
                 <p className="mt-3 text-xs text-gray-500 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+                  <Building2 className="w-4 h-4" />
                   {bilan.laboratoire}
                 </p>
               )}

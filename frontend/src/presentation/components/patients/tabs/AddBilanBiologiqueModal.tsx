@@ -37,14 +37,14 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white">
+        <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-4 sm:p-6 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
-                <Beaker className="w-7 h-7" />
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1 flex items-center gap-2">
+                <Beaker className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                 Nouveau bilan biologique
               </h2>
               <p className="text-blue-100 text-sm">
@@ -56,14 +56,14 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
               className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
               aria-label="Fermer le modal"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-lg p-2 sm:p-4">
             <p className="text-red-800 text-sm">❌ {error}</p>
           </div>
         )}
@@ -72,13 +72,13 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Informations générales */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-4">
               <h3 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 Informations du prélèvement
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:p-4">
                 <div>
                   <label htmlFor="date-prelevement" className="block text-sm font-medium text-gray-700 mb-2">
                     Date de prélèvement *
@@ -161,13 +161,13 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
             </div>
 
             {/* Paramètres biologiques */}
-            <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+            <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-2 sm:p-4">
               <h3 className="font-semibold text-cyan-900 mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5" />
                 Résultats biologiques
               </h3>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:p-4">
                 <div>
                   <label htmlFor="creatinine" className="block text-sm font-medium text-gray-700 mb-2">
                     Créatinine (mg/L)
@@ -263,7 +263,7 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
             </div>
 
             {/* Résultats et interprétation */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Résultats complets et interprétation
@@ -303,7 +303,7 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
         </form>
 
         {/* Footer */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex justify-end items-center gap-3">
+        <div className="border-t bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex justify-end items-center gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -314,7 +314,7 @@ export default function AddBilanBiologiqueModal({ patient, onClose, onSubmit }: 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm flex items-center gap-2"
+            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm flex items-center gap-2"
           >
             {loading ? (
               <>

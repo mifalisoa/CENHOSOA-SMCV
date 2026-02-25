@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePatients } from '../../hooks/usePatients';
 import type { Patient } from '../../../core/entities/Patient';
+import { 
+  User, 
+  Phone, 
+  Droplet, 
+  Ruler, 
+  Weight, 
+  Calendar,
+  FileText,
+  ChevronLeft,
+  Stethoscope,
+  Beaker,
+  Heart,
+  Syringe,
+  Pill,
+  FileCheck
+} from 'lucide-react';
 
 // Import des onglets
 import ObservationsTab from '../../components/patients/tabs/ObservationsTab';
@@ -20,6 +36,13 @@ type TabType =
   | 'traitement'
   | 'document'
   | 'compte-rendu';
+
+interface TabConfig {
+  id: TabType;
+  label: string;
+  shortLabel?: string;
+  icon: typeof Stethoscope;
+}
 
 export default function PatientDossierPage() {
   const { id } = useParams<{ id: string }>();
@@ -79,20 +102,21 @@ export default function PatientDossierPage() {
     return age;
   };
 
-  const tabs: { id: TabType; label: string; icon: string }[] = [
-    { id: 'observation-medicale', label: 'Observation médicale', icon: '🩺' },
-    { id: 'biologie', label: 'Biologie', icon: '🧪' },
-    { id: 'soins-medicaux', label: 'Soins médicaux', icon: '❤️' },
-    { id: 'soins-infirmiers', label: 'Soins infirmiers', icon: '💉' },
-    { id: 'traitement', label: 'Traitement', icon: '💊' },
-    { id: 'document', label: 'Document', icon: '📄' },
+  const tabs: TabConfig[] = [
+    { id: 'observation-medicale', label: 'Observation médicale', shortLabel: 'Observation', icon: Stethoscope },
+    { id: 'biologie', label: 'Biologie', icon: Beaker },
+    { id: 'soins-medicaux', label: 'Soins médicaux', shortLabel: 'S. Médicaux', icon: Heart },
+    { id: 'soins-infirmiers', label: 'Soins infirmiers', shortLabel: 'S. Infirmiers', icon: Syringe },
+    { id: 'traitement', label: 'Traitement', icon: Pill },
+    { id: 'document', label: 'Document', icon: FileText },
   ];
 
   if (patient?.statut_patient === 'hospitalise') {
     tabs.push({
       id: 'compte-rendu',
       label: 'Compte Rendu',
-      icon: '📝',
+      shortLabel: 'C. Rendu',
+      icon: FileCheck,
     });
   }
 
@@ -112,7 +136,7 @@ export default function PatientDossierPage() {
         </p>
         <button
           onClick={() => navigate('/patients-externes')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md"
         >
           Retour aux patients
         </button>
@@ -121,19 +145,19 @@ export default function PatientDossierPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+    <div className="space-y-4 md:space-y-6">
+      {/* Breadcrumb - Desktop only */}
+      <div className="hidden md:flex items-center gap-2 text-sm text-gray-600">
         <button
           onClick={() => navigate('/dashboard')}
-          className="hover:text-blue-600"
+          className="hover:text-blue-600 transition-colors"
         >
           Dashboard
         </button>
         <span>›</span>
         <button
           onClick={() => navigate('/patients-externes')}
-          className="hover:text-blue-600"
+          className="hover:text-blue-600 transition-colors"
         >
           Patients
         </button>
@@ -141,58 +165,75 @@ export default function PatientDossierPage() {
         <span className="text-gray-900 font-medium">Dossier Patient</span>
       </div>
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">
+      {/* Mobile Back Button */}
+      <div className="md:hidden">
+        <button
+          onClick={() => navigate('/patients-externes')}
+          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="font-medium">Retour</span>
+        </button>
+      </div>
+
+      {/* Header - Même gradient que sidebar admin */}
+      <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-white">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Avatar */}
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/20 flex items-center justify-center text-lg md:text-2xl font-bold flex-shrink-0">
               {patient.nom_patient?.charAt(0)}
               {patient.prenom_patient?.charAt(0)}
             </div>
 
-            <div>
-              <h1 className="text-2xl font-bold">
+            {/* Info */}
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold truncate">
                 {patient.nom_patient} {patient.prenom_patient}
               </h1>
 
-              <div className="flex items-center gap-4 mt-1 text-sm">
-                <span>
-                  📅 {calculateAge(patient.date_naissance)} ans
+              <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1 text-xs md:text-sm">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+                  {calculateAge(patient.date_naissance)} ans
                 </span>
-                <span>•</span>
-                <span>
-                  {patient.sexe_patient === 'M'
-                    ? '♂️ Homme'
-                    : '♀️ Femme'}
+                <span className="hidden sm:inline">•</span>
+                <span className="flex items-center gap-1">
+                  <User className="w-3 h-3 md:w-4 md:h-4" />
+                  {patient.sexe_patient === 'M' ? 'Homme' : 'Femme'}
                 </span>
-                <span>•</span>
-                <span>📋 {patient.num_dossier}</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="flex items-center gap-1">
+                  <FileText className="w-3 h-3 md:w-4 md:h-4" />
+                  {patient.num_dossier}
+                </span>
               </div>
             </div>
           </div>
 
+          {/* Action Button */}
           {patient.statut_patient === 'externe' && (
-            <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+            <button className="w-full md:w-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm md:text-base whitespace-nowrap">
               Hospitaliser
             </button>
           )}
         </div>
       </div>
 
-      {/* Infos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Infos Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <InfoCard
-          icon="📞"
+          icon={<Phone className="w-5 h-5 md:w-6 md:h-6" />}
           label="Téléphone"
           value={patient.tel_patient || 'Non renseigné'}
         />
         <InfoCard
-          icon="🩸"
+          icon={<Droplet className="w-5 h-5 md:w-6 md:h-6" />}
           label="Groupe sanguin"
           value={patient.groupe_sanguin || 'Inconnu'}
         />
         <InfoCard
-          icon="📏"
+          icon={<Ruler className="w-5 h-5 md:w-6 md:h-6" />}
           label="Taille"
           value={
             patient.taille_patient
@@ -201,7 +242,7 @@ export default function PatientDossierPage() {
           }
         />
         <InfoCard
-          icon="⚖️"
+          icon={<Weight className="w-5 h-5 md:w-6 md:h-6" />}
           label="Poids"
           value={
             patient.poids_patient
@@ -212,25 +253,81 @@ export default function PatientDossierPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-gray-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-4 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-lg">{tab.icon}</span>
-              <span className="font-medium">{tab.label}</span>
-            </button>
-          ))}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        {/* Tabs Header - Scroll horizontal sur mobile, flex sur desktop */}
+        <div className="border-b border-gray-200">
+          {/* Mobile & Tablet : Scroll horizontal */}
+          <div className="md:hidden overflow-x-auto scrollbar-hide">
+            <div className="flex min-w-max">
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                const isActive = activeTab === tab.id;
+                
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex items-center justify-center gap-2 px-3 sm:px-4 py-3 transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'text-blue-600 bg-gradient-to-b from-cyan-50 to-blue-50'
+                        : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
+                    }`}
+                    title={tab.label}
+                    aria-label={tab.label}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium">
+                      {tab.shortLabel || tab.label}
+                    </span>
+                    
+                    {/* Active indicator */}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop : Flex avec flex-1 pour remplir tout l'espace */}
+          <div className="hidden md:flex w-full">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = activeTab === tab.id;
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center justify-center gap-2 px-6 py-3 transition-all flex-1 ${
+                    isActive
+                      ? 'text-blue-600 bg-gradient-to-b from-cyan-50 to-blue-50'
+                      : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
+                  }`}
+                  title={tab.label}
+                  aria-label={tab.label}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <IconComponent className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm lg:text-base font-medium">
+                    <span className="hidden lg:inline">{tab.label}</span>
+                    <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
+                  </span>
+                  
+                  {/* Active indicator */}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="p-6">
+        {/* Tab Content */}
+        <div className="p-3 sm:p-4 md:p-6">
           {activeTab === 'observation-medicale' && (
             <ObservationsTab patient={patient} />
           )}
@@ -263,17 +360,17 @@ function InfoCard({
   label,
   value,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   value: string;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-sm font-semibold text-gray-900">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-2 md:gap-3">
+        <div className="text-blue-600 flex-shrink-0">{icon}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gray-500 truncate">{label}</p>
+          <p className="text-sm md:text-base font-semibold text-gray-900 truncate">
             {value}
           </p>
         </div>

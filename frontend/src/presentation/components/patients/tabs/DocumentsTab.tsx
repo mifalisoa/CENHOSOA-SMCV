@@ -4,6 +4,7 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateDocumentPatientDTO } from '../../../../core/entities/DocumentPatient';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Plus, FileText, File, Image as ImageIcon, Video, Calendar, Archive, User, Eye, Download, Trash2 } from 'lucide-react';
 import AddDocumentModal from './AddDocumentModal';
 
 interface DocumentsTabProps {
@@ -28,15 +29,15 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
   const getFileIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case 'pdf':
-        return '📄';
+        return <File className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />;
       case 'image':
       case 'jpg':
       case 'png':
-        return '🖼️';
+        return <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />;
       case 'video':
-        return '🎥';
+        return <Video className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />;
       default:
-        return '📎';
+        return <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />;
     }
   };
 
@@ -65,20 +66,19 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center border-b pb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Documents ({documents.length})
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 border-b pb-3 sm:pb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+          Documents <span className="text-gray-500">({documents.length})</span>
         </h3>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all shadow-sm font-medium flex items-center gap-2"
+          className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Ajouter un document
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">Ajouter un document</span>
+          <span className="sm:hidden">Ajouter</span>
         </button>
       </div>
 
@@ -93,31 +93,27 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
 
       {/* Liste des documents */}
       {documents.length === 0 ? (
-        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          <p className="text-sm text-gray-500 font-medium mb-3">Aucun document ajouté au dossier</p>
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 sm:p-12 text-center">
+          <FileText className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3" />
+          <p className="text-sm text-gray-500 font-medium mb-4">Aucun document ajouté au dossier</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md text-sm"
           >
             Ajouter le premier document
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {documents.map((doc) => (
             <div
               key={doc.id_document}
-              className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all group relative"
+              className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:shadow-lg transition-all group relative"
             >
               {/* Icône et Badge Type */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl" role="img" aria-label="file-icon">
-                    {getFileIcon(doc.type_fichier)}
-                  </span>
+                  {getFileIcon(doc.type_fichier)}
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                     doc.type_fichier === 'pdf' ? 'bg-red-100 text-red-700' :
                     doc.type_fichier === 'image' ? 'bg-blue-100 text-blue-700' :
@@ -131,10 +127,9 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
                   disabled={loading}
                   className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 disabled:opacity-50"
                   title="Supprimer"
+                  aria-label="Supprimer le document"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
@@ -157,23 +152,17 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
               {/* Métadonnées */}
               <div className="border-t border-gray-100 pt-3 mb-4 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>{format(new Date(doc.date_ajout), 'dd MMM yyyy', { locale: fr })}</span>
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{format(new Date(doc.date_ajout), 'dd MMM yyyy', { locale: fr })}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                  <span>{formatFileSize(doc.taille_fichier)}</span>
+                  <Archive className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{formatFileSize(doc.taille_fichier)}</span>
                 </div>
                 {doc.ajoute_par && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>{doc.ajoute_par}</span>
+                    <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{doc.ajoute_par}</span>
                   </div>
                 )}
               </div>
@@ -184,12 +173,9 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
                   href={doc.url_fichier}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 px-3 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white text-xs font-semibold rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all text-center shadow-sm flex items-center justify-center gap-1"
+                  className="flex-1 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all text-center shadow-sm flex items-center justify-center gap-1"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <Eye className="w-4 h-4" />
                   Ouvrir
                 </a>
                 <a
@@ -197,10 +183,9 @@ export default function DocumentsTab({ patient }: DocumentsTabProps) {
                   download={doc.nom_fichier}
                   className="px-3 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                   title="Télécharger"
+                  aria-label="Télécharger le document"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  <Download className="w-4 h-4" />
                 </a>
               </div>
             </div>
