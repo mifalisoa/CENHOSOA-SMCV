@@ -4,8 +4,12 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateSoinMedicalDTO } from '../../../../core/entities/SoinMedical';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Heart, Calendar, Clock, User, CheckCircle, FileText } from 'lucide-react';
+import { Plus, Heart, Calendar, Clock, User, CheckCircle, FileText, Download, FileArchive } from 'lucide-react';
 import AddSoinMedicalModal from './AddSoinMedicalModal';
+import { toast } from 'sonner';
+import { httpClient } from "../../../../infrastructure/http/axios.config";
+
+
 
 interface SoinsMedicauxTabProps {
   patient: Patient;
@@ -14,6 +18,8 @@ interface SoinsMedicauxTabProps {
 export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
   const { soins, loading, error, createSoin, verifySoin } = useSoinsMedicaux(patient.id_patient);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [downloading, setDownloading] = useState<number | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   const handleCreateSoin = async (data: CreateSoinMedicalDTO) => {
     await createSoin(data);
@@ -22,6 +28,63 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
 
   const handleVerify = async (id: number) => {
     await verifySoin(id);
+  };
+
+  // Télécharger un soin en PDF
+  const handleDownloadPDF = async (soinId: number) => {
+    setDownloading(soinId);
+    try {
+      const response = await httpClient.get(`/soins-medicaux/${soinId}/pdf`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `soin_medical_${soinId}_${patient.nom_patient}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('PDF téléchargé avec succès !');
+    } catch (err) {
+      console.error('Erreur téléchargement PDF:', err);
+      toast.error('Erreur lors du téléchargement du PDF');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  // Télécharger tous les soins en ZIP
+  const handleDownloadAllZIP = async () => {
+    if (soins.length === 0) {
+      toast.error('Aucun soin à télécharger');
+      return;
+    }
+
+    setDownloadingAll(true);
+    try {
+      const response = await httpClient.get(`/soins-medicaux/patient/${patient.id_patient}/zip`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `soins_medicaux_${patient.nom_patient}_${patient.prenom_patient}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`${soins.length} soin(s) téléchargé(s) !`);
+    } catch (err) {
+      console.error('Erreur téléchargement ZIP:', err);
+      toast.error('Erreur lors du téléchargement du ZIP');
+    } finally {
+      setDownloadingAll(false);
+    }
   };
 
   if (loading && soins.length === 0) {
@@ -43,18 +106,43 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 border-b pb-3 sm:pb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 sm:pb-4">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900">
           Soins médicaux <span className="text-gray-500">({soins.length})</span>
         </h3>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
-        >
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="hidden sm:inline">Nouveau soin</span>
-          <span className="sm:hidden">Nouveau</span>
-        </button>
+        
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {/* Bouton Tout télécharger (ZIP) */}
+          {soins.length > 0 && (
+            <button
+              onClick={handleDownloadAllZIP}
+              disabled={downloadingAll}
+              className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+            >
+              {downloadingAll ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span className="hidden sm:inline">Téléchargement...</span>
+                </>
+              ) : (
+                <>
+                  <FileArchive className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tout télécharger (ZIP)</span>
+                  <span className="sm:hidden">ZIP</span>
+                </>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm"
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Nouveau soin</span>
+            <span className="sm:hidden">Nouveau</span>
+          </button>
+        </div>
       </div>
 
       {/* Modal d'ajout */}
@@ -86,7 +174,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
               className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:shadow-md transition-all border-l-4 border-l-cyan-500"
             >
               {/* En-tête */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0 mb-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-cyan-100 text-cyan-800 flex items-center gap-1">
@@ -110,24 +198,41 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                     Réalisé par : <span className="text-gray-700">{soin.realise_par}</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => handleVerify(soin.id_soin_medical)}
-                  disabled={loading}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm whitespace-nowrap ${
-                    soin.verifie
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {soin.verifie ? (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Vérifié
-                    </span>
-                  ) : (
-                    'Marquer vérifié'
-                  )}
-                </button>
+
+                <div className="flex items-center gap-2">
+                  {/* Bouton PDF */}
+                  <button
+                    onClick={() => handleDownloadPDF(soin.id_soin_medical)}
+                    disabled={downloading === soin.id_soin_medical}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-sm font-medium flex items-center gap-1.5 text-xs disabled:opacity-50"
+                  >
+                    {downloading === soin.id_soin_medical ? (
+                      <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    <span className="hidden sm:inline">PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleVerify(soin.id_soin_medical)}
+                    disabled={loading}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm whitespace-nowrap ${
+                      soin.verifie
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {soin.verifie ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Vérifié
+                      </span>
+                    ) : (
+                      'Marquer vérifié'
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Détails des soins */}

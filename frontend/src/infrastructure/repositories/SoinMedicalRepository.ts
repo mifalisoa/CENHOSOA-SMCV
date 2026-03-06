@@ -1,8 +1,7 @@
-import { httpClient } from '../http/axios.config'; // Correction de l'import
+import { httpClient } from '../http/axios.config';
 import type { SoinMedical, CreateSoinMedicalDTO } from '../../core/entities/SoinMedical';
 import type { ISoinMedicalRepository } from '../../core/repositories/ISoinMedicalRepository';
 
-// Interface de réponse standardisée pour la couche infrastructure
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -11,9 +10,17 @@ interface ApiResponse<T> {
 
 export class SoinMedicalRepository implements ISoinMedicalRepository {
   async create(data: CreateSoinMedicalDTO): Promise<SoinMedical> {
+    // Convertir date + heure en ISO datetime
+    const isoDate = new Date(data.date_soin + 'T' + data.heure_soin + ':00Z').toISOString();
+    
+    const payload = {
+      ...data,
+      date_soin: isoDate,
+    };
+
     const response = await httpClient.post<ApiResponse<SoinMedical>>(
       '/soins-medicaux',
-      data
+      payload
     );
     return response.data.data;
   }
@@ -40,9 +47,20 @@ export class SoinMedicalRepository implements ISoinMedicalRepository {
   }
 
   async update(id: number, data: Partial<CreateSoinMedicalDTO>): Promise<SoinMedical> {
+    // Si date et heure fournis, convertir en ISO
+    let payload: any = { ...data };
+    
+    if (data.date_soin && data.heure_soin) {
+      const isoDate = new Date(data.date_soin + 'T' + data.heure_soin + ':00Z').toISOString();
+      payload = {
+        ...data,
+        date_soin: isoDate,
+      };
+    }
+
     const response = await httpClient.put<ApiResponse<SoinMedical>>(
       `/soins-medicaux/${id}`,
-      data
+      payload
     );
     return response.data.data;
   }

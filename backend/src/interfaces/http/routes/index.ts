@@ -16,7 +16,7 @@ import traitementRoutes from './traitement.routes';
 import documentPatientRoutes from './document-patient.routes';
 import compteRenduRoutes from './compte-rendu.routes';
 import bilanBiologiqueExportRoutes from './bilanBiologiqueExport.Routes';
-
+import soinMedicalExportRoutes from './soinMedicalExport.Routes';
 const router = Router();
 
 router.use((req, res, next) => {
@@ -44,5 +44,6 @@ router.use('/documents-patients', documentPatientRoutes);
 router.use('/comptes-rendus', compteRenduRoutes);
 
 router.use('/bilans-biologiques', bilanBiologiqueExportRoutes);
+router.use('/soins-medicaux', soinMedicalExportRoutes);
 
 export default router;
