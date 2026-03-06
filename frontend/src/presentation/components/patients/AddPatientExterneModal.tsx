@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User, MapPin, Phone, Shield } from 'lucide-react';
+import { X, User, MapPin, Shield, Stethoscope } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
@@ -20,7 +20,6 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     statut_patient: 'externe',
   });
 
-  // Fixed: Replaced 'any' with specific value type or unknown
   const handleChange = (field: keyof CreatePatientDTO, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -28,9 +27,10 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // ✅ Validation des champs obligatoires (sans personne_contact, tel_urgence)
     if (!formData.nom_patient || !formData.prenom_patient || !formData.date_naissance || 
-        !formData.adresse_patient || !formData.personne_contact || !formData.tel_urgence) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+        !formData.adresse_patient || !formData.medecin_traitant) {
+      toast.error('Veuillez remplir tous les champs obligatoires (*)');
       return;
     }
 
@@ -42,7 +42,6 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
       setFormData({ sexe_patient: 'M', statut_patient: 'externe' });
       onClose();
     } catch (err: unknown) {
-      // Fixed: Type-safe error handling
       const message = err instanceof Error ? err.message : 'Erreur lors de la création';
       toast.error(message);
     } finally {
@@ -56,18 +55,6 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     { value: 'FMILIF', label: 'FMILIF' },
     { value: 'OCONV', label: 'OCONV' },
     { value: 'PERS', label: 'PERS' },
-  ];
-
-  const groupesSanguins = [
-    { value: '', label: 'Non renseigné' },
-    { value: 'A+', label: 'A+' },
-    { value: 'A-', label: 'A-' },
-    { value: 'B+', label: 'B+' },
-    { value: 'B-', label: 'B-' },
-    { value: 'AB+', label: 'AB+' },
-    { value: 'AB-', label: 'AB-' },
-    { value: 'O+', label: 'O+' },
-    { value: 'O-', label: 'O-' },
   ];
 
   return (
@@ -87,18 +74,18 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 p-6 rounded-t-2xl text-white">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-6 rounded-t-2xl text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold">Ajouter un patient externe</h2>
-                    <p className="text-cyan-100 text-sm mt-1">Remplissez les informations du patient</p>
+                    <h2 className="text-2xl font-bold">Nouveau patient externe</h2>
+                    <p className="text-cyan-100 text-sm mt-1">Remplissez les 8 informations essentielles</p>
                   </div>
                   <button
                     onClick={onClose}
-                    title="Fermer" // Fixed: Added title for accessibility
+                    title="Fermer"
                     className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
                   >
                     <X className="w-6 h-6" />
@@ -107,15 +94,15 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto">
+                {/* Informations Personnelles */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <User className="w-5 h-5 text-cyan-600" />
                     Informations Personnelles
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Fixed: Wrapped Inputs in div/label because Input component doesn't accept 'label' prop */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Nom *</label>
+                      <label className="text-sm font-medium text-gray-700">Nom <span className="text-red-500">*</span></label>
                       <Input
                         value={formData.nom_patient || ''}
                         onChange={(e) => handleChange('nom_patient', e.target.value)}
@@ -124,7 +111,7 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Prénom *</label>
+                      <label className="text-sm font-medium text-gray-700">Prénom <span className="text-red-500">*</span></label>
                       <Input
                         value={formData.prenom_patient || ''}
                         onChange={(e) => handleChange('prenom_patient', e.target.value)}
@@ -133,16 +120,22 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Date de naissance *</label>
+                      <label className="text-sm font-medium text-gray-700">Date de naissance <span className="text-red-500">*</span></label>
                       <Input
                         type="date"
-                        value={formData.date_naissance || ''}
+                        value={
+                          formData.date_naissance 
+                            ? (typeof formData.date_naissance === 'string' 
+                                ? formData.date_naissance 
+                                : formData.date_naissance.toISOString().split('T')[0])
+                            : ''
+                        }
                         onChange={(e) => handleChange('date_naissance', e.target.value)}
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Sexe *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sexe <span className="text-red-500">*</span></label>
                       <div className="flex gap-4">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
@@ -171,6 +164,7 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                   </div>
                 </div>
 
+                {/* Coordonnées */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-cyan-600" />
@@ -178,7 +172,7 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2 space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Adresse *</label>
+                      <label className="text-sm font-medium text-gray-700">Adresse <span className="text-red-500">*</span></label>
                       <Input
                         value={formData.adresse_patient || ''}
                         onChange={(e) => handleChange('adresse_patient', e.target.value)}
@@ -195,59 +189,37 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                         placeholder="034 00 000 00"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Profession</label>
-                      <Input
-                        value={formData.profession || ''}
-                        onChange={(e) => handleChange('profession', e.target.value)}
-                        placeholder="Profession"
-                      />
-                    </div>
                   </div>
                 </div>
 
+                {/* Médecin traitant */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Phone className="w-5 h-5 text-cyan-600" />
-                    Contact d'urgence
+                    <Stethoscope className="w-5 h-5 text-cyan-600" />
+                    Suivi médical
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Personne à contacter *</label>
+                      <label className="text-sm font-medium text-gray-700">Médecin traitant <span className="text-red-500">*</span></label>
                       <Input
-                        value={formData.personne_contact || ''}
-                        onChange={(e) => handleChange('personne_contact', e.target.value)}
-                        placeholder="Nom de la personne"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Téléphone d'urgence *</label>
-                      <Input
-                        type="tel"
-                        value={formData.tel_urgence || ''}
-                        onChange={(e) => handleChange('tel_urgence', e.target.value)}
-                        placeholder="034 00 000 00"
+                        value={formData.medecin_traitant || ''}
+                        onChange={(e) => handleChange('medecin_traitant', e.target.value)}
+                        placeholder="Dr. Nom Prénom"
                         required
                       />
                     </div>
                   </div>
                 </div>
 
+                {/* Assurance */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-cyan-600" />
-                    Informations médicales
+                    Assurance
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <Select
-                      label="Groupe sanguin"
-                      value={formData.groupe_sanguin || ''}
-                      onChange={(e) => handleChange('groupe_sanguin', e.target.value)}
-                      options={groupesSanguins}
-                    />
-                    <Select
-                      label="Assurance"
+                      label="Type d'assurance"
                       value={formData.assurance || ''}
                       onChange={(e) => handleChange('assurance', e.target.value)}
                       options={assurances}
@@ -268,7 +240,7 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  className="px-6 bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
                   disabled={loading}
                 >
                   {loading ? 'Ajout en cours...' : 'Ajouter le patient'}

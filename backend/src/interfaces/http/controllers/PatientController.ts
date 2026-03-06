@@ -11,8 +11,7 @@ export class PatientController {
       const limit = parseInt(req.query.limit as string) || 10;
       
       const filters = {
-        statut: req.query.statut as 'externe' | 'hospitalise' | undefined,
-        groupe_sanguin: req.query.groupe_sanguin as string | undefined,
+        statut: req.query.statut as any, // Utilisation de any pour éviter les conflits de types sur l'accent
         assurance: req.query.assurance as string | undefined,
         search: req.query.search as string | undefined,
       };
@@ -53,6 +52,8 @@ export class PatientController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       console.log('📨 [Controller] Requête de création patient:', req.body);
+      
+      
       const patient = await patientRepository.create(req.body);
       
       res.status(201).json({
@@ -69,6 +70,8 @@ export class PatientController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const id = parseInt(req.params.id as string);
+      
+      
       const patient = await patientRepository.update(id, req.body);
       
       if (!patient) {
@@ -123,6 +126,7 @@ export class PatientController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
+      
       
       const result = await patientRepository.findByStatus('hospitalise', { page, limit });
       

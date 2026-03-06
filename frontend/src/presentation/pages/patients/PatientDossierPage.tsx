@@ -5,9 +5,6 @@ import type { Patient } from '../../../core/entities/Patient';
 import { 
   User, 
   Phone, 
-  Droplet, 
-  Ruler, 
-  Weight, 
   Calendar,
   FileText,
   ChevronLeft,
@@ -16,7 +13,8 @@ import {
   Heart,
   Syringe,
   Pill,
-  FileCheck
+  FileCheck,
+  Shield
 } from 'lucide-react';
 
 // Import des onglets
@@ -84,9 +82,10 @@ export default function PatientDossierPage() {
     fetchPatient();
   }, [id, getPatientById]);
 
-  const calculateAge = (dateNaissance: string) => {
+  // ✅ FIX: Accepter string | Date
+  const calculateAge = (dateNaissance: string | Date) => {
     const today = new Date();
-    const birthDate = new Date(dateNaissance);
+    const birthDate = typeof dateNaissance === 'string' ? new Date(dateNaissance) : dateNaissance;
     if (isNaN(birthDate.getTime())) return 0;
 
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -102,28 +101,35 @@ export default function PatientDossierPage() {
     return age;
   };
 
-  const tabs: TabConfig[] = [
-    { id: 'observation-medicale', label: 'Observation médicale', shortLabel: 'Observation', icon: Stethoscope },
-    { id: 'biologie', label: 'Biologie', icon: Beaker },
-    { id: 'soins-medicaux', label: 'Soins médicaux', shortLabel: 'S. Médicaux', icon: Heart },
-    { id: 'soins-infirmiers', label: 'Soins infirmiers', shortLabel: 'S. Infirmiers', icon: Syringe },
-    { id: 'traitement', label: 'Traitement', icon: Pill },
-    { id: 'document', label: 'Document', icon: FileText },
-  ];
+  const getTabs = (): TabConfig[] => {
+    const baseTabs: TabConfig[] = [
+      { id: 'observation-medicale', label: 'Observation médicale', shortLabel: 'Observation', icon: Stethoscope },
+      { id: 'biologie', label: 'Biologie', icon: Beaker },
+      { id: 'soins-medicaux', label: 'Soins médicaux', shortLabel: 'S. Médicaux', icon: Heart },
+      { id: 'soins-infirmiers', label: 'Soins infirmiers', shortLabel: 'S. Infirmiers', icon: Syringe },
+      { id: 'traitement', label: 'Traitement', icon: Pill },
+      { id: 'document', label: 'Document', icon: FileText },
+    ];
 
-  if (patient?.statut_patient === 'hospitalise') {
-    tabs.push({
-      id: 'compte-rendu',
-      label: 'Compte Rendu',
-      shortLabel: 'C. Rendu',
-      icon: FileCheck,
-    });
-  }
+    // ✅ FIX: Accepter avec ET sans accent
+    if (patient?.statut_patient === 'hospitalisé' || patient?.statut_patient === 'hospitalise') {
+      baseTabs.push({
+        id: 'compte-rendu',
+        label: "Compte Rendu d'Hospitalisation",
+        shortLabel: 'C. Rendu',
+        icon: FileCheck,
+      });
+    }
+
+    return baseTabs;
+  };
+
+  const tabs = getTabs();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-600"></div>
       </div>
     );
   }
@@ -156,10 +162,10 @@ export default function PatientDossierPage() {
         </button>
         <span>›</span>
         <button
-          onClick={() => navigate('/patients-externes')}
+          onClick={() => navigate((patient.statut_patient === 'hospitalisé' || patient.statut_patient === 'hospitalise') ? '/patients-hospitalises' : '/patients-externes')}
           className="hover:text-blue-600 transition-colors"
         >
-          Patients
+          {(patient.statut_patient === 'hospitalisé' || patient.statut_patient === 'hospitalise') ? 'Patients Hospitalisés' : 'Patients Externes'}
         </button>
         <span>›</span>
         <span className="text-gray-900 font-medium">Dossier Patient</span>
@@ -168,7 +174,7 @@ export default function PatientDossierPage() {
       {/* Mobile Back Button */}
       <div className="md:hidden">
         <button
-          onClick={() => navigate('/patients-externes')}
+          onClick={() => navigate((patient.statut_patient === 'hospitalisé' || patient.statut_patient === 'hospitalise') ? '/patients-hospitalises' : '/patients-externes')}
           className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -176,12 +182,16 @@ export default function PatientDossierPage() {
         </button>
       </div>
 
-      {/* Header - Même gradient que sidebar admin */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-white">
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Avatar */}
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/20 flex items-center justify-center text-lg md:text-2xl font-bold flex-shrink-0">
+            {/* Avatar - Couleur différente selon statut */}
+            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-lg md:text-2xl font-bold flex-shrink-0 ${
+              (patient.statut_patient === 'hospitalisé' || patient.statut_patient === 'hospitalise')
+                ? 'bg-gradient-to-br from-red-500 to-orange-600' 
+                : 'bg-white/20'
+            }`}>
               {patient.nom_patient?.charAt(0)}
               {patient.prenom_patient?.charAt(0)}
             </div>
@@ -220,41 +230,23 @@ export default function PatientDossierPage() {
         </div>
       </div>
 
-      {/* Infos Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* Infos Cards - ✅ SUPPRIMÉ groupe_sanguin, taille, poids */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
         <InfoCard
           icon={<Phone className="w-5 h-5 md:w-6 md:h-6" />}
           label="Téléphone"
           value={patient.tel_patient || 'Non renseigné'}
         />
         <InfoCard
-          icon={<Droplet className="w-5 h-5 md:w-6 md:h-6" />}
-          label="Groupe sanguin"
-          value={patient.groupe_sanguin || 'Inconnu'}
-        />
-        <InfoCard
-          icon={<Ruler className="w-5 h-5 md:w-6 md:h-6" />}
-          label="Taille"
-          value={
-            patient.taille_patient
-              ? `${patient.taille_patient} cm`
-              : '-'
-          }
-        />
-        <InfoCard
-          icon={<Weight className="w-5 h-5 md:w-6 md:h-6" />}
-          label="Poids"
-          value={
-            patient.poids_patient
-              ? `${patient.poids_patient} kg`
-              : '-'
-          }
+          icon={<Shield className="w-5 h-5 md:w-6 md:h-6" />}
+          label="Assurance"
+          value={patient.assurance || 'Aucune'}
         />
       </div>
 
       {/* Tabs */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        {/* Tabs Header - Scroll horizontal sur mobile, flex sur desktop */}
+        {/* Tabs Header */}
         <div className="border-b border-gray-200">
           {/* Mobile & Tablet : Scroll horizontal */}
           <div className="md:hidden overflow-x-auto scrollbar-hide">
@@ -272,16 +264,12 @@ export default function PatientDossierPage() {
                         ? 'text-blue-600 bg-gradient-to-b from-cyan-50 to-blue-50'
                         : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
                     }`}
-                    title={tab.label}
-                    aria-label={tab.label}
-                    aria-current={isActive ? 'page' : undefined}
                   >
                     <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium">
                       {tab.shortLabel || tab.label}
                     </span>
                     
-                    {/* Active indicator */}
                     {isActive && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></span>
                     )}
@@ -291,7 +279,7 @@ export default function PatientDossierPage() {
             </div>
           </div>
 
-          {/* Desktop : Flex avec flex-1 pour remplir tout l'espace */}
+          {/* Desktop */}
           <div className="hidden md:flex w-full">
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
@@ -306,9 +294,6 @@ export default function PatientDossierPage() {
                       ? 'text-blue-600 bg-gradient-to-b from-cyan-50 to-blue-50'
                       : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
                   }`}
-                  title={tab.label}
-                  aria-label={tab.label}
-                  aria-current={isActive ? 'page' : undefined}
                 >
                   <IconComponent className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm lg:text-base font-medium">
@@ -316,7 +301,6 @@ export default function PatientDossierPage() {
                     <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
                   </span>
                   
-                  {/* Active indicator */}
                   {isActive && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-600"></span>
                   )}
@@ -328,51 +312,27 @@ export default function PatientDossierPage() {
 
         {/* Tab Content */}
         <div className="p-3 sm:p-4 md:p-6">
-          {activeTab === 'observation-medicale' && (
-            <ObservationsTab patient={patient} />
-          )}
-          {activeTab === 'biologie' && (
-            <BilansBiologiquesTab patient={patient} />
-          )}
-          {activeTab === 'soins-medicaux' && (
-            <SoinsMedicauxTab patient={patient} />
-          )}
-          {activeTab === 'soins-infirmiers' && (
-            <SoinsInfirmiersTab patient={patient} />
-          )}
-          {activeTab === 'traitement' && (
-            <TraitementsTab patient={patient} />
-          )}
-          {activeTab === 'document' && (
-            <DocumentsTab patient={patient} />
-          )}
-          {activeTab === 'compte-rendu' && (
-            <ComptesRendusTab patient={patient} />
-          )}
+          {activeTab === 'observation-medicale' && <ObservationsTab patient={patient} />}
+          {activeTab === 'biologie' && <BilansBiologiquesTab patient={patient} />}
+          {activeTab === 'soins-medicaux' && <SoinsMedicauxTab patient={patient} />}
+          {activeTab === 'soins-infirmiers' && <SoinsInfirmiersTab patient={patient} />}
+          {activeTab === 'traitement' && <TraitementsTab patient={patient} />}
+          {activeTab === 'document' && <DocumentsTab patient={patient} />}
+          {activeTab === 'compte-rendu' && <ComptesRendusTab patient={patient} />}
         </div>
       </div>
     </div>
   );
 }
 
-function InfoCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 md:gap-3">
         <div className="text-blue-600 flex-shrink-0">{icon}</div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 truncate">{label}</p>
-          <p className="text-sm md:text-base font-semibold text-gray-900 truncate">
-            {value}
-          </p>
+          <p className="text-sm md:text-base font-semibold text-gray-900 truncate">{value}</p>
         </div>
       </div>
     </div>

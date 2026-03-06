@@ -12,11 +12,9 @@ export class PostgresPatientRepository implements IPatientRepository {
     const query = `
       INSERT INTO patient (
         num_dossier, nom_patient, prenom_patient, date_naissance, sexe_patient,
-        adresse_patient, tel_patient, profession, groupe_sanguin,
-        taille_patient, poids_patient, allergies, antecedents,
-        assurance, num_assurance, personne_contact, tel_urgence, statut_patient
+        adresse_patient, tel_patient, assurance, statut_patient, medecin_traitant, lit
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
 
@@ -31,21 +29,14 @@ export class PostgresPatientRepository implements IPatientRepository {
       data.sexe_patient,
       data.adresse_patient,
       data.tel_patient || null,
-      data.profession || null,
-      data.groupe_sanguin || null,
-      data.taille_patient || null,
-      data.poids_patient || null,
-      data.allergies || null,
-      data.antecedents || null,
       data.assurance || null,
-      data.num_assurance || null,
-      data.personne_contact,
-      data.tel_urgence,
-      data.statut_patient || 'externe',
+      data.statut_patient || 'externe', // Utilise la valeur brute sans accent
+      data.medecin_traitant,
+      data.lit || null
     ];
 
     const result = await this.pool.query(query, values);
-    console.log('✅ [Repository] Patient créé:', result.rows[0]);
+    console.log('✅ [Repository] Patient créé avec succès');
     return result.rows[0];
   }
 
@@ -78,11 +69,6 @@ export class PostgresPatientRepository implements IPatientRepository {
         queryParams.push(filters.statut);
       }
       
-      if (filters.groupe_sanguin) {
-        conditions.push(`groupe_sanguin = $${paramIndex++}`);
-        queryParams.push(filters.groupe_sanguin);
-      }
-      
       if (filters.assurance) {
         conditions.push(`assurance = $${paramIndex++}`);
         queryParams.push(filters.assurance);
@@ -108,7 +94,6 @@ export class PostgresPatientRepository implements IPatientRepository {
     const countResult = await this.pool.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].count);
 
-    queryParams.push(limit, offset);
     const query = `
       SELECT * FROM patient
       ${whereClause}
@@ -116,7 +101,7 @@ export class PostgresPatientRepository implements IPatientRepository {
       LIMIT $${paramIndex++} OFFSET $${paramIndex}
     `;
     
-    const result = await this.pool.query(query, queryParams);
+    const result = await this.pool.query(query, [...queryParams, limit, offset]);
 
     return {
       data: result.rows,
@@ -129,7 +114,7 @@ export class PostgresPatientRepository implements IPatientRepository {
     };
   }
 
-  async findByStatus(status: 'externe' | 'hospitalise', params: PaginationParams): Promise<PaginatedResponse<Patient>> {
+  async findByStatus(status: string, params: PaginationParams): Promise<PaginatedResponse<Patient>> {
     const page = params.page || 1;
     const limit = params.limit || 10;
     const offset = (page - 1) * limit;
@@ -178,7 +163,6 @@ export class PostgresPatientRepository implements IPatientRepository {
     const values: any[] = [];
     let paramCounter = 1;
 
-    // Construire dynamiquement la requête UPDATE
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = $${paramCounter++}`);
@@ -190,15 +174,14 @@ export class PostgresPatientRepository implements IPatientRepository {
       return this.findById(id);
     }
 
-    values.push(id);
-
     const query = `
       UPDATE patient
       SET ${fields.join(', ')}
       WHERE id_patient = $${paramCounter}
       RETURNING *
     `;
-
+    
+    values.push(id);
     const result = await this.pool.query(query, values);
     return result.rows[0] || null;
   }

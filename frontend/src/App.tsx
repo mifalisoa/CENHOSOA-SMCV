@@ -7,6 +7,7 @@ import AdminLayout from './presentation/components/layout/AdminLayout';
 import DashboardHome from './presentation/pages/dashboard/sections/admin/DashboardHome';
 import PatientsExternesView from './presentation/pages/dashboard/sections/admin/PatientsExternesView';
 import PatientDossierPage from './presentation/pages/patients/PatientDossierPage';
+import PatientsHospitalises from './presentation/pages/dashboard/sections/admin/PatientsHospitalises';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardHome />} />
             <Route path="/patients-externes" element={<PatientsExternesView />} />
-            <Route path="/patients-hospitalises" element={<div className="p-8">Patients hospitalisés</div>} />
+            <Route path="/patients-hospitalises" element={<PatientsHospitalises />} />
             <Route path="/users" element={<div className="p-8">Utilisateurs</div>} />
             <Route path="/beds" element={<div className="p-8">Lits</div>} />
             <Route path="/statistics" element={<div className="p-8">Statistiques</div>} />

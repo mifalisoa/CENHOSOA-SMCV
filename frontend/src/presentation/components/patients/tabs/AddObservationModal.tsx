@@ -30,6 +30,23 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
     medecin: '',
   });
 
+  // Calcul automatique de l'IMC quand poids ou taille change
+  const calculateIMC = (poids?: number, taille?: number): number | undefined => {
+    if (!poids || !taille || poids <= 0 || taille <= 0) return undefined;
+    const tailleEnMetres = taille / 100;
+    const imc = poids / (tailleEnMetres * tailleEnMetres);
+    return Math.round(imc * 10) / 10; // Arrondi à 1 décimale
+  };
+
+  // Obtenir l'indicateur IMC
+  const getIMCIndicator = (imc?: number): string => {
+    if (!imc) return '';
+    if (imc < 18.5) return '⚠️ Maigreur';
+    if (imc < 25) return '✅ Normal';
+    if (imc < 30) return '⚠️ Surpoids';
+    return '⚠️ Obésité';
+  };
+
   const steps: StepConfig[] = [
     { id: 'info', label: 'Informations', icon: FileText },
     { id: 'antecedents', label: 'Antécédents', icon: Activity },
@@ -40,7 +57,47 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
 
+  // Validation des champs requis par étape
+  const validateStep = (stepId: Step): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    switch (stepId) {
+      case 'info':
+        if (!formData.date_observation) errors.push('Date d\'observation');
+        if (!formData.heure_observation) errors.push('Heure');
+        if (formData.type_observation === 'externe' && !formData.motif_consultation) {
+          errors.push('Motif de consultation');
+        }
+        if (formData.type_observation === 'hospitalise' && !formData.motif_hospitalisation) {
+          errors.push('Motif d\'hospitalisation');
+        }
+        break;
+
+      case 'synthese':
+        if (!formData.diagnostic_retenu) errors.push('Diagnostic retenu');
+        if (!formData.cat) errors.push('Conduite à tenir (CAT)');
+        if (!formData.medecin) errors.push('Médecin traitant');
+        break;
+
+      // Les autres étapes n'ont pas de champs obligatoires
+      default:
+        break;
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleNext = () => {
+    // Valider l'étape actuelle avant de passer à la suivante
+    const validation = validateStep(currentStep);
+    
+    if (!validation.isValid) {
+      setError(`Veuillez remplir les champs obligatoires : ${validation.errors.join(', ')}`);
+      return;
+    }
+
+    // Effacer l'erreur et passer à l'étape suivante
+    setError(null);
     if (currentStepIndex < steps.length - 1) {
       setCurrentStep(steps[currentStepIndex + 1].id);
     }
@@ -54,11 +111,55 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation finale de l'étape synthèse
+    const validation = validateStep('synthese');
+    if (!validation.isValid) {
+      setError(`Champs obligatoires manquants : ${validation.errors.join(', ')}`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      await onSubmit(formData as CreateObservationDTO);
+      // Créer un payload complet avec tous les champs (même vides)
+      const cleanPayload: CreateObservationDTO = {
+        id_patient: formData.id_patient!,
+        type_observation: formData.type_observation!,
+        date_observation: formData.date_observation!,
+        heure_observation: formData.heure_observation!,
+        medecin: formData.medecin || '',
+        
+        // Champs spécifiques au type
+        motif_consultation: formData.motif_consultation || undefined,
+        motif_hospitalisation: formData.motif_hospitalisation || undefined,
+        
+        // Champs optionnels
+        histoire_maladie: formData.histoire_maladie || undefined,
+        date_entree: formData.date_entree || undefined,
+        diagnostic_entree: formData.diagnostic_entree || undefined,
+        
+        // Antécédents
+        antecedents_cmo: formData.antecedents_cmo || undefined,
+        antecedents_gmo: formData.antecedents_gmo || undefined,
+        antecedents_che: formData.antecedents_che || undefined,
+        
+        // Examens
+        examen_general: formData.examen_general || undefined,
+        examen_physique_central: formData.examen_physique_central || undefined,
+        examen_physique_peripherique: formData.examen_physique_peripherique || undefined,
+        
+        // Synthèse
+        resume_syndromique: formData.resume_syndromique || undefined,
+        hypotheses_diagnostiques: formData.hypotheses_diagnostiques || undefined,
+        resultats_examens_paracliniques: formData.resultats_examens_paracliniques || undefined,
+        diagnostic_retenu: formData.diagnostic_retenu || '',
+        cat: formData.cat || '',
+        evolution_quotidienne: formData.evolution_quotidienne || undefined,
+      };
+
+      await onSubmit(cleanPayload);
       onClose();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création';
@@ -143,7 +244,7 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                 <div>
                   <label htmlFor="date-observation" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    Date d'observation *
+                    Date d'observation <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="date-observation"
@@ -151,13 +252,15 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                     required
                     value={formData.date_observation || ''}
                     onChange={(e) => setFormData({ ...formData, date_observation: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      !formData.date_observation ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
                 </div>
                 <div>
                   <label htmlFor="heure-observation" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    Heure *
+                    Heure <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="heure-observation"
@@ -165,14 +268,16 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                     required
                     value={formData.heure_observation || ''}
                     onChange={(e) => setFormData({ ...formData, heure_observation: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      !formData.heure_observation ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                   />
                 </div>
               </div>
 
               <div>
                 <label htmlFor="motif" className="block text-sm font-medium text-gray-700 mb-2">
-                  Motif {formData.type_observation === 'externe' ? 'de consultation' : "d'hospitalisation"} *
+                  Motif {formData.type_observation === 'externe' ? 'de consultation' : "d'hospitalisation"} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="motif"
@@ -184,7 +289,12 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                     [formData.type_observation === 'externe' ? 'motif_consultation' : 'motif_hospitalisation']: e.target.value
                   })}
                   placeholder="Ex: Douleur thoracique, fièvre persistante..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    (formData.type_observation === 'externe' && !formData.motif_consultation) ||
+                    (formData.type_observation === 'hospitalise' && !formData.motif_hospitalisation)
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
                 />
               </div>
 
@@ -436,10 +546,20 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                     type="number"
                     step="0.1"
                     value={formData.examen_general?.poids || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      examen_general: { ...formData.examen_general, poids: parseFloat(e.target.value) }
-                    })}
+                    onChange={(e) => {
+                      const nouveauPoids = parseFloat(e.target.value) || undefined;
+                      const taille = formData.examen_general?.taille;
+                      const imc = calculateIMC(nouveauPoids, taille);
+                      
+                      setFormData({
+                        ...formData,
+                        examen_general: { 
+                          ...formData.examen_general, 
+                          poids: nouveauPoids,
+                          imc 
+                        }
+                      });
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -452,28 +572,38 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                     id="taille"
                     type="number"
                     value={formData.examen_general?.taille || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      examen_general: { ...formData.examen_general, taille: parseFloat(e.target.value) }
-                    })}
+                    onChange={(e) => {
+                      const nouvelleTaille = parseFloat(e.target.value) || undefined;
+                      const poids = formData.examen_general?.poids;
+                      const imc = calculateIMC(poids, nouvelleTaille);
+                      
+                      setFormData({
+                        ...formData,
+                        examen_general: { 
+                          ...formData.examen_general, 
+                          taille: nouvelleTaille,
+                          imc 
+                        }
+                      });
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label htmlFor="imc" className="block text-sm font-medium text-gray-700 mb-2">IMC</label>
+                  <label htmlFor="imc" className="block text-sm font-medium text-gray-700 mb-2">IMC (calculé)</label>
                   <input
                     id="imc"
                     type="number"
                     step="0.1"
                     value={formData.examen_general?.imc || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      examen_general: { ...formData.examen_general, imc: parseFloat(e.target.value) }
-                    })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    disabled
-                    title="Calculé automatiquement"
+                    readOnly
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                    title="Calculé automatiquement à partir du poids et de la taille"
+                    placeholder="Auto"
                   />
+                  <p className="text-xs text-gray-500 mt-1 min-h-[20px]">
+                    {getIMCIndicator(formData.examen_general?.imc)}
+                  </p>
                 </div>
               </div>
 
@@ -803,19 +933,26 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
               </div>
 
               <div>
-                <label htmlFor="diag-retenu" className="block text-sm font-medium text-gray-700 mb-2">Diagnostic retenu *</label>
+                <label htmlFor="diag-retenu" className="block text-sm font-medium text-gray-700 mb-2">
+                  Diagnostic retenu <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="diag-retenu"
                   type="text"
                   required
                   value={formData.diagnostic_retenu || ''}
                   onChange={(e) => setFormData({ ...formData, diagnostic_retenu: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ex: Pneumonie aiguë communautaire"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    !formData.diagnostic_retenu ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="cat" className="block text-sm font-medium text-gray-700 mb-2">Conduite à tenir (CAT) *</label>
+                <label htmlFor="cat" className="block text-sm font-medium text-gray-700 mb-2">
+                  Conduite à tenir (CAT) <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   id="cat"
                   rows={4}
@@ -823,7 +960,9 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                   value={formData.cat || ''}
                   onChange={(e) => setFormData({ ...formData, cat: e.target.value })}
                   placeholder="Prescriptions, examens complémentaires, orientation..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 resize-none ${
+                    !formData.cat ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
               </div>
 
@@ -839,7 +978,9 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
               </div>
 
               <div>
-                <label htmlFor="medecin" className="block text-sm font-medium text-gray-700 mb-2">Médecin traitant *</label>
+                <label htmlFor="medecin" className="block text-sm font-medium text-gray-700 mb-2">
+                  Médecin traitant <span className="text-red-500">*</span>
+                </label>
                 <input
                   id="medecin"
                   type="text"
@@ -847,7 +988,9 @@ export default function AddObservationModal({ patient, onClose, onSubmit }: AddO
                   value={formData.medecin || ''}
                   onChange={(e) => setFormData({ ...formData, medecin: e.target.value })}
                   placeholder="Dr. Nom Prénom"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    !formData.medecin ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                 />
               </div>
             </div>

@@ -50,7 +50,7 @@ export class CreateAdmission {
         }
 
         // 7. Mettre à jour le statut du patient
-        await this.patientRepository.update(data.id_patient, { statut_patient: 'hospitalise' });
+        await this.patientRepository.update(data.id_patient, { statut_patient: 'hospitalisé' });
 
         return admission;
     }
