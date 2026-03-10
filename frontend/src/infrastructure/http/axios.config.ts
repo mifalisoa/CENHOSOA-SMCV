@@ -11,7 +11,7 @@ class HttpClient {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 10000,
+      timeout: 60000,
     });
 
     this.setupInterceptors();
@@ -26,11 +26,16 @@ class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // ✅ AJOUT : Log pour debug
+        // ✅ CORRECTION : Supprimer Content-Type pour FormData
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
+        }
+        
+        // Log pour debug
         console.log('📤 [HTTP] Requête:', {
           method: config.method?.toUpperCase(),
           url: config.url,
-          data: config.data,
+          data: config.data instanceof FormData ? 'FormData' : config.data,
           headers: config.headers,
         });
         
@@ -45,7 +50,6 @@ class HttpClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        // ✅ AJOUT : Log pour debug
         console.log('📥 [HTTP] Réponse:', {
           status: response.status,
           data: response.data,

@@ -5,6 +5,7 @@ import { env } from './config/env';
 import { testConnection } from './config/database';
 import routes from './interfaces/http/routes';
 import { errorMiddleware } from './interfaces/http/middlewares/error.middleware';
+import path from 'path';
 
 const app = express();
 
@@ -37,6 +38,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ LOG DES REQUÊTES (pour debug)

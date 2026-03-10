@@ -6,11 +6,18 @@ import {
   Clock, 
   Waves, 
   Radio, 
-  Stethoscope, 
-  Calendar, 
-  AlertCircle 
+  Stethoscope 
 } from 'lucide-react';
 import { Card, CardContent } from '../../../../components/common/Card';
+
+// ✅ Définition d'une interface pour typer les classes de couleurs (Corrige l'erreur ESLint "any")
+interface ColorConfig {
+  bg: string;
+  text: string;
+  border: string;
+  icon: string;
+  iconBg: string;
+}
 
 export default function DashboardHome() {
   // Animation variants
@@ -24,7 +31,7 @@ export default function DashboardHome() {
     show: { opacity: 1, y: 0 }
   };
 
-  // ✅ AJOUT DES DONNÉES - Patients Hospitalisés (6 KPIs)
+  // ✅ Données - Patients Hospitalisés
   const patientsHospitalises = [
     {
       icon: Heart,
@@ -88,7 +95,7 @@ export default function DashboardHome() {
     }
   ];
 
-  // ✅ AJOUT DES DONNÉES - Patients Externes (5 KPIs)
+  // ✅ Données - Patients Externes
   const patientsExternes = [
     {
       icon: Stethoscope,
@@ -142,8 +149,9 @@ export default function DashboardHome() {
     }
   ];
 
-  const getColorClasses = (color: string) => {
-    const colors: Record<string, any> = {
+  // ✅ Correction du type de retour (ColorConfig au lieu de any)
+  const getColorClasses = (color: string): ColorConfig => {
+    const colors: Record<string, ColorConfig> = {
       cyan: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', icon: 'text-cyan-600', iconBg: 'bg-white' },
       red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: 'text-red-600', iconBg: 'bg-white' },
       gray: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', icon: 'text-gray-500', iconBg: 'bg-white' }
@@ -154,7 +162,7 @@ export default function DashboardHome() {
   return (
     <div className="space-y-10 p-6">
       
-      {/* SECTION 1: Patients Hospitalisés (6 colonnes) */}
+      {/* SECTION 1: Patients Hospitalisés */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center">
@@ -199,7 +207,7 @@ export default function DashboardHome() {
         </motion.div>
       </section>
 
-      {/* SECTION 2: Patients Externes (5 colonnes) */}
+      {/* SECTION 2: Patients Externes */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center">

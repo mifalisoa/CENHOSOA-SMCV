@@ -14,8 +14,11 @@ import {
   Syringe,
   Pill,
   FileCheck,
-  Shield
+  Shield,
+  FileArchive
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { httpClient } from '../../../infrastructure/http/axios.config';
 
 // Import des onglets
 import ObservationsTab from '../../components/patients/tabs/ObservationsTab';
@@ -25,6 +28,10 @@ import SoinsInfirmiersTab from '../../components/patients/tabs/SoinsInfirmiersTa
 import TraitementsTab from '../../components/patients/tabs/TraitementsTab';
 import DocumentsTab from '../../components/patients/tabs/DocumentsTab';
 import ComptesRendusTab from '../../components/patients/tabs/ComptesRendusTab';
+
+// Import des modals de transfert
+import HospitaliserModal from "../../components/modals/HospitaliserModal";
+import RendreExterneModal from "../../components/modals/RendreExterneModal";
 
 type TabType =
   | 'observation-medicale'
@@ -51,6 +58,9 @@ export default function PatientDossierPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('observation-medicale');
+  const [downloadingDossier, setDownloadingDossier] = useState(false);
+  const [showHospitaliserModal, setShowHospitaliserModal] = useState(false);
+  const [showRendreExterneModal, setShowRendreExterneModal] = useState(false);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -82,7 +92,48 @@ export default function PatientDossierPage() {
     fetchPatient();
   }, [id, getPatientById]);
 
-  // ✅ FIX: Accepter string | Date
+  // Télécharger tout le dossier patient en ZIP
+  const handleDownloadAllDossier = async () => {
+    if (!patient) return;
+
+    setDownloadingDossier(true);
+    try {
+      const response = await httpClient.get(`/patients/${patient.id_patient}/dossier-complet/zip`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dossier_complet_${patient.nom_patient}_${patient.prenom_patient}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Dossier complet téléchargé !');
+    } catch (err) {
+      console.error('Erreur téléchargement dossier:', err);
+      toast.error('Erreur lors du téléchargement du dossier');
+    } finally {
+      setDownloadingDossier(false);
+    }
+  };
+
+  // Rafraîchir les données du patient après un transfert
+  const handleTransferSuccess = async () => {
+    if (!id) return;
+    
+    try {
+      const data = await getPatientById(parseInt(id));
+      if (data) {
+        setPatient(data);
+      }
+    } catch (error) {
+      console.error('Erreur rechargement patient:', error);
+    }
+  };
+
   const calculateAge = (dateNaissance: string | Date) => {
     const today = new Date();
     const birthDate = typeof dateNaissance === 'string' ? new Date(dateNaissance) : dateNaissance;
@@ -111,7 +162,6 @@ export default function PatientDossierPage() {
       { id: 'document', label: 'Document', icon: FileText },
     ];
 
-    // ✅ FIX: Accepter avec ET sans accent
     if (patient?.statut_patient === 'hospitalisé' || patient?.statut_patient === 'hospitalise') {
       baseTabs.push({
         id: 'compte-rendu',
@@ -182,12 +232,13 @@ export default function PatientDossierPage() {
         </button>
       </div>
 
-      {/* Header */}
+      {/* Header - TOUT SUR UNE LIGNE */}
       <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg p-4 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-white">
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Avatar - Couleur différente selon statut */}
-            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-lg md:text-2xl font-bold flex-shrink-0 ${
+        <div className="flex items-center justify-between gap-4 text-white">
+          {/* Nom + Infos */}
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+            {/* Avatar */}
+            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl font-bold flex-shrink-0 ${
               (patient.statut_patient === 'hospitalisé' || patient.statut_patient === 'hospitalise')
                 ? 'bg-gradient-to-br from-red-500 to-orange-600' 
                 : 'bg-white/20'
@@ -196,52 +247,85 @@ export default function PatientDossierPage() {
               {patient.prenom_patient?.charAt(0)}
             </div>
 
-            {/* Info */}
-            <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold truncate">
+            {/* Toutes les infos en ligne */}
+            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm min-w-0">
+              <span className="font-bold text-base md:text-lg truncate">
                 {patient.nom_patient} {patient.prenom_patient}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1 text-xs md:text-sm">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                  {calculateAge(patient.date_naissance)} ans
-                </span>
-                <span className="hidden sm:inline">•</span>
-                <span className="flex items-center gap-1">
-                  <User className="w-3 h-3 md:w-4 md:h-4" />
-                  {patient.sexe_patient === 'M' ? 'Homme' : 'Femme'}
-                </span>
-                <span className="hidden sm:inline">•</span>
-                <span className="flex items-center gap-1">
-                  <FileText className="w-3 h-3 md:w-4 md:h-4" />
-                  {patient.num_dossier}
-                </span>
-              </div>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                {calculateAge(patient.date_naissance)} ans
+              </span>
+              <span>•</span>
+              <span>{patient.sexe_patient === 'M' ? 'Homme' : 'Femme'}</span>
+              <span>•</span>
+              <span>{patient.num_dossier}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:flex items-center gap-1">
+                <Phone className="w-3 h-3" />
+                {patient.tel_patient || 'Non renseigné'}
+              </span>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                {patient.assurance || 'Aucune'}
+              </span>
             </div>
           </div>
 
-          {/* Action Button */}
-          {patient.statut_patient === 'externe' && (
-            <button className="w-full md:w-auto px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm md:text-base whitespace-nowrap">
-              Hospitaliser
+          {/* Boutons d'action */}
+          <div className="flex gap-2 flex-shrink-0">
+            {/* Bouton ZIP global */}
+            <button 
+              onClick={handleDownloadAllDossier}
+              disabled={downloadingDossier}
+              className="hidden md:flex px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all text-sm font-medium shadow-md items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+            >
+              {downloadingDossier ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Téléchargement...
+                </>
+              ) : (
+                <>
+                  <FileArchive className="w-4 h-4" />
+                  Tout télécharger
+                </>
+              )}
             </button>
-          )}
-        </div>
-      </div>
 
-      {/* Infos Cards - ✅ SUPPRIMÉ groupe_sanguin, taille, poids */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4">
-        <InfoCard
-          icon={<Phone className="w-5 h-5 md:w-6 md:h-6" />}
-          label="Téléphone"
-          value={patient.tel_patient || 'Non renseigné'}
-        />
-        <InfoCard
-          icon={<Shield className="w-5 h-5 md:w-6 md:h-6" />}
-          label="Assurance"
-          value={patient.assurance || 'Aucune'}
-        />
+            {/* Bouton ZIP mobile */}
+            <button 
+              onClick={handleDownloadAllDossier}
+              disabled={downloadingDossier}
+              className="md:hidden p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all shadow-md disabled:opacity-50"
+              title="Tout télécharger"
+            >
+              {downloadingDossier ? (
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              ) : (
+                <FileArchive className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Bouton statut */}
+            {patient.statut_patient === 'externe' ? (
+              <button 
+                onClick={() => setShowHospitaliserModal(true)}
+                className="px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                Hospitaliser
+              </button>
+            ) : (
+              <button 
+                onClick={() => setShowRendreExterneModal(true)}
+                className="px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                Rendre externe
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -321,20 +405,23 @@ export default function PatientDossierPage() {
           {activeTab === 'compte-rendu' && <ComptesRendusTab patient={patient} />}
         </div>
       </div>
-    </div>
-  );
-}
 
-function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-2 md:gap-3">
-        <div className="text-blue-600 flex-shrink-0">{icon}</div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-gray-500 truncate">{label}</p>
-          <p className="text-sm md:text-base font-semibold text-gray-900 truncate">{value}</p>
-        </div>
-      </div>
+      {/* Modals de transfert */}
+      {showHospitaliserModal && (
+        <HospitaliserModal
+          patient={patient}
+          onClose={() => setShowHospitaliserModal(false)}
+          onSuccess={handleTransferSuccess}
+        />
+      )}
+
+      {showRendreExterneModal && (
+        <RendreExterneModal
+          patient={patient}
+          onClose={() => setShowRendreExterneModal(false)}
+          onSuccess={handleTransferSuccess}
+        />
+      )}
     </div>
   );
 }

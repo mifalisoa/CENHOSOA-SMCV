@@ -1,0 +1,19 @@
+// backend/src/interfaces/http/routes/soinInfirmierExportRoutes.ts
+
+import { Router } from 'express';
+import { SoinInfirmierExportController } from '../controllers/SoinInfirmierExportController';
+
+const router = Router();
+const controller = new SoinInfirmierExportController();
+
+// Télécharger un soin en PDF
+router.get('/:id/pdf', (req, res, next) => 
+  controller.downloadPDF(req, res, next)
+);
+
+// Télécharger tous les soins d'un patient en ZIP
+router.get('/patient/:patientId/zip', (req, res, next) => 
+  controller.downloadAllZIP(req, res, next)
+);
+
+export default router;

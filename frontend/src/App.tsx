@@ -9,6 +9,7 @@ import PatientsExternesView from './presentation/pages/dashboard/sections/admin/
 import PatientDossierPage from './presentation/pages/patients/PatientDossierPage';
 import PatientsHospitalises from './presentation/pages/dashboard/sections/admin/PatientsHospitalises';
 
+
 function App() {
   return (
     <BrowserRouter>

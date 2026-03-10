@@ -17,6 +17,13 @@ import documentPatientRoutes from './document-patient.routes';
 import compteRenduRoutes from './compte-rendu.routes';
 import bilanBiologiqueExportRoutes from './bilanBiologiqueExport.Routes';
 import soinMedicalExportRoutes from './soinMedicalExport.Routes';
+import soinInfirmierExportRoutes from './soinInfirmierExport.Routes';
+import traitementExportRoutes from './traitementExport.Routes';
+import documentPatientUploadRoutes from './documentPatientUpload.Routes';
+import documentPatientExportRoutes from './documentPatientExport.Routes';
+import patientDossierExportRoutes from './patientDossierExport.Routes';
+import patientTransferRoutes from './patientTransfer.Routes';
+
 const router = Router();
 
 router.use((req, res, next) => {
@@ -27,6 +34,8 @@ router.use((req, res, next) => {
 router.use('/auth', authRoutes);
 router.use('/utilisateurs', utilisateurRoutes);
 router.use('/patients', patientRoutes);
+router.use('/patients', patientTransferRoutes);
+router.use('/patients', patientDossierExportRoutes)
 router.use('/rendez-vous', rendezVousRoutes);
 router.use('/admissions', admissionRoutes);
 router.use('/lits', litRoutes);
@@ -40,10 +49,15 @@ router.use('/bilans-biologiques', bilanBiologiqueRoutes);
 router.use('/soins-medicaux', soinMedicalRoutes);
 router.use('/soins-infirmiers', soinInfirmierRoutes);
 router.use('/traitements', traitementRoutes);
+router.use('/documents-patients', documentPatientUploadRoutes);
 router.use('/documents-patients', documentPatientRoutes);
+router.use('/documents-patients', documentPatientExportRoutes);
 router.use('/comptes-rendus', compteRenduRoutes);
 
 router.use('/bilans-biologiques', bilanBiologiqueExportRoutes);
 router.use('/soins-medicaux', soinMedicalExportRoutes);
+router.use('/soins-infirmiers', soinInfirmierExportRoutes);
+router.use('/traitements', traitementExportRoutes);
+
 
 export default router;

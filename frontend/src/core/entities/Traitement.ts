@@ -1,3 +1,7 @@
+
+
+export type TypeDocument = 'ordonnance' | 'traitement';
+
 export interface Traitement {
   id_traitement: number;
   id_patient: number;
@@ -5,8 +9,7 @@ export interface Traitement {
   
   date_prescription: Date | string;
   heure_prescription: string;
-  
-  type_document: 'ordonnance' | 'traitement';
+  type_document: TypeDocument;
   
   diagnostic?: string;
   prescripteur?: string;
@@ -17,6 +20,7 @@ export interface Traitement {
   voie_administration: string;
   frequence: string;
   duree: string;
+  
   instructions?: string;
   observations_speciales?: string;
   
@@ -29,7 +33,7 @@ export interface CreateTraitementDTO {
   id_admission?: number;
   date_prescription: string;
   heure_prescription: string;
-  type_document: 'ordonnance' | 'traitement';
+  type_document: TypeDocument;
   diagnostic?: string;
   prescripteur?: string;
   lieu_prescription?: string;
@@ -38,6 +42,22 @@ export interface CreateTraitementDTO {
   voie_administration: string;
   frequence: string;
   duree: string;
+  instructions?: string;
+  observations_speciales?: string;
+}
+
+export interface UpdateTraitementDTO {
+  date_prescription?: string;
+  heure_prescription?: string;
+  type_document?: TypeDocument;
+  diagnostic?: string;
+  prescripteur?: string;
+  lieu_prescription?: string;
+  medicament?: string;
+  dosage?: string;
+  voie_administration?: string;
+  frequence?: string;
+  duree?: string;
   instructions?: string;
   observations_speciales?: string;
 }

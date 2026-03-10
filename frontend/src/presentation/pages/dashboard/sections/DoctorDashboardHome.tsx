@@ -4,14 +4,11 @@ import { Users, Calendar, ChevronRight, ArrowRight } from 'lucide-react';
 import { usePatients } from '../../../hooks/usePatients';
 import { useAppointments } from '../../../hooks/useAppointments';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/common/Card';
-import { Button } from '../../../components/common/Button';
+// Suppression de l'import Button non utilisé (Correction ESLint)
 import { Badge } from '../../../components/common/Badge';
 
-interface DoctorDashboardHomeProps {
-  userRole: 'docteur' | 'interne' | 'stagiaire';
-}
-
-export function DoctorDashboardHome({ userRole }: DoctorDashboardHomeProps) {
+// Interface mise à jour pour utiliser les bonnes propriétés de l'entité Patient
+export function DoctorDashboardHome() { // userRole supprimé si non utilisé (Correction ESLint)
   const { patients } = usePatients();
   const { appointments } = useAppointments();
 
@@ -28,8 +25,9 @@ export function DoctorDashboardHome({ userRole }: DoctorDashboardHomeProps) {
 
     return {
       totalPatients: (patients || []).length,
-      externesCount: (patients || []).filter(p => p.type === 'externe').length,
-      hospitalisesCount: (patients || []).filter(p => p.type === 'hospitalise').length,
+      // Correction : p.type -> p.statut_patient
+      externesCount: (patients || []).filter(p => p.statut_patient === 'externe').length,
+      hospitalisesCount: (patients || []).filter(p => p.statut_patient === 'hospitalisé').length,
       todayAppointments: todayAppointments.length,
       confirmedToday: todayAppointments.filter(apt => apt.status === 'confirmed').length
     };
@@ -47,7 +45,8 @@ export function DoctorDashboardHome({ userRole }: DoctorDashboardHomeProps) {
   // Patients récents
   const recentPatients = useMemo(() => {
     return (patients || [])
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      // Correction : p.createdAt -> p.date_enregistrement
+      .sort((a, b) => new Date(b.date_enregistrement).getTime() - new Date(a.date_enregistrement).getTime())
       .slice(0, 5);
   }, [patients]);
 
@@ -187,15 +186,18 @@ export function DoctorDashboardHome({ userRole }: DoctorDashboardHomeProps) {
               <div className="space-y-3">
                 {recentPatients.map((patient) => (
                   <div
-                    key={patient.id}
+                    // Correction : patient.id -> patient.id_patient
+                    key={patient.id_patient}
                     className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     <div className="flex-1">
                       <div className="font-medium text-sm">
-                        {patient.firstName} {patient.lastName}
+                        {/* Correction : firstName/lastName -> nom_patient/prenom_patient */}
+                        {patient.nom_patient} {patient.prenom_patient}
                       </div>
                       <div className="text-xs text-gray-600">
-                        {patient.type === 'externe' ? 'Patient externe' : 'Patient hospitalisé'}
+                        {/* Correction : patient.type -> patient.statut_patient */}
+                        {patient.statut_patient === 'externe' ? 'Patient externe' : 'Patient hospitalisé'}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
