@@ -1,14 +1,42 @@
+/**
+ * Entité Lit - Correspond à la table lits de PostgreSQL
+ */
 export interface Lit {
-    id_lit: number;
-    numero_lit: string;
-    etage?: number | null;
-    chambre?: string | null;
-    service_lit: string;
-    type_lit?: 'standard' | 'soins_intensifs' | 'VIP' | null;
-    statut_lit: 'disponible' | 'occupé' | 'maintenance' | 'réservé';
-    actif_lit: boolean;
-    remarques_lit?: string | null;
+  id_lit: number;
+  numero_lit: string;
+  categorie: string;
+  statut: string;
+  etage?: string | null;
+  batiment?: string | null;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
-export type CreateLitDTO = Omit<Lit, 'id_lit'>;
-export type UpdateLitDTO = Partial<Omit<Lit, 'id_lit' | 'numero_lit'>>;
+export interface CreateLitDTO {
+  numero_lit: string;
+  categorie: string;
+  statut?: string;
+  etage?: string | null;
+  batiment?: string | null;
+}
+
+export interface UpdateLitDTO {
+  numero_lit?: string;
+  categorie?: string;
+  statut?: string;
+  etage?: string | null;
+  batiment?: string | null;
+}
+
+export interface LitWithOccupation extends Lit {
+  patient_actuel?: {
+    id_patient: number;
+    nom_patient: string;
+    prenom_patient: string;
+    age: number;
+    sexe_patient: string;
+    diagnostic: string;
+    date_admission: Date;
+    duree_occupation_heures: number;
+  };
+}

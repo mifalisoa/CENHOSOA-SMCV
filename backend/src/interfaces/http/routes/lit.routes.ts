@@ -1,35 +1,60 @@
 import { Router } from 'express';
-import { LitController } from '../controllers/LitController';
-import { GetAvailableLits } from '../../../application/use-cases/lit/GetAvailableLits';
-import { GetAllLits } from '../../../application/use-cases/lit/GetAllLits';
-import { PostgresLitRepository } from '../../../infrastructure/database/postgres/repositories/PostgresLitRepository';
 import { pool } from '../../../config/database';
-import { authMiddleware } from '../middlewares/auth.middleware';
-
-// Dependency Injection
-const litRepository = new PostgresLitRepository(pool);
-const getAvailableLits = new GetAvailableLits(litRepository);
-const getAllLits = new GetAllLits(litRepository);
-
-const litController = new LitController(getAvailableLits, getAllLits);
+import { LitService } from '../../../application/services/LitService';
+import { LitController } from '../controllers/LitController';
 
 const router = Router();
 
-// Toutes les routes nécessitent une authentification
-router.use(authMiddleware);
+// Initialiser le service et controller
+const litService = new LitService(pool);
+const litController = new LitController(litService);
 
 /**
  * @route GET /api/lits
- * @desc Liste de tous les lits
- * @access Private
+ * @desc Récupérer tous les lits avec occupation
  */
-router.get('/', litController.getAll);
+router.get('/', litController.getAllLits);
 
 /**
- * @route GET /api/lits/available
- * @desc Liste des lits disponibles (avec filtre service optionnel)
- * @access Private
+ * @route GET /api/lits/statistiques
+ * @desc Statistiques des lits
  */
-router.get('/available', litController.getAvailable);
+router.get('/statistiques', litController.getStatistiques);
+
+/**
+ * @route POST /api/lits/initialiser
+ * @desc Initialiser les 21 lits CENHOSOA
+ */
+router.post('/initialiser', litController.initialiserLits);
+
+/**
+ * @route GET /api/lits/:id
+ * @desc Récupérer un lit par ID
+ */
+router.get('/:id', litController.getLitById);
+
+/**
+ * @route POST /api/lits
+ * @desc Créer un nouveau lit
+ */
+router.post('/', litController.createLit);
+
+/**
+ * @route PUT /api/lits/:id
+ * @desc Mettre à jour un lit
+ */
+router.put('/:id', litController.updateLit);
+
+/**
+ * @route DELETE /api/lits/:id
+ * @desc Supprimer un lit
+ */
+router.delete('/:id', litController.deleteLit);
+
+/**
+ * @route POST /api/lits/:id/liberer
+ * @desc Libérer un lit (disponible)
+ */
+router.post('/:id/liberer', litController.libererLit);
 
 export default router;

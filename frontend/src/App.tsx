@@ -8,6 +8,7 @@ import DashboardHome from './presentation/pages/dashboard/sections/admin/Dashboa
 import PatientsExternesView from './presentation/pages/dashboard/sections/admin/PatientsExternesView';
 import PatientDossierPage from './presentation/pages/patients/PatientDossierPage';
 import PatientsHospitalises from './presentation/pages/dashboard/sections/admin/PatientsHospitalises';
+import LitsPage from './presentation/pages/lits/LitsPage';
 
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
             <Route path="/patients-externes" element={<PatientsExternesView />} />
             <Route path="/patients-hospitalises" element={<PatientsHospitalises />} />
             <Route path="/users" element={<div className="p-8">Utilisateurs</div>} />
-            <Route path="/beds" element={<div className="p-8">Lits</div>} />
+            <Route path="/beds" element={<LitsPage />} />
             <Route path="/statistics" element={<div className="p-8">Statistiques</div>} />
             <Route path="/security" element={<div className="p-8">Sécurité</div>} />
             <Route path="/appointments" element={<div className="p-8">Planning</div>} />

@@ -24,6 +24,8 @@ import documentPatientExportRoutes from './documentPatientExport.Routes';
 import patientDossierExportRoutes from './patientDossierExport.Routes';
 import patientTransferRoutes from './patientTransfer.Routes';
 
+
+
 const router = Router();
 
 router.use((req, res, next) => {
@@ -59,5 +61,6 @@ router.use('/soins-medicaux', soinMedicalExportRoutes);
 router.use('/soins-infirmiers', soinInfirmierExportRoutes);
 router.use('/traitements', traitementExportRoutes);
 
+router.use('/lits', litRoutes);
 
 export default router;

@@ -7,23 +7,19 @@ export class PostgresLitRepository implements ILitRepository {
 
     async create(data: CreateLitDTO): Promise<Lit> {
         const query = `
-            INSERT INTO lit (
-                numero_lit, etage, chambre, service_lit, type_lit,
-                statut_lit, actif_lit, remarques_lit
+            INSERT INTO lits (
+                numero_lit, categorie, statut, etage, batiment
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *
         `;
 
         const values = [
             data.numero_lit,
+            data.categorie,
+            data.statut || 'disponible',
             data.etage || null,
-            data.chambre || null,
-            data.service_lit,
-            data.type_lit || null,
-            data.statut_lit || 'disponible',
-            data.actif_lit !== undefined ? data.actif_lit : true,
-            data.remarques_lit || null,
+            data.batiment || null,
         ];
 
         const result = await this.pool.query(query, values);
@@ -31,35 +27,34 @@ export class PostgresLitRepository implements ILitRepository {
     }
 
     async findById(id: number): Promise<Lit | null> {
-        const query = 'SELECT * FROM lit WHERE id_lit = $1';
+        const query = 'SELECT * FROM lits WHERE id_lit = $1';
         const result = await this.pool.query(query, [id]);
         return result.rows[0] || null;
     }
 
     async findAll(): Promise<Lit[]> {
         const query = `
-            SELECT * FROM lit
-            WHERE actif_lit = true
-            ORDER BY etage, chambre, numero_lit
+            SELECT * FROM lits
+            ORDER BY etage, numero_lit
         `;
         const result = await this.pool.query(query);
         return result.rows;
     }
 
-    async findAvailable(service?: string): Promise<Lit[]> {
+    async findAvailable(categorie?: string): Promise<Lit[]> {
         let query = `
-            SELECT * FROM lit
-            WHERE statut_lit = 'disponible' AND actif_lit = true
+            SELECT * FROM lits
+            WHERE statut = 'disponible'
         `;
 
         const values: any[] = [];
 
-        if (service) {
-            query += ' AND service_lit = $1';
-            values.push(service);
+        if (categorie) {
+            query += ' AND categorie = $1';
+            values.push(categorie);
         }
 
-        query += ' ORDER BY etage, chambre, numero_lit';
+        query += ' ORDER BY etage, numero_lit';
 
         const result = await this.pool.query(query, values);
         return result.rows;
@@ -70,12 +65,26 @@ export class PostgresLitRepository implements ILitRepository {
         const values: any[] = [];
         let paramCounter = 1;
 
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined) {
-                fields.push(`${key} = $${paramCounter++}`);
-                values.push(value);
-            }
-        });
+        if (data.numero_lit !== undefined) {
+            fields.push(`numero_lit = $${paramCounter++}`);
+            values.push(data.numero_lit);
+        }
+        if (data.categorie !== undefined) {
+            fields.push(`categorie = $${paramCounter++}`);
+            values.push(data.categorie);
+        }
+        if (data.statut !== undefined) {
+            fields.push(`statut = $${paramCounter++}`);
+            values.push(data.statut);
+        }
+        if (data.etage !== undefined) {
+            fields.push(`etage = $${paramCounter++}`);
+            values.push(data.etage);
+        }
+        if (data.batiment !== undefined) {
+            fields.push(`batiment = $${paramCounter++}`);
+            values.push(data.batiment);
+        }
 
         if (fields.length === 0) {
             return this.findById(id);
@@ -83,8 +92,8 @@ export class PostgresLitRepository implements ILitRepository {
 
         values.push(id);
         const query = `
-            UPDATE lit
-            SET ${fields.join(', ')}
+            UPDATE lits
+            SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
             WHERE id_lit = $${paramCounter}
             RETURNING *
         `;
@@ -95,8 +104,8 @@ export class PostgresLitRepository implements ILitRepository {
 
     async updateStatus(id: number, status: string): Promise<boolean> {
         const query = `
-            UPDATE lit
-            SET statut_lit = $1
+            UPDATE lits
+            SET statut = $1, updated_at = CURRENT_TIMESTAMP
             WHERE id_lit = $2
         `;
         const result = await this.pool.query(query, [status, id]);
@@ -105,10 +114,10 @@ export class PostgresLitRepository implements ILitRepository {
 
     async isAvailable(id: number): Promise<boolean> {
         const query = `
-            SELECT statut_lit FROM lit
-            WHERE id_lit = $1 AND actif_lit = true
+            SELECT statut FROM lits
+            WHERE id_lit = $1
         `;
         const result = await this.pool.query(query, [id]);
-        return result.rows.length > 0 && result.rows[0].statut_lit === 'disponible';
+        return result.rows.length > 0 && result.rows[0].statut === 'disponible';
     }
 }
