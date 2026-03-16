@@ -1,3 +1,5 @@
+// backend/src/infrastructure/database/postgres/repositories/PostgresPrescriptionRepository.ts
+
 import { Pool } from 'pg';
 import { IPrescriptionRepository } from '../../../../domain/repositories/IPrescriptionRepository';
 import { Prescription, CreatePrescriptionDTO, UpdatePrescriptionDTO } from '../../../../domain/entities/Prescription';
@@ -20,14 +22,14 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
             data.id_admission,
             data.id_docteur,
             data.type_prescription,
-            data.nom_medicament || null,
-            data.dosage || null,
-            data.voie_administration || null,
-            data.frequence || null,
-            data.duree_traitement || null,
-            data.nom_bilan || null,
-            data.indication_bilan || null,
-            data.instructions || null,
+            data.nom_medicament         || null,
+            data.dosage                 || null,
+            data.voie_administration    || null,
+            data.frequence              || null,
+            data.duree_traitement       || null,
+            data.nom_bilan              || null,
+            data.indication_bilan       || null,
+            data.instructions           || null,
             data.modifications_traitement || null,
         ];
 
@@ -38,11 +40,11 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     async findById(id: number): Promise<Prescription | null> {
         const query = `
             SELECT p.*,
-                   u.nom_user as nom_docteur, u.prenom_user as prenom_docteur,
+                   u.nom   AS nom_docteur, u.prenom AS prenom_docteur,
                    a.num_admission
             FROM prescription p
-            JOIN utilisateur u ON p.id_docteur = u.id_user
-            JOIN admission a ON p.id_admission = a.id_admission
+            JOIN utilisateurs u ON p.id_docteur   = u.id_user
+            JOIN admission    a ON p.id_admission = a.id_admission
             WHERE p.id_prescription = $1
         `;
         const result = await this.pool.query(query, [id]);
@@ -52,9 +54,9 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     async findByAdmission(idAdmission: number): Promise<Prescription[]> {
         const query = `
             SELECT p.*,
-                   u.nom_user as nom_docteur, u.prenom_user as prenom_docteur
+                   u.nom AS nom_docteur, u.prenom AS prenom_docteur
             FROM prescription p
-            JOIN utilisateur u ON p.id_docteur = u.id_user
+            JOIN utilisateurs u ON p.id_docteur = u.id_user
             WHERE p.id_admission = $1
             ORDER BY p.date_prescription DESC
         `;
@@ -65,9 +67,9 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     async findByType(idAdmission: number, type: string): Promise<Prescription[]> {
         const query = `
             SELECT p.*,
-                   u.nom_user as nom_docteur, u.prenom_user as prenom_docteur
+                   u.nom AS nom_docteur, u.prenom AS prenom_docteur
             FROM prescription p
-            JOIN utilisateur u ON p.id_docteur = u.id_user
+            JOIN utilisateurs u ON p.id_docteur = u.id_user
             WHERE p.id_admission = $1 AND p.type_prescription = $2
             ORDER BY p.date_prescription DESC
         `;
@@ -77,7 +79,7 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
 
     async update(id: number, data: UpdatePrescriptionDTO): Promise<Prescription | null> {
         const fields: string[] = [];
-        const values: any[] = [];
+        const values: unknown[] = [];
         let paramCounter = 1;
 
         Object.entries(data).forEach(([key, value]) => {
@@ -87,9 +89,7 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
             }
         });
 
-        if (fields.length === 0) {
-            return this.findById(id);
-        }
+        if (fields.length === 0) return this.findById(id);
 
         values.push(id);
         const query = `
@@ -104,8 +104,10 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     }
 
     async delete(id: number): Promise<boolean> {
-        const query = 'DELETE FROM prescription WHERE id_prescription = $1';
-        const result = await this.pool.query(query, [id]);
-        return result.rowCount !== null && result.rowCount > 0;
+        const result = await this.pool.query(
+            'DELETE FROM prescription WHERE id_prescription = $1',
+            [id]
+        );
+        return (result.rowCount ?? 0) > 0;
     }
 }

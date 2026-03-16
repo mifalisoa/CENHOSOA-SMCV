@@ -18,11 +18,11 @@ export default function AdminLayout() {
   const getCurrentView = (): string => {
     if (location.pathname.includes('/patients-externes')) return 'patients-externes';
     if (location.pathname.includes('/patients-hospitalises')) return 'patients-hospitalises';
-    if (location.pathname.includes('/users')) return 'users';
+    if (location.pathname.includes('/users') || location.pathname.includes('/utilisateurs')) return 'users';
     if (location.pathname.includes('/beds')) return 'beds';
-    if (location.pathname.includes('/statistics')) return 'statistics';
-    if (location.pathname.includes('/security')) return 'security';
-    if (location.pathname.includes('/appointments')) return 'appointments';
+    if (location.pathname.includes('/statistics') || location.pathname.includes('/statistiques')) return 'statistics';
+    if (location.pathname.includes('/securite') || location.pathname.includes('/security')) return 'security';
+    if (location.pathname.includes('/appointments') || location.pathname.includes('/planning')) return 'appointments';
     return 'dashboard';
   };
 
@@ -44,11 +44,11 @@ export default function AdminLayout() {
       'dashboard': '/dashboard',
       'patients-externes': '/patients-externes',
       'patients-hospitalises': '/patients-hospitalises',
-      'users': '/users',
+      'users': '/utilisateurs',
       'beds': '/beds',
-      'statistics': '/statistics',
-      'security': '/security',
-      'appointments': '/appointments',
+      'statistics': '/statistiques',
+      'security': '/securite',
+      'appointments': '/planning',
     };
     navigate(routes[view] || '/dashboard');
     if (isMobile) setIsMobileMenuOpen(false);

@@ -1,3 +1,5 @@
+// backend/src/application/use-cases/admission/CreateAdmission.ts
+
 import { IAdmissionRepository } from '../../../domain/repositories/IAdmissionRepository';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
 import { IUtilisateurRepository } from '../../../domain/repositories/IUtilisateurRepository';
@@ -21,15 +23,15 @@ export class CreateAdmission {
             throw new NotFoundError('Patient');
         }
 
-        // 2. Vérifier que le docteur existe et est actif
+        // 2. Vérifier que le médecin existe et est actif
         const docteur = await this.utilisateurRepository.findById(data.id_docteur);
-        if (!docteur || docteur.role_user !== 'docteur' || !docteur.actif_user) {
-            throw new ValidationError('Docteur invalide ou inactif');
+        if (!docteur || docteur.role !== 'medecin' || docteur.statut !== 'actif') {
+            throw new ValidationError('Médecin invalide ou inactif');
         }
 
         // 3. Vérifier que le secrétaire existe et est actif
         const secretaire = await this.utilisateurRepository.findById(data.id_secretaire);
-        if (!secretaire || secretaire.role_user !== 'secretaire' || !secretaire.actif_user) {
+        if (!secretaire || secretaire.role !== 'secretaire' || secretaire.statut !== 'actif') {
             throw new ValidationError('Secrétaire invalide ou inactif');
         }
 

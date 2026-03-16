@@ -41,8 +41,8 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
     try {
       await onSubmit(formData as CreateSoinInfirmierDTO);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création');
+    } catch (err: unknown) {
+  setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setLoading(false);
     }
@@ -62,6 +62,8 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
             </div>
             <button
               onClick={onClose}
+              title="Fermer"
+              aria-label="Fermer"
               className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,6 +100,7 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
                   <input
                     type="date"
                     required
+                     title="Date du soin"
                     value={formData.date_soin || ''}
                     onChange={(e) => setFormData({ ...formData, date_soin: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -111,6 +114,7 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
                   <input
                     type="time"
                     required
+                    title="Heure du soin"
                     value={formData.heure_soin || ''}
                     onChange={(e) => setFormData({ ...formData, heure_soin: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"

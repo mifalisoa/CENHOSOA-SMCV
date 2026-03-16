@@ -1,3 +1,5 @@
+// backend/src/application/use-cases/rendez-vous/CreateRendezVous.ts
+
 import { IRendezVousRepository } from '../../../domain/repositories/IRendezVousRepository';
 import { IPatientRepository } from '../../../domain/repositories/IPatientRepository';
 import { IUtilisateurRepository } from '../../../domain/repositories/IUtilisateurRepository';
@@ -21,16 +23,16 @@ export class CreateRendezVous {
             throw new NotFoundError('Patient');
         }
 
-        // 2. Vérifier que le docteur existe et est actif
+        // 2. Vérifier que le médecin existe et est actif
         const docteur = await this.utilisateurRepository.findById(data.id_docteur);
         if (!docteur) {
-            throw new NotFoundError('Docteur');
+            throw new NotFoundError('Médecin');
         }
-        if (docteur.role_user !== 'docteur') {
-            throw new ValidationError('L\'utilisateur spécifié n\'est pas un docteur');
+        if (docteur.role !== 'medecin') {                  // était role_user !== 'docteur'
+            throw new ValidationError('L\'utilisateur spécifié n\'est pas un médecin');
         }
-        if (!docteur.actif_user) {
-            throw new ValidationError('Ce docteur n\'est pas actif');
+        if (docteur.statut !== 'actif') {                  // était !docteur.actif_user
+            throw new ValidationError('Ce médecin n\'est pas actif');
         }
 
         // 3. Vérifier la disponibilité du créneau
@@ -42,7 +44,7 @@ export class CreateRendezVous {
 
         if (!isAvailable) {
             throw new AppError(
-                'Ce créneau n\'est pas disponible pour ce docteur',
+                'Ce créneau n\'est pas disponible pour ce médecin',
                 HTTP_STATUS.CONFLICT
             );
         }
@@ -54,8 +56,6 @@ export class CreateRendezVous {
         }
 
         // 5. Créer le rendez-vous
-        const rendezVous = await this.rendezVousRepository.create(data);
-
-        return rendezVous;
+        return await this.rendezVousRepository.create(data);
     }
 }

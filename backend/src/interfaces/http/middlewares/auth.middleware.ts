@@ -1,3 +1,5 @@
+// backend/src/interfaces/http/middlewares/auth.middleware.ts
+
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '../../../infrastructure/security/jwt.service';
 import { UnauthorizedError } from '../../../shared/errors/UnauthorizedError';
@@ -5,8 +7,8 @@ import { UnauthorizedError } from '../../../shared/errors/UnauthorizedError';
 export interface AuthRequest extends Request {
     user?: {
         id_user: number;
-        email_user: string;
-        role_user: string;
+        email: string;  // était email_user
+        role: string;   // était role_user
     };
 }
 

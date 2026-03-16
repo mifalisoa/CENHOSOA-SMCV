@@ -36,8 +36,8 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
     try {
       await onSubmit(formData as CreateTraitementDTO);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création');
+    } catch (err: unknown) {
+  setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setLoading(false);
     }
@@ -57,6 +57,8 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
             </div>
             <button
               onClick={onClose}
+               title="Fermer"
+               aria-label="Fermer"
               className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,6 +127,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                   <input
                     type="date"
                     required
+                    title="Date de prescription"
                     value={formData.date_prescription || ''}
                     onChange={(e) => setFormData({ ...formData, date_prescription: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -137,7 +140,8 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                   </label>
                   <input
                     type="time"
-                    required
+                    required 
+                    title="Heure de prescription"
                     value={formData.heure_prescription || ''}
                     onChange={(e) => setFormData({ ...formData, heure_prescription: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -230,6 +234,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                     </label>
                     <select
                       required
+                      title="Voie d'administration"
                       value={formData.voie_administration || ''}
                       onChange={(e) => setFormData({ ...formData, voie_administration: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"

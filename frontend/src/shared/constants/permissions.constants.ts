@@ -1,0 +1,61 @@
+// shared/constants/permissions.constants.ts
+
+export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
+  admin: ['*'],
+  medecin: [
+    'patients.read', 'patients.write',
+    'admissions.read', 'admissions.write',
+    'observations.write', 'prescriptions.write',
+    'bilans.read', 'bilans.write',
+    'rdv.read', 'rdv.write',
+    'soins.read', 'documents.write',
+    'documents.export', 'statistiques.read',
+    'lits.read',
+  ],
+  infirmier: [
+    'patients.read', 'admissions.read',
+    'soins.write', 'soins.read',
+    'observations.read', 'prescriptions.read',
+    'rdv.read', 'lits.read', 'lits.write',
+    'bilans.read',
+  ],
+  secretaire: [
+    'patients.read', 'patients.write',
+    'rdv.read', 'rdv.write', 'rdv.cancel',
+    'admissions.read', 'lits.read',
+    'documents.read', 'documents.export',
+  ],
+  pharmacien: [
+    'prescriptions.read', 'prescriptions.validate',
+    'medicaments.read', 'medicaments.write',
+    'patients.read',
+  ],
+};
+
+export const PERMISSION_LABELS: Record<string, string> = {
+  'patients.read': 'Voir les patients',
+  'patients.write': 'Créer/Modifier patients',
+  'patients.delete': 'Supprimer patients',
+  'admissions.read': 'Voir admissions',
+  'admissions.write': 'Gérer admissions',
+  'rdv.read': 'Voir rendez-vous',
+  'rdv.write': 'Gérer rendez-vous',
+  'rdv.cancel': 'Annuler rendez-vous',
+  'observations.read': 'Lire observations',
+  'observations.write': 'Écrire observations',
+  'prescriptions.read': 'Voir prescriptions',
+  'prescriptions.write': 'Prescrire',
+  'prescriptions.validate': 'Valider/Délivrer',
+  'soins.read': 'Voir soins',
+  'soins.write': 'Enregistrer soins',
+  'bilans.read': 'Voir bilans',
+  'bilans.write': 'Créer bilans',
+  'lits.read': 'Voir lits',
+  'lits.write': 'Gérer lits',
+  'documents.read': 'Consulter documents',
+  'documents.write': 'Générer documents',
+  'documents.export': 'Exporter/Imprimer',
+  'statistiques.read': 'Voir statistiques',
+  'medicaments.read': 'Voir stock',
+  'medicaments.write': 'Gérer stock',
+};

@@ -11,11 +11,13 @@ export const pool = new Pool({
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
-    client_encoding : 'UTF8',
 });
 
-// Événements de connexion
-pool.on('connect', () => {
+// Forcer l'encodage UTF8 sur chaque nouvelle connexion du pool
+// Sans ça, le client utilise WIN1252 (Windows) et les accents
+// (é, é, ô...) ne correspondent pas aux valeurs stockées en UTF8
+pool.on('connect', (client) => {
+    client.query("SET client_encoding = 'UTF8'");
     console.log('✅ Connecté à PostgreSQL');
 });
 

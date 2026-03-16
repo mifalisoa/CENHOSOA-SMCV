@@ -92,7 +92,7 @@ export function AdminHeader() {
                   {user?.prenom_user} {user?.nom_user}
                 </div>
                 <div className="text-[11px] text-cyan-600 mt-1 uppercase tracking-wider font-medium">
-                  Administrateur
+                  DR RAVOAVY Dany
                 </div>
               </div>
               <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-cyan-200">

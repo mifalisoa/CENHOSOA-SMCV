@@ -1,16 +1,26 @@
-import { useState } from 'react';
-import { X, User, MapPin, Shield, Stethoscope } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, User, MapPin, Shield, Stethoscope, CalendarPlus, CheckCircle2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { Select } from '../common/Select';
 import type { CreatePatientDTO } from '../../../core/entities/Patient';
+import { httpClient } from '../../../infrastructure/http/axios.config';
 import { toast } from 'sonner';
+import NouveauRdvModal from '../rendez-vous/NouveauRdvModal';
 
 interface AddPatientExterneModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreatePatientDTO) => Promise<void>;
+  onSubmit: (data: CreatePatientDTO) => Promise<{ id_patient: number; nom_patient: string; prenom_patient: string }>;
+}
+
+// ← Type pour les médecins chargés depuis l'API
+interface Medecin {
+  id_user: number;
+  nom: string;
+  prenom: string;
+  specialite?: string;
 }
 
 export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatientExterneModalProps) {
@@ -20,33 +30,84 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     statut_patient: 'externe',
   });
 
+  // ← États médecins
+  const [medecins, setMedecins] = useState<Medecin[]>([]);
+  const [loadingMedecins, setLoadingMedecins] = useState(false);
+
+  const [step, setStep] = useState<'form' | 'confirm'>('form');
+  const [newPatientId, setNewPatientId] = useState<number | null>(null);
+  const [newPatientName, setNewPatientName] = useState('');
+  const [showRdvModal, setShowRdvModal] = useState(false);
+
+  // ← Charger les médecins à l'ouverture du modal
+  useEffect(() => {
+    if (isOpen) loadMedecins();
+  }, [isOpen]);
+
+  const loadMedecins = async () => {
+    try {
+      setLoadingMedecins(true);
+      const response = await httpClient.get('/utilisateurs', {
+        params: { role: 'medecin', statut: 'actif' }
+      });
+      const raw = response.data.data ?? response.data ?? [];
+      const mapped: Medecin[] = Array.isArray(raw)
+        ? raw.map((u: { id_utilisateur?: number; id_user?: number; nom: string; prenom: string; specialite?: string }) => ({
+            id_user:    u.id_utilisateur ?? u.id_user ?? 0,
+            nom:        u.nom,
+            prenom:     u.prenom,
+            specialite: u.specialite ?? 'Médecin',
+          }))
+        : [];
+      setMedecins(mapped);
+    } catch {
+      // Si l'API échoue, le champ restera vide — pas bloquant
+      setMedecins([]);
+    } finally {
+      setLoadingMedecins(false);
+    }
+  };
+
   const handleChange = (field: keyof CreatePatientDTO, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // ✅ Validation des champs obligatoires (sans personne_contact, tel_urgence)
-    if (!formData.nom_patient || !formData.prenom_patient || !formData.date_naissance || 
+
+    if (!formData.nom_patient || !formData.prenom_patient || !formData.date_naissance ||
         !formData.adresse_patient || !formData.medecin_traitant) {
       toast.error('Veuillez remplir tous les champs obligatoires (*)');
       return;
     }
 
     setLoading(true);
-    
     try {
-      await onSubmit(formData as CreatePatientDTO);
+      const newPatient = await onSubmit(formData as CreatePatientDTO);
+      setNewPatientId(newPatient.id_patient);
+      setNewPatientName(`${newPatient.prenom_patient} ${newPatient.nom_patient}`);
       toast.success('Patient créé avec succès !');
-      setFormData({ sexe_patient: 'M', statut_patient: 'externe' });
-      onClose();
+      setStep('confirm');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création';
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClose = () => {
+    setStep('form');
+    setNewPatientId(null);
+    setNewPatientName('');
+    setShowRdvModal(false);
+    setFormData({ sexe_patient: 'M', statut_patient: 'externe' });
+    onClose();
+  };
+
+  // Backdrop bloqué en étape confirm pour éviter fermeture accidentelle
+  const handleBackdropClick = () => {
+    if (step === 'confirm') return;
+    handleClose();
   };
 
   const assurances = [
@@ -58,198 +119,215 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
   ];
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
-          />
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={handleBackdropClick} className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm" />
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-6 rounded-t-2xl text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Nouveau patient externe</h2>
-                    <p className="text-cyan-100 text-sm mt-1">Remplissez les 8 informations essentielles</p>
-                  </div>
-                  <button
-                    onClick={onClose}
-                    title="Fermer"
-                    className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto">
-                {/* Informations Personnelles */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-cyan-600" />
-                    Informations Personnelles
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Nom <span className="text-red-500">*</span></label>
-                      <Input
-                        value={formData.nom_patient || ''}
-                        onChange={(e) => handleChange('nom_patient', e.target.value)}
-                        placeholder="Nom du patient"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Prénom <span className="text-red-500">*</span></label>
-                      <Input
-                        value={formData.prenom_patient || ''}
-                        onChange={(e) => handleChange('prenom_patient', e.target.value)}
-                        placeholder="Prénom du patient"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Date de naissance <span className="text-red-500">*</span></label>
-                      <Input
-                        type="date"
-                        value={
-                          formData.date_naissance 
-                            ? (typeof formData.date_naissance === 'string' 
-                                ? formData.date_naissance 
-                                : formData.date_naissance.toISOString().split('T')[0])
-                            : ''
-                        }
-                        onChange={(e) => handleChange('date_naissance', e.target.value)}
-                        required
-                      />
-                    </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-6 rounded-t-2xl text-white">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Sexe <span className="text-red-500">*</span></label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="sexe"
-                            value="M"
-                            checked={formData.sexe_patient === 'M'}
-                            onChange={(e) => handleChange('sexe_patient', e.target.value)}
-                            className="w-4 h-4 text-cyan-600 focus:ring-cyan-500"
-                          />
-                          <span className="text-sm text-gray-700">Masculin</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="sexe"
-                            value="F"
-                            checked={formData.sexe_patient === 'F'}
-                            onChange={(e) => handleChange('sexe_patient', e.target.value)}
-                            className="w-4 h-4 text-cyan-600 focus:ring-cyan-500"
-                          />
-                          <span className="text-sm text-gray-700">Féminin</span>
-                        </label>
+                      <h2 className="text-2xl font-bold">
+                        {step === 'form' ? 'Nouveau patient externe' : 'Patient créé !'}
+                      </h2>
+                      <p className="text-cyan-100 text-sm mt-1">
+                        {step === 'form' ? 'Remplissez les informations essentielles' : 'Voulez-vous planifier un rendez-vous ?'}
+                      </p>
+                    </div>
+                    <button onClick={handleClose} title="Fermer"
+                      className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── ÉTAPE 1 : Formulaire ── */}
+                {step === 'form' && (
+                  <>
+                    <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto">
+
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <User className="w-5 h-5 text-cyan-600" />Informations Personnelles
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Nom <span className="text-red-500">*</span></label>
+                            <Input value={formData.nom_patient || ''} onChange={(e) => handleChange('nom_patient', e.target.value)} placeholder="Nom du patient" required />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Prénom <span className="text-red-500">*</span></label>
+                            <Input value={formData.prenom_patient || ''} onChange={(e) => handleChange('prenom_patient', e.target.value)} placeholder="Prénom du patient" required />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Date de naissance <span className="text-red-500">*</span></label>
+                            <Input type="date"
+                              value={formData.date_naissance ? (typeof formData.date_naissance === 'string' ? formData.date_naissance : formData.date_naissance.toISOString().split('T')[0]) : ''}
+                              onChange={(e) => handleChange('date_naissance', e.target.value)} required />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Sexe <span className="text-red-500">*</span></label>
+                            <div className="flex gap-4">
+                              {['M', 'F'].map(s => (
+                                <label key={s} className="flex items-center gap-2 cursor-pointer">
+                                  <input type="radio" name="sexe" value={s} checked={formData.sexe_patient === s}
+                                    onChange={(e) => handleChange('sexe_patient', e.target.value)}
+                                    className="w-4 h-4 text-cyan-600 focus:ring-cyan-500" />
+                                  <span className="text-sm text-gray-700">{s === 'M' ? 'Masculin' : 'Féminin'}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <MapPin className="w-5 h-5 text-cyan-600" />Coordonnées
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2 space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Adresse <span className="text-red-500">*</span></label>
+                            <Input value={formData.adresse_patient || ''} onChange={(e) => handleChange('adresse_patient', e.target.value)} placeholder="Adresse complète" required />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Téléphone</label>
+                            <Input type="tel" value={formData.tel_patient || ''} onChange={(e) => handleChange('tel_patient', e.target.value)} placeholder="034 00 000 00" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── Médecin traitant — select dynamique ── */}
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Stethoscope className="w-5 h-5 text-cyan-600" />Suivi médical
+                        </h3>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            Médecin traitant <span className="text-red-500">*</span>
+                          </label>
+                          {loadingMedecins ? (
+                            <div className="w-full px-3 py-3 bg-cyan-50 border border-cyan-200 rounded-lg text-sm text-gray-400">
+                              Chargement des médecins...
+                            </div>
+                          ) : medecins.length > 0 ? (
+                            <select
+                              title="Sélectionner un médecin traitant"
+                              value={formData.medecin_traitant || ''}
+                              onChange={(e) => handleChange('medecin_traitant', e.target.value)}
+                              required
+                              className="w-full px-3 py-3 bg-cyan-50 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none text-sm"
+                            >
+                              <option value="">Sélectionner un médecin traitant...</option>
+                              {medecins.map(m => (
+                                <option key={m.id_user} value={`Dr. ${m.prenom} ${m.nom}`}>
+                                  Dr. {m.prenom} {m.nom}{m.specialite ? ` — ${m.specialite}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            // Fallback saisie libre si aucun médecin chargé
+                            <Input
+                              value={formData.medecin_traitant || ''}
+                              onChange={(e) => handleChange('medecin_traitant', e.target.value)}
+                              placeholder="Dr. Nom Prénom"
+                              required
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-cyan-600" />Assurance
+                        </h3>
+                        <Select label="Type d'assurance" value={formData.assurance || ''} onChange={(e) => handleChange('assurance', e.target.value)} options={assurances} />
+                      </div>
+                    </form>
+
+                    <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+                      <Button type="button" onClick={handleClose} variant="outline" className="px-6" disabled={loading}>Annuler</Button>
+                      <Button onClick={handleSubmit} className="px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white" disabled={loading}>
+                        {loading ? 'Ajout en cours...' : 'Ajouter le patient'}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── ÉTAPE 2 : Confirmation + proposition RDV ── */}
+                {step === 'confirm' && (
+                  <div className="p-8 space-y-6">
+                    <div className="flex flex-col items-center text-center gap-3">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-9 h-9 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-xl font-bold text-gray-900">{newPatientName}</p>
+                        <p className="text-sm text-gray-500 mt-1">a été ajouté avec succès comme patient externe.</p>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Coordonnées */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-cyan-600" />
-                    Coordonnées
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2 space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Adresse <span className="text-red-500">*</span></label>
-                      <Input
-                        value={formData.adresse_patient || ''}
-                        onChange={(e) => handleChange('adresse_patient', e.target.value)}
-                        placeholder="Adresse complète"
-                        required
-                      />
+                    <div className="border-t border-gray-100" />
+
+                    <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-cyan-100 rounded-xl flex items-center justify-center shrink-0">
+                          <CalendarPlus className="w-5 h-5 text-cyan-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800 mb-1">Planifier un rendez-vous ?</p>
+                          <p className="text-sm text-gray-500">
+                            Vous pouvez prendre un rendez-vous maintenant ou le faire plus tard depuis le dossier du patient.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Téléphone</label>
-                      <Input
-                        type="tel"
-                        value={formData.tel_patient || ''}
-                        onChange={(e) => handleChange('tel_patient', e.target.value)}
-                        placeholder="034 00 000 00"
-                      />
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button onClick={() => setShowRdvModal(true)}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all shadow-md">
+                        <CalendarPlus className="w-5 h-5" />Prendre un RDV maintenant
+                      </button>
+                      <button onClick={handleClose}
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-xl transition-all">
+                        <ArrowRight className="w-5 h-5 text-gray-400" />Terminer sans RDV
+                      </button>
                     </div>
-                  </div>
-                </div>
 
-                {/* Médecin traitant */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Stethoscope className="w-5 h-5 text-cyan-600" />
-                    Suivi médical
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">Médecin traitant <span className="text-red-500">*</span></label>
-                      <Input
-                        value={formData.medecin_traitant || ''}
-                        onChange={(e) => handleChange('medecin_traitant', e.target.value)}
-                        placeholder="Dr. Nom Prénom"
-                        required
-                      />
-                    </div>
+                    <p className="text-center text-xs text-gray-400">
+                      Vous pourrez toujours prendre un RDV depuis le dossier patient.
+                    </p>
                   </div>
-                </div>
+                )}
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
 
-                {/* Assurance */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-cyan-600" />
-                    Assurance
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <Select
-                      label="Type d'assurance"
-                      value={formData.assurance || ''}
-                      onChange={(e) => handleChange('assurance', e.target.value)}
-                      options={assurances}
-                    />
-                  </div>
-                </div>
-              </form>
-
-              <div className="border-t border-gray-200 p-6 bg-gray-50 rounded-b-2xl flex justify-end gap-3">
-                <Button
-                  type="button"
-                  onClick={onClose}
-                  variant="outline"
-                  className="px-6"
-                  disabled={loading}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  className="px-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
-                  disabled={loading}
-                >
-                  {loading ? 'Ajout en cours...' : 'Ajouter le patient'}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </>
+      {showRdvModal && (
+        <NouveauRdvModal
+          isOpen={showRdvModal}
+          onClose={() => setShowRdvModal(false)}
+          onSuccess={() => {
+            toast.success('Rendez-vous créé ! Il apparaît dans le planning.');
+            setShowRdvModal(false);
+            handleClose();
+          }}
+          patientPreselection={newPatientId ?? undefined}
+        />
       )}
-    </AnimatePresence>
+    </>
   );
 }

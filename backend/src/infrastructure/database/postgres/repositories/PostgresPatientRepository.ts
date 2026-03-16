@@ -1,3 +1,5 @@
+// backend/src/infrastructure/database/postgres/repositories/PostgresPatientRepository.ts
+
 import { Pool } from 'pg';
 import { IPatientRepository } from '../../../../domain/repositories/IPatientRepository';
 import { Patient, CreatePatientDTO, UpdatePatientDTO, PatientFilters } from '../../../../domain/entities/Patient';
@@ -8,18 +10,18 @@ export class PostgresPatientRepository implements IPatientRepository {
 
   async create(data: CreatePatientDTO): Promise<Patient> {
     console.log('📝 [Repository] Création patient avec données:', data);
-    
+
+    const numDossier = await this.generateNumDossier();
+    console.log('🔢 [Repository] Numéro de dossier généré:', numDossier);
+
     const query = `
-      INSERT INTO patient (
+      INSERT INTO patients (
         num_dossier, nom_patient, prenom_patient, date_naissance, sexe_patient,
         adresse_patient, tel_patient, assurance, statut_patient, medecin_traitant, lit
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
-
-    const numDossier = await this.generateNumDossier();
-    console.log('🔢 [Repository] Numéro de dossier généré:', numDossier);
 
     const values = [
       numDossier,
@@ -28,11 +30,11 @@ export class PostgresPatientRepository implements IPatientRepository {
       data.date_naissance,
       data.sexe_patient,
       data.adresse_patient,
-      data.tel_patient || null,
-      data.assurance || null,
-      data.statut_patient || 'externe', // Utilise la valeur brute sans accent
+      data.tel_patient    || null,
+      data.assurance      || null,
+      data.statut_patient || 'externe',
       data.medecin_traitant,
-      data.lit || null
+      data.lit            || null,
     ];
 
     const result = await this.pool.query(query, values);
@@ -41,126 +43,107 @@ export class PostgresPatientRepository implements IPatientRepository {
   }
 
   async findById(id: number): Promise<Patient | null> {
-    const query = 'SELECT * FROM patient WHERE id_patient = $1';
-    const result = await this.pool.query(query, [id]);
+    const result = await this.pool.query(
+      'SELECT * FROM patients WHERE id_patient = $1',
+      [id]
+    );
     return result.rows[0] || null;
   }
 
   async findByNumDossier(numDossier: string): Promise<Patient | null> {
-    const query = 'SELECT * FROM patient WHERE num_dossier = $1';
-    const result = await this.pool.query(query, [numDossier]);
+    const result = await this.pool.query(
+      'SELECT * FROM patients WHERE num_dossier = $1',
+      [numDossier]
+    );
     return result.rows[0] || null;
   }
 
   async findAll(params: PaginationParams, filters?: PatientFilters): Promise<PaginatedResponse<Patient>> {
-    const page = params.page || 1;
-    const limit = params.limit || 10;
+    const page   = params.page  || 1;
+    const limit  = params.limit || 10;
     const offset = (page - 1) * limit;
 
-    let whereClause = '';
-    const queryParams: any[] = [];
+    const conditions: string[] = [];
+    const queryParams: unknown[] = [];
     let paramIndex = 1;
 
-    if (filters) {
-      const conditions: string[] = [];
-      
-      if (filters.statut) {
-        conditions.push(`statut_patient = $${paramIndex++}`);
-        queryParams.push(filters.statut);
-      }
-      
-      if (filters.assurance) {
-        conditions.push(`assurance = $${paramIndex++}`);
-        queryParams.push(filters.assurance);
-      }
-      
-      if (filters.search) {
-        conditions.push(`(
-          LOWER(nom_patient) LIKE LOWER($${paramIndex}) OR
-          LOWER(prenom_patient) LIKE LOWER($${paramIndex}) OR
-          LOWER(num_dossier) LIKE LOWER($${paramIndex}) OR
-          tel_patient LIKE $${paramIndex}
-        )`);
-        queryParams.push(`%${filters.search}%`);
-        paramIndex++;
-      }
-      
-      if (conditions.length > 0) {
-        whereClause = 'WHERE ' + conditions.join(' AND ');
-      }
+    if (filters?.statut) {
+      conditions.push(`statut_patient = $${paramIndex++}`);
+      queryParams.push(filters.statut);
+    }
+    if (filters?.assurance) {
+      conditions.push(`assurance = $${paramIndex++}`);
+      queryParams.push(filters.assurance);
+    }
+    if (filters?.search) {
+      conditions.push(`(
+        LOWER(nom_patient)    LIKE LOWER($${paramIndex}) OR
+        LOWER(prenom_patient) LIKE LOWER($${paramIndex}) OR
+        LOWER(num_dossier)    LIKE LOWER($${paramIndex}) OR
+        tel_patient           LIKE $${paramIndex}
+      )`);
+      queryParams.push(`%${filters.search}%`);
+      paramIndex++;
     }
 
-    const countQuery = `SELECT COUNT(*) FROM patient ${whereClause}`;
-    const countResult = await this.pool.query(countQuery, queryParams);
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    const countResult = await this.pool.query(
+      `SELECT COUNT(*) FROM patients ${whereClause}`,
+      queryParams
+    );
     const total = parseInt(countResult.rows[0].count);
 
-    const query = `
-      SELECT * FROM patient
-      ${whereClause}
-      ORDER BY date_enregistrement DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex}
-    `;
-    
-    const result = await this.pool.query(query, [...queryParams, limit, offset]);
+    const dataResult = await this.pool.query(
+      `SELECT * FROM patients ${whereClause} ORDER BY date_enregistrement DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...queryParams, limit, offset]
+    );
 
     return {
-      data: result.rows,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      data: dataResult.rows,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
   async findByStatus(status: string, params: PaginationParams): Promise<PaginatedResponse<Patient>> {
-    const page = params.page || 1;
-    const limit = params.limit || 10;
+    const page   = params.page  || 1;
+    const limit  = params.limit || 10;
     const offset = (page - 1) * limit;
 
-    const countQuery = 'SELECT COUNT(*) FROM patient WHERE statut_patient = $1';
-    const countResult = await this.pool.query(countQuery, [status]);
+    const countResult = await this.pool.query(
+      'SELECT COUNT(*) FROM patients WHERE statut_patient = $1',
+      [status]
+    );
     const total = parseInt(countResult.rows[0].count);
 
-    const query = `
-      SELECT * FROM patient
-      WHERE statut_patient = $1
-      ORDER BY date_enregistrement DESC
-      LIMIT $2 OFFSET $3
-    `;
-    const result = await this.pool.query(query, [status, limit, offset]);
+    const result = await this.pool.query(
+      'SELECT * FROM patients WHERE statut_patient = $1 ORDER BY date_enregistrement DESC LIMIT $2 OFFSET $3',
+      [status, limit, offset]
+    );
 
     return {
       data: result.rows,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
   async search(query: string): Promise<Patient[]> {
-    const searchQuery = `
-      SELECT * FROM patient
-      WHERE 
-        LOWER(nom_patient) LIKE LOWER($1) OR
-        LOWER(prenom_patient) LIKE LOWER($1) OR
-        LOWER(num_dossier) LIKE LOWER($1) OR
-        tel_patient LIKE $1
-      ORDER BY nom_patient, prenom_patient
-      LIMIT 20
-    `;
-    
-    const result = await this.pool.query(searchQuery, [`%${query}%`]);
+    const result = await this.pool.query(
+      `SELECT * FROM patients
+       WHERE LOWER(nom_patient)    LIKE LOWER($1)
+          OR LOWER(prenom_patient) LIKE LOWER($1)
+          OR LOWER(num_dossier)    LIKE LOWER($1)
+          OR tel_patient           LIKE $1
+       ORDER BY nom_patient, prenom_patient
+       LIMIT 20`,
+      [`%${query}%`]
+    );
     return result.rows;
   }
 
   async update(id: number, data: UpdatePatientDTO): Promise<Patient | null> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramCounter = 1;
 
     Object.entries(data).forEach(([key, value]) => {
@@ -170,53 +153,42 @@ export class PostgresPatientRepository implements IPatientRepository {
       }
     });
 
-    if (fields.length === 0) {
-      return this.findById(id);
-    }
+    if (fields.length === 0) return this.findById(id);
 
-    const query = `
-      UPDATE patient
-      SET ${fields.join(', ')}
-      WHERE id_patient = $${paramCounter}
-      RETURNING *
-    `;
-    
     values.push(id);
-    const result = await this.pool.query(query, values);
+    const result = await this.pool.query(
+      `UPDATE patients SET ${fields.join(', ')} WHERE id_patient = $${paramCounter} RETURNING *`,
+      values
+    );
     return result.rows[0] || null;
   }
 
   async delete(id: number): Promise<void> {
-    const query = 'DELETE FROM patient WHERE id_patient = $1';
-    await this.pool.query(query, [id]);
+    await this.pool.query('DELETE FROM patients WHERE id_patient = $1', [id]);
   }
 
   async getStats(): Promise<{ total: number; externes: number; hospitalises: number }> {
-    const query = `
-      SELECT 
+    const result = await this.pool.query(`
+      SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE statut_patient = 'externe') as externes,
+        COUNT(*) FILTER (WHERE statut_patient = 'externe')    as externes,
         COUNT(*) FILTER (WHERE statut_patient = 'hospitalise') as hospitalises
-      FROM patient
-    `;
-    
-    const result = await this.pool.query(query);
+      FROM patients
+    `);
     return {
-      total: parseInt(result.rows[0].total),
-      externes: parseInt(result.rows[0].externes),
+      total:        parseInt(result.rows[0].total),
+      externes:     parseInt(result.rows[0].externes),
       hospitalises: parseInt(result.rows[0].hospitalises),
     };
   }
 
   private async generateNumDossier(): Promise<string> {
     const year = new Date().getFullYear();
-    const countQuery = `
-      SELECT COUNT(*) FROM patient 
-      WHERE num_dossier LIKE $1
-    `;
-    const result = await this.pool.query(countQuery, [`${year}%`]);
+    const result = await this.pool.query(
+      'SELECT COUNT(*) FROM patients WHERE num_dossier LIKE $1',
+      [`${year}%`]
+    );
     const count = parseInt(result.rows[0].count) + 1;
-    
     return `${year}${count.toString().padStart(5, '0')}`;
   }
 }

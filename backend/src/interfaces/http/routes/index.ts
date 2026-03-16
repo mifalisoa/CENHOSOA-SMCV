@@ -5,6 +5,7 @@ import patientRoutes from './patient.routes';
 import rendezVousRoutes from './rendez-vous.routes';
 import admissionRoutes from './admission.routes';
 import litRoutes from './lit.routes';
+import litTransferRoutes from './litTransfer.Routes';
 import prescriptionRoutes from './prescription.routes';
 import observationRoutes from './observation.routes';
 import observationExportRoutes from './observationExport.Routes'; 
@@ -23,6 +24,8 @@ import documentPatientUploadRoutes from './documentPatientUpload.Routes';
 import documentPatientExportRoutes from './documentPatientExport.Routes';
 import patientDossierExportRoutes from './patientDossierExport.Routes';
 import patientTransferRoutes from './patientTransfer.Routes';
+import securiteRoutes from './securite.routes';
+import dashboardRoutes from './dashboard.routes';
 
 
 
@@ -62,5 +65,10 @@ router.use('/soins-infirmiers', soinInfirmierExportRoutes);
 router.use('/traitements', traitementExportRoutes);
 
 router.use('/lits', litRoutes);
+router.use('/patients', litTransferRoutes);
+
+router.use('/securite', securiteRoutes);
+
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

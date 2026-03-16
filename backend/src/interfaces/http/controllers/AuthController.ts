@@ -1,3 +1,6 @@
+// ================================================================
+// FICHIER : backend/src/interfaces/http/controllers/AuthController.ts
+// ================================================================
 import { Request, Response, NextFunction } from 'express';
 import { LoginUser } from '../../../application/use-cases/auth/LoginUser';
 import { RegisterUser } from '../../../application/use-cases/auth/RegisterUser';
@@ -13,52 +16,33 @@ export class AuthController {
 
     login = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // ✅ CORRECTION: Supporter email/email_user ET password/mot_de_passe
             const loginData = {
-                email_user: req.body.email_user || req.body.email,
-                password: req.body.password || req.body.mot_de_passe // ✅ Accepter les deux formats
+                email:    req.body.email    || req.body.email_user,
+                password: req.body.password || req.body.mot_de_passe,
             };
-
-            console.log('📨 Tentative de connexion:', loginData.email_user);
-            console.log('🔑 Password présent:', !!loginData.password);
-
             const result = await this.loginUser.execute(loginData);
-            
-            console.log('✅ Connexion réussie:', result.user.email_user);
-
-            res.status(HTTP_STATUS.OK).json(
-                successResponse(result, 'Connexion réussie')
-            );
+            res.status(HTTP_STATUS.OK).json(successResponse(result, 'Connexion réussie'));
         } catch (error) {
-            console.error('❌ Erreur login:', error);
             next(error);
         }
     };
 
     register = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // ✅ CORRECTION: Supporter password/mot_de_passe pour l'inscription aussi
             const registerData = {
                 ...req.body,
-                password: req.body.password || req.body.mot_de_passe
+                password: req.body.password || req.body.mot_de_passe,
             };
-
             const result = await this.registerUser.execute(registerData);
-            
-            res.status(HTTP_STATUS.CREATED).json(
-                successResponse(result, 'Utilisateur créé avec succès')
-            );
+            res.status(HTTP_STATUS.CREATED).json(successResponse(result, 'Utilisateur créé avec succès'));
         } catch (error) {
-            console.error('❌ Erreur register:', error);
             next(error);
         }
     };
 
     me = async (req: AuthRequest, res: Response, next: NextFunction) => {
         try {
-            res.status(HTTP_STATUS.OK).json(
-                successResponse({ user: req.user }, 'Utilisateur connecté')
-            );
+            res.status(HTTP_STATUS.OK).json(successResponse({ user: req.user }, 'Utilisateur connecté'));
         } catch (error) {
             next(error);
         }
