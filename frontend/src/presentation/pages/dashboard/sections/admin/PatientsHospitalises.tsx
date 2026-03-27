@@ -5,6 +5,7 @@ import { httpClient } from '../../../../../infrastructure/http/axios.config';
 
 import type { CreatePatientDTO } from '../../../../../core/entities/Patient';
 import { AddPatientHospitaliseModal } from '../../../../components/patients/AddPatientHospitaliseModal';
+import { useDossierPath } from '../../../../hooks/useDossierPath';
 import { 
   Search, Building2, MapPin, Phone, 
   User, ChevronRight, Plus, Filter, 
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 
 export default function PatientsHospitalises() {
   const navigate = useNavigate();
+  const { getDossierPath } = useDossierPath();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,11 +25,7 @@ export default function PatientsHospitalises() {
 
   const { patients, loading, refetch } = usePatients('hospitalise');
 
-  // ── MODIFICATION ──────────────────────────────────────────────────────────
-  // Avant : void à la fin, setIsAddModalOpen(false) dans le try
-  // Après : return newPatient à la fin pour que le modal récupère id_patient
-  //         NE PAS appeler setIsAddModalOpen(false) ici — le modal le fait lui-même
-  //         après l'étape de confirmation / RDV
+  // ── LOGIQUE DE CRÉATION CORRIGÉE ──────────────────────────────────────────
   const handleCreatePatient = async (data: CreatePatientDTO & { id_lit?: number }) => {
     try {
       const patientData = { ...data };
@@ -43,7 +41,7 @@ export default function PatientsHospitalises() {
       if (!newPatient || !newPatient.id_patient) {
         toast.error('Patient créé mais impossible de récupérer son ID');
         await refetch();
-        setIsAddModalOpen(false);
+        setIsAddModalOpen(false); // On ferme ici car c'est un cas d'erreur ID
         return newPatient;
       }
 
@@ -55,16 +53,18 @@ export default function PatientsHospitalises() {
       });
 
       toast.success(data.id_lit ? 'Patient créé et assigné au lit avec succès !' : 'Patient hospitalisé créé avec succès !');
+      
+      // On rafraîchit la liste en arrière-plan
       refetch().catch(console.error);
 
-      // ← NE PAS fermer le modal ici — le modal passe à l'étape "confirmation + RDV"
-      return newPatient; // ← id_patient transmis au modal pour patientPreselection
+      // IMPORTANT : On ne ferme PAS le modal ici (setIsAddModalOpen)
+      // On retourne le patient pour que l'enfant passe à l'étape "confirm"
+      return newPatient; 
     } catch (error) {
       console.error('Erreur création patient:', error);
       throw error;
     }
   };
-  // ─────────────────────────────────────────────────────────────────────────
 
   const calculateAge = (date: string | Date) => {
     if (!date) return '?';
@@ -107,10 +107,10 @@ export default function PatientsHospitalises() {
   const handleFilterChange = (cb: () => void) => { cb(); setCurrentPage(1); };
 
   if (loading && patients.length === 0) return (
-  <div className="flex flex-col items-center justify-center py-20 gap-3">
-    <div className="w-10 h-10 border-4 border-cyan-100 border-t-cyan-500 rounded-full animate-spin"></div>
-  </div>
-);
+    <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <div className="w-10 h-10 border-4 border-cyan-100 border-t-cyan-500 rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
     <div className="w-full flex flex-col gap-4 pb-4 px-0 sm:px-4" style={{ height: 'calc(100vh - 100px)' }}>
@@ -177,7 +177,7 @@ export default function PatientsHospitalises() {
           currentPatients.map((p) => (
             <div
               key={p.id_patient}
-              onClick={() => navigate(`/patients/${p.id_patient}/dossier`)}
+              onClick={() => navigate(getDossierPath(p.id_patient))}
               className="group relative bg-white border border-slate-100 p-4 md:p-6 rounded-[2rem] flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-6 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-500/5 transition-all cursor-pointer overflow-hidden"
             >
               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-all" />

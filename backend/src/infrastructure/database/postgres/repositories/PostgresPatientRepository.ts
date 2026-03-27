@@ -9,56 +9,44 @@ export class PostgresPatientRepository implements IPatientRepository {
   constructor(private pool: Pool) {}
 
   async create(data: CreatePatientDTO): Promise<Patient> {
-    console.log('📝 [Repository] Création patient avec données:', data);
-
     const numDossier = await this.generateNumDossier();
-    console.log('🔢 [Repository] Numéro de dossier généré:', numDossier);
 
-    const query = `
-      INSERT INTO patients (
+    const result = await this.pool.query(
+      `INSERT INTO patients (
         num_dossier, nom_patient, prenom_patient, date_naissance, sexe_patient,
-        adresse_patient, tel_patient, assurance, statut_patient, medecin_traitant, lit
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `;
-
-    const values = [
-      numDossier,
-      data.nom_patient,
-      data.prenom_patient,
-      data.date_naissance,
-      data.sexe_patient,
-      data.adresse_patient,
-      data.tel_patient    || null,
-      data.assurance      || null,
-      data.statut_patient || 'externe',
-      data.medecin_traitant,
-      data.lit            || null,
-    ];
-
-    const result = await this.pool.query(query, values);
+        adresse_patient, tel_patient, assurance, statut_patient, medecin_traitant,
+        id_medecin_traitant, lit
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [
+        numDossier,
+        data.nom_patient,
+        data.prenom_patient,
+        data.date_naissance,
+        data.sexe_patient,
+        data.adresse_patient,
+        data.tel_patient          || null,
+        data.assurance            || null,
+        data.statut_patient       || 'externe',
+        data.medecin_traitant,
+        (data as any).id_medecin_traitant ?? null,
+        data.lit                  || null,
+      ]
+    );
     console.log('✅ [Repository] Patient créé avec succès');
     return result.rows[0];
   }
 
   async findById(id: number): Promise<Patient | null> {
-    const result = await this.pool.query(
-      'SELECT * FROM patients WHERE id_patient = $1',
-      [id]
-    );
+    const result = await this.pool.query('SELECT * FROM patients WHERE id_patient = $1', [id]);
     return result.rows[0] || null;
   }
 
   async findByNumDossier(numDossier: string): Promise<Patient | null> {
-    const result = await this.pool.query(
-      'SELECT * FROM patients WHERE num_dossier = $1',
-      [numDossier]
-    );
+    const result = await this.pool.query('SELECT * FROM patients WHERE num_dossier = $1', [numDossier]);
     return result.rows[0] || null;
   }
 
-  async findAll(params: PaginationParams, filters?: PatientFilters): Promise<PaginatedResponse<Patient>> {
+  async findAll(params: PaginationParams, filters?: PatientFilters & { id_medecin_traitant?: number }): Promise<PaginatedResponse<Patient>> {
     const page   = params.page  || 1;
     const limit  = params.limit || 10;
     const offset = (page - 1) * limit;
@@ -85,12 +73,15 @@ export class PostgresPatientRepository implements IPatientRepository {
       queryParams.push(`%${filters.search}%`);
       paramIndex++;
     }
+    if (filters?.id_medecin_traitant) {
+      conditions.push(`id_medecin_traitant = $${paramIndex++}`);
+      queryParams.push(filters.id_medecin_traitant);
+    }
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const countResult = await this.pool.query(
-      `SELECT COUNT(*) FROM patients ${whereClause}`,
-      queryParams
+      `SELECT COUNT(*) FROM patients ${whereClause}`, queryParams
     );
     const total = parseInt(countResult.rows[0].count);
 
@@ -111,8 +102,7 @@ export class PostgresPatientRepository implements IPatientRepository {
     const offset = (page - 1) * limit;
 
     const countResult = await this.pool.query(
-      'SELECT COUNT(*) FROM patients WHERE statut_patient = $1',
-      [status]
+      'SELECT COUNT(*) FROM patients WHERE statut_patient = $1', [status]
     );
     const total = parseInt(countResult.rows[0].count);
 
@@ -134,8 +124,7 @@ export class PostgresPatientRepository implements IPatientRepository {
           OR LOWER(prenom_patient) LIKE LOWER($1)
           OR LOWER(num_dossier)    LIKE LOWER($1)
           OR tel_patient           LIKE $1
-       ORDER BY nom_patient, prenom_patient
-       LIMIT 20`,
+       ORDER BY nom_patient, prenom_patient LIMIT 20`,
       [`%${query}%`]
     );
     return result.rows;
@@ -169,10 +158,9 @@ export class PostgresPatientRepository implements IPatientRepository {
 
   async getStats(): Promise<{ total: number; externes: number; hospitalises: number }> {
     const result = await this.pool.query(`
-      SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE statut_patient = 'externe')    as externes,
-        COUNT(*) FILTER (WHERE statut_patient = 'hospitalise') as hospitalises
+      SELECT COUNT(*) as total,
+             COUNT(*) FILTER (WHERE statut_patient = 'externe')    as externes,
+             COUNT(*) FILTER (WHERE statut_patient = 'hospitalise') as hospitalises
       FROM patients
     `);
     return {
@@ -185,8 +173,7 @@ export class PostgresPatientRepository implements IPatientRepository {
   private async generateNumDossier(): Promise<string> {
     const year = new Date().getFullYear();
     const result = await this.pool.query(
-      'SELECT COUNT(*) FROM patients WHERE num_dossier LIKE $1',
-      [`${year}%`]
+      'SELECT COUNT(*) FROM patients WHERE num_dossier LIKE $1', [`${year}%`]
     );
     const count = parseInt(result.rows[0].count) + 1;
     return `${year}${count.toString().padStart(5, '0')}`;

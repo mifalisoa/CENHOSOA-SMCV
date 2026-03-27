@@ -1,160 +1,120 @@
-import { useMemo } from 'react';
+// frontend/src/presentation/pages/dashboard/sections/DoctorDashboardHome.tsx
+
+import { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Calendar, ChevronRight, ArrowRight } from 'lucide-react';
+import { Users, Calendar, ChevronRight, ArrowRight, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { usePatients } from '../../../hooks/usePatients';
-import { useAppointments } from '../../../hooks/useAppointments';
+import { useRendezVous } from '../../../hooks/useRendezVous';
+import { useAuth } from '../../../hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/common/Card';
-// Suppression de l'import Button non utilisé (Correction ESLint)
 import { Badge } from '../../../components/common/Badge';
 
-// Interface mise à jour pour utiliser les bonnes propriétés de l'entité Patient
-export function DoctorDashboardHome() { // userRole supprimé si non utilisé (Correction ESLint)
+// Export nommé conservé pour compatibilité
+export function DoctorDashboardHome() {
+  const { user } = useAuth();
   const { patients } = usePatients();
-  const { appointments } = useAppointments();
+  const { rendezVous, fetchByDate, loading: loadingRdv } = useRendezVous();
 
-  // Calcul des statistiques
+  const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    fetchByDate(today, user?.id_user);
+  }, [today, user?.id_user, fetchByDate]);
+
   const stats = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const todayAppointments = (appointments || []).filter(apt => {
-      const aptDate = new Date(apt.appointmentDate);
-      aptDate.setHours(0, 0, 0, 0);
-      return aptDate.getTime() === today.getTime();
-    });
+    const total        = (patients || []).length;
+    const externes     = (patients || []).filter(p => p.statut_patient === 'externe').length;
+    const hospitalises = (patients || []).filter(p => p.statut_patient === 'hospitalise').length;
+    const rdvAujourd   = (rendezVous || []).length;
+    const confirmes    = (rendezVous || []).filter(r => r.statut_rdv === 'confirme').length;
+    const planifies    = (rendezVous || []).filter(r => r.statut_rdv === 'planifie').length;
+    return { total, externes, hospitalises, rdvAujourd, confirmes, planifies };
+  }, [patients, rendezVous]);
 
-    return {
-      totalPatients: (patients || []).length,
-      // Correction : p.type -> p.statut_patient
-      externesCount: (patients || []).filter(p => p.statut_patient === 'externe').length,
-      hospitalisesCount: (patients || []).filter(p => p.statut_patient === 'hospitalisé').length,
-      todayAppointments: todayAppointments.length,
-      confirmedToday: todayAppointments.filter(apt => apt.status === 'confirmed').length
-    };
-  }, [patients, appointments]);
+  const rdvTries = useMemo(() =>
+    [...(rendezVous || [])]
+      .filter(r => r.statut_rdv !== 'annule')
+      .sort((a, b) => (a.heure_rdv ?? '').localeCompare(b.heure_rdv ?? ''))
+      .slice(0, 6),
+    [rendezVous]
+  );
 
-  // Prochains rendez-vous
-  const upcomingAppointments = useMemo(() => {
-    const now = new Date();
-    return (appointments || [])
-      .filter(apt => new Date(apt.appointmentDate) >= now)
-      .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())
-      .slice(0, 5);
-  }, [appointments]);
-
-  // Patients récents
-  const recentPatients = useMemo(() => {
-    return (patients || [])
-      // Correction : p.createdAt -> p.date_enregistrement
+  const recentPatients = useMemo(() =>
+    [...(patients || [])]
       .sort((a, b) => new Date(b.date_enregistrement).getTime() - new Date(a.date_enregistrement).getTime())
-      .slice(0, 5);
-  }, [patients]);
+      .slice(0, 5),
+    [patients]
+  );
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'success' | 'warning' | 'info' | 'default'> = {
-      confirmed: 'success',
-      pending: 'warning',
-      in_progress: 'info',
-      completed: 'default'
+  const getStatutBadge = (statut: string): 'success' | 'warning' | 'info' | 'default' => {
+    const map: Record<string, 'success' | 'warning' | 'info' | 'default'> = {
+      confirme: 'success', planifie: 'warning', termine: 'default', absent: 'info',
     };
-    return variants[status] || 'default';
+    return map[statut] ?? 'default';
   };
+
+  const getStatutLabel = (statut: string) => ({
+    confirme: 'Confirmé', planifie: 'En attente', termine: 'Terminé', annule: 'Annulé', absent: 'Absent',
+  }[statut] ?? statut);
 
   return (
     <div className="space-y-8">
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { icon: Users, color: 'blue', value: stats.total, label: 'Patients', sub: `${stats.externes} externes · ${stats.hospitalises} hospitalisés` },
+          { icon: Calendar, color: 'cyan', value: stats.rdvAujourd, label: "RDV aujourd'hui", sub: `${stats.confirmes} confirmés · ${stats.planifies} en attente` },
+          { icon: CheckCircle2, color: 'green', value: stats.confirmes, label: 'Confirmés', sub: `sur ${stats.rdvAujourd} RDV ce jour` },
+        ].map(({ icon: Icon, color, value, label, sub }, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * (i + 1) }}>
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-12 h-12 bg-${color}-100 rounded-xl flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 text-${color}-600`} />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">
-                {stats.totalPatients}
-              </div>
-              <div className="text-sm font-medium text-gray-900 mb-1">Mes Patients</div>
-              <div className="text-xs text-gray-500">
-                {stats.externesCount} externes, {stats.hospitalisesCount} hospitalisés
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-blue-600" />
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">
-                {stats.todayAppointments}
-              </div>
-              <div className="text-sm font-medium text-gray-900 mb-1">RDV aujourd'hui</div>
-              <div className="text-xs text-gray-500">
-                {stats.confirmedToday} confirmés
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">{value}</div>
+                <div className="text-sm font-medium text-gray-900 mb-1">{label}</div>
+                <div className="text-xs text-gray-500">{sub}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Prochains rendez-vous */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Prochains rendez-vous
+              <Clock className="w-5 h-5 text-cyan-600" />Rendez-vous du jour
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {upcomingAppointments.length === 0 ? (
+            {loadingRdv ? (
+              <div className="flex items-center justify-center py-8 gap-2 text-gray-400">
+                <div className="animate-spin w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full" />
+                <span className="text-sm">Chargement...</span>
+              </div>
+            ) : rdvTries.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>Aucun rendez-vous programmé</p>
+                <p className="text-sm">Aucun rendez-vous aujourd'hui</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {upcomingAppointments.map((apt) => (
-                  <div
-                    key={apt.id}
-                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    <div className="w-16 text-center">
-                      <div className="font-semibold text-sm">
-                        {new Date(apt.appointmentDate).toLocaleTimeString('fr-FR', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
+                {rdvTries.map(rdv => (
+                  <div key={rdv.id_rdv} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="w-16 text-center shrink-0">
+                      <div className="font-bold text-sm text-cyan-600">{rdv.heure_rdv}</div>
+                      <div className="text-[10px] text-gray-400">{rdv.duree_estimee ?? 30} min</div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{apt.patientName}</div>
-                      <div className="text-xs text-gray-600">{apt.reason}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 truncate">{rdv.patient_nom ?? '—'} {rdv.patient_prenom ?? ''}</div>
+                      <div className="text-xs text-gray-500 truncate">{rdv.motif_rdv ?? rdv.type_rdv}</div>
                     </div>
-                    <Badge variant={getStatusBadge(apt.status)}>
-                      {apt.status}
-                    </Badge>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <Badge variant={getStatutBadge(rdv.statut_rdv)}>{getStatutLabel(rdv.statut_rdv)}</Badge>
+                    <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                   </div>
                 ))}
               </div>
@@ -163,44 +123,36 @@ export function DoctorDashboardHome() { // userRole supprimé si non utilisé (C
         </Card>
       </motion.div>
 
-      {/* Patients récents */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              Patients récents
+              <Users className="w-5 h-5 text-blue-600" />Patients récents
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentPatients.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>Aucun patient enregistré</p>
+                <p className="text-sm">Aucun patient enregistré</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentPatients.map((patient) => (
-                  <div
-                    // Correction : patient.id -> patient.id_patient
-                    key={patient.id_patient}
-                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {/* Correction : firstName/lastName -> nom_patient/prenom_patient */}
-                        {patient.nom_patient} {patient.prenom_patient}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {/* Correction : patient.type -> patient.statut_patient */}
-                        {patient.statut_patient === 'externe' ? 'Patient externe' : 'Patient hospitalisé'}
+                {recentPatients.map(patient => (
+                  <div key={patient.id_patient} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                    <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      {patient.prenom_patient?.charAt(0)}{patient.nom_patient?.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 truncate">{patient.nom_patient} {patient.prenom_patient}</div>
+                      <div className="text-xs text-gray-500">
+                        {patient.statut_patient === 'externe' ? 'Patient externe' : 'Hospitalisé'}
+                        {patient.num_dossier && ` · ${patient.num_dossier}`}
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    {patient.statut_patient === 'hospitalise'
+                      ? <XCircle className="w-4 h-4 text-cyan-500 shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
                   </div>
                 ))}
               </div>
@@ -211,3 +163,6 @@ export function DoctorDashboardHome() { // userRole supprimé si non utilisé (C
     </div>
   );
 }
+
+// Export default pour React Router
+export default DoctorDashboardHome;

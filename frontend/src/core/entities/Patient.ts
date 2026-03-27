@@ -1,57 +1,62 @@
 // frontend/src/core/entities/Patient.ts
 
 export interface Patient {
-  id_patient: number;
-  num_dossier: string;
-  nom_patient: string;
-  prenom_patient: string;
-  date_naissance: Date | string;
-  sexe_patient: 'M' | 'F';
-  adresse_patient: string;
-  tel_patient?: string;
-  assurance?: string; // PAS, FMILIF, OCONV, PERS
-  statut_patient: 'externe' | 'hospitalisé' | 'hospitalise' | 'sorti';
-  date_enregistrement: Date | string;
-  medecin_traitant: string;
+  id_patient:           number;
+  num_dossier:          string;
+  nom_patient:          string;
+  prenom_patient:       string;
+  date_naissance:       Date | string;
+  sexe_patient:         'M' | 'F';
+  adresse_patient:      string;
+  tel_patient?:         string;
+  assurance?:           string; // PAS, FMILIF, OCONV, PERS
+  statut_patient:       'externe' | 'hospitalise' | 'sorti'; // sans accent
+  date_enregistrement:  Date | string;
+  medecin_traitant:     string;
+  id_medecin_traitant?: number | null;
+  lit?:                 string;
 }
 
 export interface CreatePatientDTO {
-  nom_patient: string;
-  prenom_patient: string;
-  date_naissance: string | Date;
-  sexe_patient: 'M' | 'F';
-  adresse_patient: string;
-  tel_patient?: string;
-  assurance?: string;
-  statut_patient?: 'externe' | 'hospitalisé' | 'hospitalise' | 'sorti';
-  medecin_traitant: string;
+  nom_patient:          string;
+  prenom_patient:       string;
+  date_naissance:       string | Date;
+  sexe_patient:         'M' | 'F';
+  adresse_patient:      string;
+  tel_patient?:         string;
+  assurance?:           string;
+  statut_patient?:      'externe' | 'hospitalise';
+  medecin_traitant:     string;
+  id_medecin_traitant?: number | null;
+  lit?:                 string;
 }
 
 export interface UpdatePatientDTO {
-  nom_patient?: string;
-  prenom_patient?: string;
-  date_naissance?: string | Date;
-  sexe_patient?: 'M' | 'F';
-  adresse_patient?: string;
-  tel_patient?: string;
-  assurance?: string;
-  statut_patient?: 'externe' | 'hospitalisé' | 'hospitalise' | 'sorti';
-  medecin_traitant?: string;
+  nom_patient?:         string;
+  prenom_patient?:      string;
+  date_naissance?:      string | Date;
+  sexe_patient?:        'M' | 'F';
+  adresse_patient?:     string;
+  tel_patient?:         string;
+  assurance?:           string;
+  statut_patient?:      'externe' | 'hospitalise' | 'sorti';
+  medecin_traitant?:    string;
+  id_medecin_traitant?: number | null;
 }
 
 export interface PatientFilters {
-  statut?: 'externe' | 'hospitalisé' | 'hospitalise' | 'sorti';
-  assurance?: string;
-  search?: string;
+  statut?:              'externe' | 'hospitalise';
+  assurance?:           string;
+  search?:              string;
+  id_medecin_traitant?: number;
 }
 
-// ← Ajout : type retourné par les méthodes paginées du PatientRepository
 export interface PaginatedPatients {
   data: Patient[];
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
+    page:       number;
+    limit:      number;
+    total:      number;
     totalPages: number;
   };
 }

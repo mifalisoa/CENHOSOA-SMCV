@@ -1,92 +1,27 @@
+// backend/src/interfaces/http/routes/soin-medical.routes.ts
+
 import { Router } from 'express';
-import { SoinMedicalController } from '../controllers/SoinMedicalController';
-import { authMiddleware } from '../middlewares/auth.middleware';
-import { roleMiddleware } from '../middlewares/role.middleware';
-import { pool } from '../../../config/database';
-import { PostgresSoinMedicalRepository } from '../../../infrastructure/database/postgres/repositories/PostgresSoinMedicalRepository';
+import { SoinMedicalController }           from '../controllers/SoinMedicalController';
+import { authMiddleware }                   from '../middlewares/auth.middleware';
+import { roleMiddleware }                   from '../middlewares/role.middleware';
+import { pool }                             from '../../../config/database';
+import { PostgresSoinMedicalRepository }   from '../../../infrastructure/database/postgres/repositories/PostgresSoinMedicalRepository';
 
 const router = Router();
-
 const soinRepository = new PostgresSoinMedicalRepository(pool);
 const soinController = new SoinMedicalController(soinRepository);
 
 router.use(authMiddleware);
 
-/**
- * @route   POST /api/soins-medicaux
- * @desc    Créer un nouveau soin médical
- * @access  Médecins uniquement
- */
-router.post(
-  '/',
-  roleMiddleware(['medecin', 'admin']),
-  soinController.create
-);
+const LECTURE  = ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'];
+const ECRITURE = ['admin', 'medecin', 'interne'];
 
-/**
- * @route   GET /api/soins-medicaux/patient/:patientId
- * @desc    Récupérer tous les soins médicaux d'un patient
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/patient/:patientId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  soinController.getByPatientId
-);
-
-/**
- * @route   GET /api/soins-medicaux/admission/:admissionId
- * @desc    Récupérer tous les soins médicaux d'une admission
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/admission/:admissionId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  soinController.getByAdmissionId
-);
-
-/**
- * @route   GET /api/soins-medicaux/:id
- * @desc    Récupérer un soin médical par son ID
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/:id',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  soinController.getById
-);
-
-/**
- * @route   PUT /api/soins-medicaux/:id
- * @desc    Mettre à jour un soin médical
- * @access  Médecins uniquement
- */
-router.put(
-  '/:id',
-  roleMiddleware(['medecin', 'admin']),
-  soinController.update
-);
-
-/**
- * @route   PATCH /api/soins-medicaux/:id/verify
- * @desc    Vérifier/Dévérifier un soin médical
- * @access  Médecins uniquement
- */
-router.patch(
-  '/:id/verify',
-  roleMiddleware(['medecin', 'admin']),
-  soinController.verify
-);
-
-/**
- * @route   DELETE /api/soins-medicaux/:id
- * @desc    Supprimer un soin médical
- * @access  Médecins et Admin uniquement
- */
-router.delete(
-  '/:id',
-  roleMiddleware(['medecin', 'admin']),
-  soinController.delete
-);
+router.post(  '/',                       roleMiddleware(ECRITURE), soinController.create);
+router.get(   '/patient/:patientId',     roleMiddleware(LECTURE),  soinController.getByPatientId);
+router.get(   '/admission/:admissionId', roleMiddleware(LECTURE),  soinController.getByAdmissionId);
+router.get(   '/:id',                    roleMiddleware(LECTURE),  soinController.getById);
+router.put(   '/:id',                    roleMiddleware(ECRITURE), soinController.update);
+router.patch( '/:id/verify',             roleMiddleware(ECRITURE), soinController.verify);
+router.delete('/:id',                    roleMiddleware(ECRITURE), soinController.delete);
 
 export default router;

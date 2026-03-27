@@ -49,7 +49,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Connexion réussie !');
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: unknown) {
       // Logic to safely handle the error without using 'any'
       const errorMessage = error instanceof Error 

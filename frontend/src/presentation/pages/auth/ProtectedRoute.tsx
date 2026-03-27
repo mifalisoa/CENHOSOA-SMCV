@@ -3,10 +3,11 @@ import { useAuth } from '../../hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  roles?: string[]; // si fourni, vérifie le rôle en plus de l'authentification
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,6 +22,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Si des rôles sont requis, vérifier que l'utilisateur a le bon rôle
+  if (roles && roles.length > 0 && user) {
+    if (!roles.includes(user.role)) {
+      // Rediriger vers le bon dashboard selon le rôle réel
+      switch (user.role) {
+        case 'medecin':    return <Navigate to="/doctor"    replace />;
+        case 'secretaire': return <Navigate to="/secretary" replace />;
+        default:           return <Navigate to="/dashboard" replace />;
+      }
+    }
   }
 
   return <>{children}</>;

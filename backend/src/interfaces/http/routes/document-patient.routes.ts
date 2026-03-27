@@ -1,81 +1,32 @@
+// backend/src/interfaces/http/routes/document-patient.routes.ts
+//
+// LEÇON : Le secrétaire a accès aux documents — c'est son seul accès
+// aux données d'un dossier patient. Toutes les autres routes médicales
+// lui sont bloquées.
+
 import { Router } from 'express';
-import { DocumentPatientController } from '../controllers/DocumentPatientController';
-import { authMiddleware } from '../middlewares/auth.middleware';
-import { roleMiddleware } from '../middlewares/role.middleware';
-import { pool } from '../../../config/database';
-import { PostgresDocumentPatientRepository } from '../../../infrastructure/database/postgres/repositories/PostgresDocumentPatientRepository';
+import { DocumentPatientController }           from '../controllers/DocumentPatientController';
+import { authMiddleware }                       from '../middlewares/auth.middleware';
+import { roleMiddleware }                       from '../middlewares/role.middleware';
+import { pool }                                 from '../../../config/database';
+import { PostgresDocumentPatientRepository }   from '../../../infrastructure/database/postgres/repositories/PostgresDocumentPatientRepository';
 
 const router = Router();
-
 const documentRepository = new PostgresDocumentPatientRepository(pool);
 const documentController = new DocumentPatientController(documentRepository);
 
 router.use(authMiddleware);
 
-/**
- * @route   POST /api/documents-patients
- * @desc    Créer un nouveau document patient
- * @access  Médecins, Infirmiers, Admin
- */
-router.post(
-  '/',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  documentController.create
-);
+// Lecture + écriture — secrétaire inclus
+const TOUS     = ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier', 'secretaire'];
+// Suppression — pas le secrétaire
+const ECRITURE = ['admin', 'medecin', 'interne', 'infirmier'];
 
-/**
- * @route   GET /api/documents-patients/patient/:patientId
- * @desc    Récupérer tous les documents d'un patient
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/patient/:patientId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  documentController.getByPatientId
-);
-
-/**
- * @route   GET /api/documents-patients/admission/:admissionId
- * @desc    Récupérer tous les documents d'une admission
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/admission/:admissionId',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  documentController.getByAdmissionId
-);
-
-/**
- * @route   GET /api/documents-patients/:id
- * @desc    Récupérer un document par son ID
- * @access  Médecins, Infirmiers, Admin
- */
-router.get(
-  '/:id',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  documentController.getById
-);
-
-/**
- * @route   PUT /api/documents-patients/:id
- * @desc    Mettre à jour un document
- * @access  Médecins, Infirmiers, Admin
- */
-router.put(
-  '/:id',
-  roleMiddleware(['medecin', 'infirmier', 'admin']),
-  documentController.update
-);
-
-/**
- * @route   DELETE /api/documents-patients/:id
- * @desc    Supprimer un document
- * @access  Médecins et Admin uniquement
- */
-router.delete(
-  '/:id',
-  roleMiddleware(['medecin', 'admin']),
-  documentController.delete
-);
+router.post(  '/',                       roleMiddleware(TOUS),     documentController.create);
+router.get(   '/patient/:patientId',     roleMiddleware(TOUS),     documentController.getByPatientId);
+router.get(   '/admission/:admissionId', roleMiddleware(TOUS),     documentController.getByAdmissionId);
+router.get(   '/:id',                    roleMiddleware(TOUS),     documentController.getById);
+router.put(   '/:id',                    roleMiddleware(TOUS),     documentController.update);
+router.delete('/:id',                    roleMiddleware(ECRITURE), documentController.delete);
 
 export default router;

@@ -1,46 +1,59 @@
+// frontend/src/presentation/pages/dashboard/SecretaryDashboard.tsx
+//
+// LEÇON : Le secrétaire n'a pas besoin de React Router pour sa navigation
+// interne — son périmètre est simple et auto-contenu.
+// On garde l'état `currentView` mais on le gère proprement dans un seul
+// composant racine, sans le dupliquer dans le layout.
+
 import { useState } from 'react';
-import { SecretaryLayout } from '../../components/layout/SecretaryLayout';
-import { SecretaryDashboardStats } from './sections/SecretaryDashboardStats';
-import { SecretaryPatientsList } from './sections/SecretaryPatientsList';
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { SecretaryLayout } from '../../components/layout/SecretaryLayout';
+import SecretaryDashboardHome from './sections/SecretaryDashboardHome';
+import PlanningPage from '../rendez-vous/PlanningPage';
+import PatientsExternesView from './sections/admin/PatientsExternesView';
+import PatientsHospitalises from './sections/admin/PatientsHospitalises';
+
+// Type union explicite — toutes les vues possibles du secrétaire
+// LEÇON : Toujours typer les vues avec un type union plutôt que `string`
+// Avantage : TypeScript te prévient si tu oublies un case dans le switch
+type SecretaryView =
+  | 'dashboard'
+  | 'planning'
+  | 'patients-externes'
+  | 'patients-hospitalises';
 
 export default function SecretaryDashboard() {
-  const [currentView, setCurrentView] = useState('dashboard');
   const { logout } = useAuth();
-  const navigate = useNavigate();
+  const [currentView, setCurrentView] = useState<SecretaryView>('dashboard');
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
+  // LEÇON : `renderView` est une fonction pure — elle prend un état
+  // et retourne un composant. Facile à tester, facile à lire.
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <SecretaryDashboardStats 
-          onNewAppointment={() => setCurrentView('planning')}
-          onViewPlanning={() => setCurrentView('planning')}
-        />;
+        return (
+          <SecretaryDashboardHome
+            onGoToPlanning={() => setCurrentView('planning')}
+          />
+        );
       case 'planning':
-        return <div>Planning RDV (à implémenter)</div>;
+        return <PlanningPage />;
       case 'patients-externes':
-        return <SecretaryPatientsList filterType="externe" />;
+        // LEÇON : `key` force le remontage quand on change de vue
+        // → les états internes (filtres, page) sont réinitialisés proprement
+        return <PatientsExternesView key="externes" />;
       case 'patients-hospitalises':
-        return <SecretaryPatientsList filterType="hospitalise" />;
+        return <PatientsHospitalises key="hospitalises" />;
       default:
-        return <SecretaryDashboardStats 
-          onNewAppointment={() => setCurrentView('planning')}
-          onViewPlanning={() => setCurrentView('planning')}
-        />;
+        return <SecretaryDashboardHome onGoToPlanning={() => setCurrentView('planning')} />;
     }
   };
 
   return (
     <SecretaryLayout
       currentView={currentView}
-      onViewChange={setCurrentView}
-      onLogout={handleLogout}
+      onViewChange={(view) => setCurrentView(view as SecretaryView)}
+      onLogout={logout}
     >
       {renderView()}
     </SecretaryLayout>

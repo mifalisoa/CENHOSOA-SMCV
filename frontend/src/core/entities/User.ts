@@ -1,17 +1,28 @@
 // frontend/src/core/entities/User.ts
 
+export type UserRole =
+  | 'admin'
+  | 'medecin'
+  | 'interne'
+  | 'stagiaire'
+  | 'infirmier'
+  | 'secretaire';
+
+// LEÇON : Exporter le type séparément permet de l'utiliser partout
+// sans répéter la liste des rôles (App.tsx, ProtectedRoute, etc.)
+
 export interface User {
-  id_user:      number;
-  nom:          string;   // était nom_user
-  prenom:       string;   // était prenom_user
-  email:        string;   // était email_user
-  role:         'admin' | 'medecin' | 'infirmier' | 'secretaire' | 'pharmacien'; // était 'docteur'
-  specialite?:  string | null;  // était specialite_user
-  telephone?:   string | null;  // était tel_user
-  actif?:       boolean;        // était actif_user
-  statut?:      'actif' | 'inactif' | 'suspendu';
-  created_at?:  Date;           // était date_creation_user
-  updated_at?:  Date;
+  id_user:     number;
+  nom:         string;
+  prenom:      string;
+  email:       string;
+  role:        UserRole;
+  specialite?: string | null;
+  telephone?:  string | null;
+  actif?:      boolean;
+  statut?:     'actif' | 'inactif' | 'suspendu';
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface LoginCredentials {
@@ -20,6 +31,6 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
-  user:         User;
-  token:        string;  // le backend retourne "token", pas accessToken/refreshToken
+  user:  User;
+  token: string;
 }

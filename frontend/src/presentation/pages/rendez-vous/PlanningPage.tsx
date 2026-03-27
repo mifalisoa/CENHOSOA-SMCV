@@ -32,6 +32,7 @@ import { httpClient } from '../../../infrastructure/http/axios.config';
 import NouveauRdvModal from '../../components/rendez-vous/NouveauRdvModal';
 import type { RendezVous } from '../../../core/entities/RendezVous';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,8 @@ const TYPE_LABEL: Record<string, string> = {
   urgence:      'Urgence',
   suivi:        'Suivi',
 };
+
+
 
 // ─── Génération ticket PDF ────────────────────────────────────────────────────
 
@@ -513,6 +516,7 @@ function RdvDetailModal({
 
 export default function PlanningPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { rendezVous, loading: loadingRdv, fetchByDate } = useRendezVous();
 
   const [selectedDate, setSelectedDate]       = useState(new Date());
@@ -541,33 +545,45 @@ export default function PlanningPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const loadDocteurs = useCallback(async () => {
-    try {
-      setLoadingDocteurs(true);
-      setErrorDocteurs(null);
-      const response = await httpClient.get('/utilisateurs', { params: { role: 'medecin', statut: 'actif' } });
-      const raw: Array<{ id_utilisateur?: number; id_user?: number; nom: string; prenom: string; specialite?: string }> =
-        response.data.data ?? response.data ?? [];
-      setDocteurs(Array.isArray(raw) ? raw.map(u => ({
-        id_user:    u.id_utilisateur ?? u.id_user ?? 0,
-        nom:        u.nom,
-        prenom:     u.prenom,
-        specialite: u.specialite ?? 'Médecin',
-      })) : []);
-    } catch {
-      setErrorDocteurs('Impossible de charger les médecins.');
-      setDocteurs([]);
-    } finally {
-      setLoadingDocteurs(false);
+const loadDocteurs = useCallback(async () => {
+  try {
+    setLoadingDocteurs(true);
+    setErrorDocteurs(null);
+    const response = await httpClient.get('/utilisateurs', { params: { role: 'medecin', statut: 'actif' } });
+    const raw: Array<{ id_utilisateur?: number; id_user?: number; nom: string; prenom: string; specialite?: string }> =
+      response.data.data ?? response.data ?? [];
+    let mapped = Array.isArray(raw) ? raw.map(u => ({
+      id_user:    u.id_utilisateur ?? u.id_user ?? 0,
+      nom:        u.nom,
+      prenom:     u.prenom,
+      specialite: u.specialite ?? 'Médecin',
+    })) : [];
+
+    // Médecin → ne voir que sa propre colonne
+    if (user?.role === 'medecin') {
+      mapped = mapped.filter(d => d.id_user === user.id_user);
     }
-  }, []);
+
+    setDocteurs(mapped);
+  } catch {
+    setErrorDocteurs('Impossible de charger les médecins.');
+    setDocteurs([]);
+  } finally {
+    setLoadingDocteurs(false);
+  }
+}, [user]); 
 
   useEffect(() => { loadDocteurs(); }, [loadDocteurs]);
 
-  useEffect(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    fetchByDate(dateStr, selectedDocteur ?? undefined);
-  }, [selectedDate, selectedDocteur, fetchByDate]);
+ // Après
+useEffect(() => {
+  const dateStr = selectedDate.toISOString().split('T')[0];
+  // Médecin → forcer son propre id, admin → utiliser le filtre sélectionné
+  const docteurId = user?.role === 'medecin'
+    ? user.id_user
+    : (selectedDocteur ?? undefined);
+  fetchByDate(dateStr, docteurId);
+}, [selectedDate, selectedDocteur, fetchByDate, user]);
 
   const goToPreviousDay = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
   const goToNextDay     = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; });
@@ -738,42 +754,45 @@ export default function PlanningPage() {
                 <p className="text-xs text-gray-500 leading-relaxed">Aucun médecin actif.<br />Ajoutez des utilisateurs avec le rôle <strong>médecin</strong>.</p>
               </div>
             )}
-            {!loadingDocteurs && !errorDocteurs && docteurs.length > 0 && (
-              <>
-                <button onClick={() => setSelectedDocteur(null)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all border ${selectedDocteur === null ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
-                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">ALL</div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="font-semibold text-gray-800 text-sm">Tous les médecins</p>
-                    <p className="text-xs text-gray-500">Vue d'ensemble</p>
-                  </div>
-                  <span className="text-sm font-bold text-gray-500 shrink-0">{docteurs.length}</span>
-                </button>
-                {docteurs.map(doc => {
-                  const count = getRdvCount(doc.id_user);
-                  return (
-                    <button key={doc.id_user} onClick={() => setSelectedDocteur(doc.id_user)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all border ${selectedDocteur === doc.id_user ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
-                      <div className="relative shrink-0">
-                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                          {`${doc.prenom.charAt(0)}${doc.nom.charAt(0)}`.toUpperCase()}
-                        </div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${count > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="font-semibold text-gray-800 text-sm truncate">Dr. {doc.prenom} {doc.nom}</p>
-                        <p className="text-xs text-gray-500 truncate">{doc.specialite}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={`text-sm font-bold ${count > 0 ? 'text-cyan-600' : 'text-gray-400'}`}>{count}</p>
-                        <p className="text-[10px] text-gray-400">RDV</p>
-                      </div>
-                      <Eye className="w-4 h-4 text-gray-300 shrink-0" />
-                    </button>
-                  );
-                })}
-              </>
-            )}
+           {!loadingDocteurs && !errorDocteurs && docteurs.length > 0 && (
+  <>
+    {/* Bouton "Tous les médecins" — masqué pour le médecin connecté */}
+    {user?.role !== 'medecin' && (
+      <button onClick={() => setSelectedDocteur(null)}
+        className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all border ${selectedDocteur === null ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
+        <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">ALL</div>
+        <div className="flex-1 text-left min-w-0">
+          <p className="font-semibold text-gray-800 text-sm">Tous les médecins</p>
+          <p className="text-xs text-gray-500">Vue d'ensemble</p>
+        </div>
+        <span className="text-sm font-bold text-gray-500 shrink-0">{docteurs.length}</span>
+      </button>
+    )}
+    {docteurs.map(doc => {
+      const count = getRdvCount(doc.id_user);
+      return (
+        <button key={doc.id_user} onClick={() => setSelectedDocteur(doc.id_user)}
+          className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all border ${selectedDocteur === doc.id_user ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+              {`${doc.prenom.charAt(0)}${doc.nom.charAt(0)}`.toUpperCase()}
+            </div>
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${count > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <p className="font-semibold text-gray-800 text-sm truncate">Dr. {doc.prenom} {doc.nom}</p>
+            <p className="text-xs text-gray-500 truncate">{doc.specialite}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className={`text-sm font-bold ${count > 0 ? 'text-cyan-600' : 'text-gray-400'}`}>{count}</p>
+            <p className="text-[10px] text-gray-400">RDV</p>
+          </div>
+          <Eye className="w-4 h-4 text-gray-300 shrink-0" />
+        </button>
+      );
+    })}
+  </>
+)}
           </div>
         </div>
 

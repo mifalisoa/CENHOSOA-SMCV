@@ -1,3 +1,5 @@
+// frontend/src/infrastructure/repositories/AuthRepository.ts
+
 import type { IAuthRepository } from '../../core/repositories/IAuthRepository';
 import type { User, LoginCredentials, AuthResponse } from '../../core/entities/User';
 import { httpClient } from '../http/axios.config';
@@ -11,31 +13,19 @@ interface ApiResponse<T> {
 }
 
 export class AuthRepository implements IAuthRepository {
-  /**
-   * Connexion de l'utilisateur
-   */
+
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const response = await httpClient.post<ApiResponse<{ token: string; user: User }>>(
-        '/auth/login', 
-        {
-          email: credentials.email,
-          mot_de_passe: credentials.password,
-        }
+        '/auth/login',
+        { email: credentials.email, mot_de_passe: credentials.password }
       );
 
       if (response.data.success && response.data.data) {
         const { token, user } = response.data.data;
-        
-        // On utilise les méthodes de TokenStorage
         this.saveToken(token);
         TokenStorage.saveUser(user);
-        
-        return {
-          user,
-          accessToken: token,
-          refreshToken: '', 
-        };
+        return { user, token };
       }
       throw new Error(response.data.message || 'Erreur de connexion');
     } catch (error: unknown) {
@@ -47,41 +37,25 @@ export class AuthRepository implements IAuthRepository {
     }
   }
 
-  /**
-   * Déconnexion
-   */
   async logout(): Promise<void> {
     this.removeToken();
     TokenStorage.removeUser();
   }
 
-  /**
-   * Récupérer l'utilisateur actuel via l'API
-   */
+  // GET /auth/me retourne maintenant directement l'objet user (plus de { user: ... })
   async getCurrentUser(): Promise<User> {
     const response = await httpClient.get<ApiResponse<User>>('/auth/me');
     return response.data.data;
   }
 
-  // --- Implémentation des méthodes manquantes exigées par IAuthRepository ---
-
-  /**
-   * Récupérer le token stocké
-   */
   getStoredToken(): string | null {
     return TokenStorage.getToken();
   }
 
-  /**
-   * Sauvegarder un token (Exigé par IAuthRepository)
-   */
   saveToken(token: string): void {
     TokenStorage.saveToken(token);
   }
 
-  /**
-   * Supprimer le token (Exigé par IAuthRepository)
-   */
   removeToken(): void {
     TokenStorage.removeToken();
   }

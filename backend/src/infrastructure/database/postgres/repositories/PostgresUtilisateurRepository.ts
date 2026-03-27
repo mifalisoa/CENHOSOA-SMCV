@@ -112,7 +112,7 @@ export class PostgresUtilisateurRepository implements IUtilisateurRepository {
 
         for (const key of allowed) {
             if (data[key] !== undefined) {
-                fields.push(`${key} = $${i++}`);
+                fields.push(`${String(key)} = $${i++}`);
                 values.push(data[key]);
             }
         }

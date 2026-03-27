@@ -1,121 +1,94 @@
 // backend/src/interfaces/http/controllers/PatientTransferController.ts
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { PatientTransferService } from '../../../application/services/PatientTransferService';
-import { pool } from '../../../config/database';
+import { LitTransferService }     from '../../../application/services/LitTransferService';
+import { AuthRequest }            from '../middlewares/auth.middleware';
+import { pool }                   from '../../../config/database';
 
 const transferService = new PatientTransferService(pool);
+const litService      = new LitTransferService(pool);
 
 export class PatientTransferController {
-  /**
-   * POST /api/patients/:id/hospitaliser
-   */
-  async hospitaliser(req: Request, res: Response, next: NextFunction) {
-    try {
-      // Correction ici : ajout de "as string"
-      const patientId = parseInt(req.params.id as string);
-      const { motif_hospitalisation, service_hospitalisation, id_lit } = req.body;
 
-      if (!motif_hospitalisation || !service_hospitalisation) {
-        return res.status(400).json({
-          success: false,
-          message: 'Motif et service d\'hospitalisation requis'
-        });
+  async hospitaliser(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const idMedecin = req.user?.id_user;
+      if (!idMedecin) {
+        res.status(401).json({ success: false, message: 'Non authentifié' });
+        return;
       }
+
+      // LEÇON : req.params.id est typé 'string | string[]' par Express.
+      // String() garantit qu'on obtient toujours une string simple.
+      const idPatient = parseInt(String(req.params.id));
 
       const patient = await transferService.hospitaliserPatient({
-        id_patient: patientId,
-        motif_hospitalisation,
-        service_hospitalisation,
-        id_lit: id_lit ? parseInt(id_lit) : undefined,
-        date_admission: req.body.date_admission
+        id_patient:              idPatient,
+        motif_hospitalisation:   req.body.motif_hospitalisation,
+        service_hospitalisation: req.body.service_hospitalisation,
+        id_lit:                  req.body.id_lit,
+        date_admission:          req.body.date_admission,
+        type_admission:          req.body.type_admission,
+        // LEÇON : On utilise la clé 'id_medecin' avec la valeur 'idMedecin'.
+        // { id_medecin: idMedecin } est explicite et évite la confusion
+        // avec le shorthand { idMedecin } qui créerait une clé 'idMedecin'.
+        id_medecin: idMedecin,
       });
 
-      res.status(200).json({
+      res.json({
         success: true,
         message: 'Patient hospitalisé avec succès',
-        data: patient
+        data:    patient,
       });
-    } catch (error: any) {
-      console.error('Erreur hospitalisation:', error);
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Erreur lors de l\'hospitalisation'
-      });
+    } catch (error) {
+      next(error);
     }
   }
 
-  /**
-   * POST /api/patients/:id/rendre-externe
-   */
-  async rendreExterne(req: Request, res: Response, next: NextFunction) {
+  async rendreExterne(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Correction ici : ajout de "as string"
-      const patientId = parseInt(req.params.id as string);
-      const { motif_sortie } = req.body;
-
-      if (!motif_sortie) {
-        return res.status(400).json({
-          success: false,
-          message: 'Motif de sortie requis'
-        });
-      }
-
-      const admission = await transferService.getAdmissionActive(patientId);
-      
-      if (!admission) {
-        return res.status(404).json({
-          success: false,
-          message: 'Aucune admission active trouvée pour ce patient'
-        });
-      }
-
       const patient = await transferService.rendrePatientExterne({
-        id_admission: admission.id_admission,
-        motif_sortie,
-        date_sortie: req.body.date_sortie
+        id_admission: parseInt(String(req.body.id_admission)),
+        motif_sortie: req.body.motif_sortie,
+        date_sortie:  req.body.date_sortie,
       });
 
-      res.status(200).json({
+      res.json({
         success: true,
         message: 'Patient rendu externe avec succès',
-        data: patient
+        data:    patient,
       });
-    } catch (error: any) {
-      console.error('Erreur sortie:', error);
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Erreur lors de la sortie'
-      });
+    } catch (error) {
+      next(error);
     }
   }
 
-  /**
-   * GET /api/patients/:id/admission-active
-   */
-  async getAdmissionActive(req: Request, res: Response, next: NextFunction) {
+  async transfererLit(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Correction ici : ajout de "as string"
-      const patientId = parseInt(req.params.id as string);
-      const admission = await transferService.getAdmissionActive(patientId);
+      const idPatient = parseInt(String(req.params.id));
 
-      if (!admission) {
-        return res.status(404).json({
-          success: false,
-          message: 'Aucune admission active'
-        });
-      }
+      await litService.transfererPatient({
+        id_patient:      idPatient,
+        ancien_lit:      parseInt(String(req.body.ancien_lit)),
+        nouveau_lit:     parseInt(String(req.body.nouveau_lit)),
+        motif_transfert: req.body.motif_transfert,
+        date_transfert:  req.body.date_transfert,
+      });
 
-      res.status(200).json({
-        success: true,
-        data: admission
-      });
-    } catch (error: any) {
-      console.error('Erreur récupération admission:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Erreur serveur'
-      });
+      res.json({ success: true, message: 'Transfert de lit effectué avec succès' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAdmissionActive(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const idPatient = parseInt(String(req.params.id));
+      const admission = await transferService.getAdmissionActive(idPatient);
+      res.json({ success: true, data: admission });
+    } catch (error) {
+      next(error);
     }
   }
 }

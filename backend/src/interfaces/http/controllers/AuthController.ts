@@ -1,12 +1,12 @@
-// ================================================================
-// FICHIER : backend/src/interfaces/http/controllers/AuthController.ts
-// ================================================================
+// backend/src/interfaces/http/controllers/AuthController.ts
+
 import { Request, Response, NextFunction } from 'express';
 import { LoginUser } from '../../../application/use-cases/auth/LoginUser';
 import { RegisterUser } from '../../../application/use-cases/auth/RegisterUser';
 import { successResponse } from '../../../shared/utils/response.utils';
 import { HTTP_STATUS } from '../../../config/constants';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { pool } from '../../../config/database';
 
 export class AuthController {
     constructor(
@@ -40,9 +40,21 @@ export class AuthController {
         }
     };
 
+    // Retourne l'utilisateur complet depuis la DB (pas juste le payload JWT)
     me = async (req: AuthRequest, res: Response, next: NextFunction) => {
         try {
-            res.status(HTTP_STATUS.OK).json(successResponse({ user: req.user }, 'Utilisateur connecté'));
+            const result = await pool.query(
+                `SELECT id_user, nom, prenom, email, role, specialite, telephone, statut, created_at
+                 FROM utilisateurs WHERE id_user = $1`,
+                [req.user?.id_user]
+            );
+
+            if (result.rows.length === 0) {
+                res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'Utilisateur non trouvé' });
+                return;
+            }
+
+            res.status(HTTP_STATUS.OK).json(successResponse(result.rows[0], 'Utilisateur connecté'));
         } catch (error) {
             next(error);
         }
