@@ -42,7 +42,8 @@ export function AdminSidebar({
   onToggleSidebar,
   onLogout
 }: AdminSidebarProps) {
-  const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(false);
+  const PATIENT_VIEWS = ['patients-externes', 'patients-hospitalises'];
+  const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(PATIENT_VIEWS.includes(currentView));
   const submenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {

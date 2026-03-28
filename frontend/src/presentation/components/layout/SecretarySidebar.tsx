@@ -66,7 +66,8 @@ export function SecretarySidebar({
   onToggleSidebar,
   onLogout,
 }: SecretarySidebarProps) {
-  const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(false);
+  const PATIENT_VIEWS = ['patients-externes', 'patients-hospitalises'];
+  const [patientsSubmenuOpen, setPatientsSubmenuOpen] = useState(PATIENT_VIEWS.includes(currentView));
   const [prevView,            setPrevView]            = useState(currentView);
   const submenuTimerRef = useRef<number | null>(null);
 

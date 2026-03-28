@@ -10,11 +10,12 @@ import { MobileMenuButton }   from '../common/MobileMenuButton';
 import { SidebarOverlay }     from '../common/SidebarOverlay';
 
 interface DoctorLayoutProps {
-  onLogout: () => void; // conservé pour compatibilité avec App.tsx
-  userRole: 'docteur' | 'interne' | 'stagiaire';
+  onLogout:     () => void;
+  userRole:     'docteur' | 'interne' | 'stagiaire'; // label affiché dans le header
+  sidebarRole?: string; // vrai rôle pour les permissions du sidebar
 }
 
-export function DoctorLayout({ userRole }: DoctorLayoutProps) {
+export function DoctorLayout({ userRole, sidebarRole }: DoctorLayoutProps) {
   const { isMobile, isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileMenu();
   const {
     showLogoutModal, requestLogout, cancelLogout, confirmLogout,
@@ -23,23 +24,12 @@ export function DoctorLayout({ userRole }: DoctorLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      <MobileMenuButton
-        isOpen={isMobileMenuOpen}
-        onToggle={toggleMobileMenu}
-        isMobile={isMobile}
-      />
-      <SidebarOverlay
-        isOpen={isMobileMenuOpen}
-        onClose={closeMobileMenu}
-        isMobile={isMobile}
-      />
+      <MobileMenuButton isOpen={isMobileMenuOpen} onToggle={toggleMobileMenu} isMobile={isMobile} />
+      <SidebarOverlay   isOpen={isMobileMenuOpen} onClose={closeMobileMenu}   isMobile={isMobile} />
 
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-40 h-20 bg-white border-b shadow-sm">
-        <DoctorHeader
-          userRole={userRole}
-          toggleMobileMenu={toggleMobileMenu}
-        />
+        <DoctorHeader userRole={userRole} toggleMobileMenu={toggleMobileMenu} />
       </div>
 
       {/* Sidebar */}
@@ -51,7 +41,8 @@ export function DoctorLayout({ userRole }: DoctorLayoutProps) {
         <DoctorSidebar
           isMobile={isMobile}
           isSidebarCollapsed={false}
-          onLogout={requestLogout}  // ← ouvre le modal
+          onLogout={requestLogout}
+          userRole={sidebarRole ?? userRole} // ← vrai rôle pour les permissions
         />
       </div>
 
@@ -62,7 +53,7 @@ export function DoctorLayout({ userRole }: DoctorLayoutProps) {
         </main>
       </div>
 
-      {/* Modal confirmation déconnexion */}
+      {/* Modal déconnexion */}
       <LogoutConfirmModal
         isOpen={showLogoutModal}
         onConfirm={confirmLogout}

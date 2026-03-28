@@ -1,4 +1,4 @@
-// shared/constants/permissions.constants.ts
+// backend/src/shared/constants/permissions.ts
 
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
 
@@ -63,53 +63,19 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
-export const PERMISSION_LABELS: Record<string, string> = {
-  // Patients
-  'patients.read':              'Voir les patients',
-  'patients.write':             'Créer/Modifier patients',
+export const ALL_PERMISSIONS = [
+  'patients.read',            'patients.write',
+  'admissions.read',          'admissions.write',
+  'rdv.read',                 'rdv.write',          'rdv.cancel',
+  'observations.read',        'observations.write',
+  'prescriptions.read',       'prescriptions.write',
+  'soins-medicaux.read',      'soins-medicaux.write',
+  'soins-infirmiers.read',    'soins-infirmiers.write',
+  'bilans.read',              'bilans.write',
+  'lits.read',                'lits.write',
+  'documents.read',           'documents.write',    'documents.export',
+  'compte-rendu.read',        'compte-rendu.write',
+  'statistiques.read',
+] as const;
 
-  // Admissions
-  'admissions.read':            'Voir admissions',
-  'admissions.write':           'Gérer admissions',
-
-  // Rendez-vous
-  'rdv.read':                   'Voir rendez-vous',
-  'rdv.write':                  'Gérer rendez-vous',
-  'rdv.cancel':                 'Annuler rendez-vous',
-
-  // Observations
-  'observations.read':          'Lire observations',
-  'observations.write':         'Écrire observations',
-
-  // Prescriptions
-  'prescriptions.read':         'Voir prescriptions',
-  'prescriptions.write':        'Prescrire',
-
-  // Soins médicaux
-  'soins-medicaux.read':        'Voir soins médicaux',
-  'soins-medicaux.write':       'Enregistrer soins médicaux',
-
-  // Soins infirmiers
-  'soins-infirmiers.read':      'Voir soins infirmiers',
-  'soins-infirmiers.write':     'Enregistrer soins infirmiers',
-
-  // Bilans
-  'bilans.read':                'Voir bilans biologiques',
-  'bilans.write':               'Créer bilans biologiques',
-
-  // Lits
-  'lits.read':                  'Voir lits',
-  'lits.write':                 'Gérer lits',
-
-  // Documents
-  'documents.read':             'Consulter documents',
-  'documents.write':            'Générer documents',
-  'documents.export':           'Exporter/Imprimer',
-
-  // Compte rendu
-  'compte-rendu.read':          'Voir compte rendu hospitalisation',
-  'compte-rendu.write':         'Rédiger compte rendu hospitalisation',
-
-  // Statistiques
-  'statistiques.read':          'Voir statistiques',
-};
+export type Permission = typeof ALL_PERMISSIONS[number];

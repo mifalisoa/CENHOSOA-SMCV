@@ -1,5 +1,4 @@
 import { useState, useMemo, type ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { usePatients } from '../../../../hooks/usePatients';
 import { httpClient } from '../../../../../infrastructure/http/axios.config';
 
@@ -14,8 +13,7 @@ import {
 import { toast } from 'sonner';
 
 export default function PatientsHospitalises() {
-  const navigate = useNavigate();
-  const { getDossierPath } = useDossierPath();
+  const { navigateToDossier } = useDossierPath();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -177,7 +175,7 @@ export default function PatientsHospitalises() {
           currentPatients.map((p) => (
             <div
               key={p.id_patient}
-              onClick={() => navigate(getDossierPath(p.id_patient))}
+              onClick={() => navigateToDossier(p.id_patient, 'hospitalises')}
               className="group relative bg-white border border-slate-100 p-4 md:p-6 rounded-[2rem] flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-6 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-500/5 transition-all cursor-pointer overflow-hidden"
             >
               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-all" />

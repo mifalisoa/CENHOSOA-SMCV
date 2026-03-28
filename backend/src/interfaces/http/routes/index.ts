@@ -26,6 +26,7 @@ import patientDossierExportRoutes from './patientDossierExport.Routes';
 import patientTransferRoutes from './patientTransfer.Routes';
 import securiteRoutes from './securite.routes';
 import dashboardRoutes from './dashboard.routes';
+import userPermissionsRoutes from './userPermissions.routes';
 
 
 
@@ -38,6 +39,8 @@ router.use((req, res, next) => {
 
 router.use('/auth', authRoutes);
 router.use('/utilisateurs', utilisateurRoutes);
+router.use('/utilisateurs', userPermissionsRoutes); 
+
 router.use('/patients', patientRoutes);
 router.use('/patients', patientTransferRoutes);
 router.use('/patients', patientDossierExportRoutes)

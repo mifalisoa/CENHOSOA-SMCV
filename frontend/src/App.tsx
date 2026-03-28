@@ -30,11 +30,13 @@ import PatientsPage        from './presentation/pages/patients/PatientsPage';
 // Secrétaire
 import SecretaryDashboard from './presentation/pages/dashboard/SecretaryDashboard';
 
-// ── Rôles médicaux — tous redirigés vers /doctor ─────────────────────────────
+// ── Rôles médicaux ────────────────────────────────────────────────────────────
 const MEDICAL_ROLES: UserRole[] = ['medecin', 'interne', 'stagiaire', 'infirmier'];
 
-// Mapping rôle → label affiché dans DoctorHeader
-const ROLE_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> = {
+// Mapping rôle → label affiché dans DoctorHeader UNIQUEMENT
+// LEÇON : Ce mapping sert uniquement à l'affichage dans le header.
+// Il ne doit PAS être utilisé pour les permissions — on passe le vrai rôle.
+const ROLE_DISPLAY_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> = {
   medecin:   'docteur',
   interne:   'interne',
   stagiaire: 'stagiaire',
@@ -46,19 +48,30 @@ const ROLE_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> = {
 function RoleBasedRedirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-
   if (MEDICAL_ROLES.includes(user.role)) return <Navigate to="/doctor"    replace />;
   if (user.role === 'secretaire')        return <Navigate to="/secretary" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
-// ── Wrapper qui adapte le userRole au rôle connecté ─────────────────────────
+// ── Wrapper DoctorLayout ──────────────────────────────────────────────────────
+// LEÇON : On sépare clairement deux responsabilités :
+// - displayRole → ce qu'on affiche dans le header ('docteur', 'interne'...)
+// - userRole    → le vrai rôle pour les permissions du sidebar ('medecin', 'interne'...)
+// Avant on passait displayRole partout → le sidebar recevait 'docteur'
+// au lieu de 'medecin' et ne trouvait pas la permission Planning.
 
 function DoctorLayoutWrapper() {
   const { user } = useAuth();
-  const userRole = ROLE_LABELS[user?.role ?? 'medecin'] ?? 'docteur';
-  // onLogout est géré en interne par useLogout dans DoctorLayout
-  return <DoctorLayout onLogout={() => {}} userRole={userRole} />;
+  const displayRole = ROLE_DISPLAY_LABELS[user?.role ?? 'medecin'] ?? 'docteur';
+  const realRole    = user?.role ?? 'medecin'; // ← vrai rôle pour les permissions
+
+  return (
+    <DoctorLayout
+      onLogout={() => {}}
+      userRole={displayRole}   // ← header affichage
+      sidebarRole={realRole}   // ← sidebar permissions
+    />
+  );
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────

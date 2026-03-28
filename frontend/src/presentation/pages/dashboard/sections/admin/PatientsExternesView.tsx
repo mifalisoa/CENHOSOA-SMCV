@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, MapPin, 
   Phone, User, Clock, ChevronRight, Hash, ChevronLeft 
@@ -12,8 +11,7 @@ import type { CreatePatientDTO } from '../../../../../core/entities/Patient';
 import { useDossierPath } from '../../../../hooks/useDossierPath';
 
 export default function PatientsExternesView() {
-  const navigate = useNavigate();
-  const { getDossierPath } = useDossierPath();
+  const { navigateToDossier } = useDossierPath();
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'ancien'>('recent');
@@ -157,7 +155,7 @@ export default function PatientsExternesView() {
                 key={patient.id_patient}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                onClick={() => navigate(getDossierPath(patient.id_patient))}
+                onClick={() => navigateToDossier(patient.id_patient, 'externes')}
                 className="group relative bg-white border border-slate-100 p-4 md:p-6 rounded-[2rem] flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-6 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-500/5 transition-all cursor-pointer overflow-hidden"
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-all" />
