@@ -1,14 +1,15 @@
 // frontend/src/presentation/components/layout/SecretaryHeader.tsx
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Calendar, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { usePatients } from '../../hooks/usePatients';
-import { Input } from '../common/Input';
+import { useState, useMemo }      from 'react';
+import { Search, Calendar, ChevronRight, Bell } from 'lucide-react';
+import { useAuth }                from '../../hooks/useAuth';
+import { usePatients }            from '../../hooks/usePatients';
+import { Input }                  from '../common/Input';
 import { Avatar, AvatarFallback } from '../common/Avatar';
-import { Badge } from '../common/Badge';
-import { SecretaryNotifications }    from '../notifications/SecretaryNotifications';
-import { useSecretaryNotifications } from '../../hooks/useSecretaryNotifications';
+import { Badge }                  from '../common/Badge';
+import { NotificationsDropdown }  from '../common/NotificationsDropdown';
+import { useNotifications }       from '../../hooks/useNotifications';
+import { useDebounce }            from '../../hooks/useDebounce';
 
 interface SearchResult {
   category:    string;
@@ -29,67 +30,47 @@ interface PatientSearchable {
 }
 
 export function SecretaryHeader({ onViewChange }: SecretaryHeaderProps) {
-  const { user }                                              = useAuth();
-  const { patients }                                          = usePatients();
-  const { notifications, markAsRead, markAllAsRead, dismiss } = useSecretaryNotifications();
+  const { user }        = useAuth();
+  const { patients }    = usePatients();
+  const { unreadCount } = useNotifications();
 
   const [searchTerm,        setSearchTerm]        = useState('');
-  const [searchResults,     setSearchResults]     = useState<SearchResult[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [isSearching,       setIsSearching]       = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const performSearch = useCallback((query: string) => {
-    if (!query || query.trim().length < 1) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
+  // ✅ Debounce sans useEffect — on retarde juste la valeur utilisée pour le calcul
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
-    setIsSearching(true);
+  // ✅ Résultats calculés avec useMemo — pas de setState, pas de useEffect
+  const searchResults: SearchResult[] = useMemo(() => {
+    if (!debouncedSearch || debouncedSearch.trim().length < 1) return [];
 
-    const timeoutId = setTimeout(() => {
-      const terms   = query.toLowerCase().trim();
-      const results: SearchResult[] = [];
+    const terms   = debouncedSearch.toLowerCase().trim();
+    const results: SearchResult[] = [];
 
-      (patients || []).forEach(patient => {
-        const p      = patient as PatientSearchable;
-        const nom    = p.nom_patient    || '';
-        const prenom = p.prenom_patient || '';
-        const numero = p.num_dossier    || '';
-        const statut = p.statut_patient || 'externe';
+    (patients || []).forEach(patient => {
+      const p      = patient as PatientSearchable;
+      const nom    = p.nom_patient    || '';
+      const prenom = p.prenom_patient || '';
+      const numero = p.num_dossier    || '';
+      const statut = p.statut_patient || 'externe';
 
-        if (`${nom} ${prenom}`.toLowerCase().includes(terms) || numero.toLowerCase().includes(terms)) {
-          results.push({
-            category:    'Patient',
-            displayText: `${nom} ${prenom}`,
-            subtitle:    numero,
-            onClick: () => {
-              onViewChange(statut === 'externe' ? 'patients-externes' : 'patients-hospitalises');
-              setShowSearchResults(false);
-              setSearchTerm('');
-            },
-          });
-        }
-      });
+      if (`${nom} ${prenom}`.toLowerCase().includes(terms) || numero.toLowerCase().includes(terms)) {
+        results.push({
+          category:    'Patient',
+          displayText: `${nom} ${prenom}`,
+          subtitle:    numero,
+          onClick: () => {
+            onViewChange(statut === 'externe' ? 'patients-externes' : 'patients-hospitalises');
+            setSearchTerm('');
+          },
+        });
+      }
+    });
 
-      setSearchResults(results);
-      setShowSearchResults(results.length > 0);
-      setIsSearching(false);
-    }, 300);
+    return results;
+  }, [debouncedSearch, patients, onViewChange]);
 
-    return () => clearTimeout(timeoutId);
-  }, [patients, onViewChange]);
-
-  useEffect(() => {
-    if (searchTerm) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      const cleanup = performSearch(searchTerm);
-      return () => { if (typeof cleanup === 'function') cleanup(); };
-    } else {
-      setShowSearchResults(false);
-      setSearchResults([]);
-    }
-  }, [searchTerm, performSearch]);
+  const showSearchResults = searchResults.length > 0;
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 h-20">
@@ -108,7 +89,7 @@ export function SecretaryHeader({ onViewChange }: SecretaryHeaderProps) {
           </div>
         </div>
 
-        {/* Recherche + profil */}
+        {/* Recherche + notifications + profil */}
         <div className="flex items-center gap-4">
 
           {/* Barre de recherche */}
@@ -123,52 +104,61 @@ export function SecretaryHeader({ onViewChange }: SecretaryHeaderProps) {
             />
             {searchTerm && (
               <button
-                onClick={() => { setSearchTerm(''); setShowSearchResults(false); }}
+                onClick={() => setSearchTerm('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >×</button>
             )}
 
             {showSearchResults && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
-                {isSearching ? (
-                  <div className="p-4 text-center text-gray-500 flex items-center justify-center gap-2">
-                    <div className="animate-spin w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full" />
-                    <span>Recherche...</span>
-                  </div>
-                ) : (
-                  <div className="py-2">
-                    {searchResults.map((result, index) => (
-                      <button
-                        key={index}
-                        onClick={result.onClick}
-                        className="w-full px-4 py-3 text-left hover:bg-cyan-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">{result.displayText}</span>
-                              <Badge className="bg-cyan-100 text-cyan-700 hover:bg-cyan-100 border-none text-[10px]">
-                                {result.category}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-0.5">{result.subtitle}</p>
+                <div className="py-2">
+                  {searchResults.map((result, index) => (
+                    <button
+                      key={index}
+                      onClick={result.onClick}
+                      className="w-full px-4 py-3 text-left hover:bg-cyan-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{result.displayText}</span>
+                            <Badge className="bg-cyan-100 text-cyan-700 hover:bg-cyan-100 border-none text-[10px]">
+                              {result.category}
+                            </Badge>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                          <p className="text-xs text-gray-500 mt-0.5">{result.subtitle}</p>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          <SecretaryNotifications
-            notifications={notifications}
-            onMarkAsRead={markAsRead}
-            onMarkAllAsRead={markAllAsRead}
-            onDismiss={dismiss}
-          />
+          {/* Cloche notifications */}
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Voir les notifications"
+              onClick={() => setShowNotifications(prev => !prev)}
+              className="relative p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <Bell className="w-5 h-5 text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-cyan-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center border-2 border-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 z-50">
+                <NotificationsDropdown onClose={() => setShowNotifications(false)} />
+              </div>
+            )}
+          </div>
 
           {/* Profil */}
           <div className="flex items-center gap-3 bg-cyan-50 rounded-full pl-2 pr-4 py-1.5 border border-cyan-100">

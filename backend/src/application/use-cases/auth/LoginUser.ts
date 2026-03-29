@@ -51,11 +51,13 @@ export class LoginUser {
 
         await this.utilisateurRepository.updateLastLogin(user.id_user);
 
-        const token = JwtService.generateAccessToken({
-            id_user: user.id_user,
-            email:   user.email,
-            role:    user.role,
-        });
+       const token = JwtService.generateAccessToken({
+    id_user: user.id_user,
+    email:   user.email,
+    role:    user.role,
+    nom:     user.nom,
+    prenom:  user.prenom,
+});
 
         return {
             token,

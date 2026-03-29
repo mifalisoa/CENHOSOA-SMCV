@@ -1,10 +1,12 @@
 // backend/src/interfaces/http/controllers/PatientController.ts
 
-import { Response, NextFunction } from 'express';
-import { PostgresPatientRepository } from '../../../infrastructure/database/postgres/repositories/PostgresPatientRepository';
-import { pool } from '../../../config/database';
-import { AuthRequest } from '../middlewares/auth.middleware';
-import { PatientFilters } from '../../../domain/entities/Patient';
+import { Response, NextFunction }            from 'express';
+import { PostgresPatientRepository }         from '../../../infrastructure/database/postgres/repositories/PostgresPatientRepository';
+import { pool }                              from '../../../config/database';
+import { AuthRequest }                       from '../middlewares/auth.middleware';
+import { PatientFilters }                    from '../../../domain/entities/Patient';
+import { notificationService }               from '../../../application/services/NotificationService';
+import { getDossierLien }                    from '../../../shared/utils/notificationHelpers';
 
 const patientRepository = new PostgresPatientRepository(pool);
 
@@ -14,22 +16,15 @@ export class PatientController {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-
       const filters: PatientFilters = {
         statut:    req.query.statut    as PatientFilters['statut'],
         assurance: req.query.assurance as string | undefined,
         search:    req.query.search    as string | undefined,
       };
-
-      if (req.user?.role === 'medecin') {
-        filters.id_medecin_traitant = req.user.id_user;
-      }
-
+      if (req.user?.role === 'medecin') filters.id_medecin_traitant = req.user.id_user;
       const result = await patientRepository.findAll({ page, limit }, filters);
       res.json({ success: true, data: result.data, pagination: result.pagination });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async getById(req: AuthRequest, res: Response, next: NextFunction) {
@@ -38,25 +33,29 @@ export class PatientController {
       const patient = await patientRepository.findById(id);
       if (!patient) return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       res.json({ success: true, data: patient });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const data = { ...req.body };
-
-      // Médecin → associer automatiquement son id
-      if (req.user?.role === 'medecin') {
-        data.id_medecin_traitant = req.user.id_user;
-      }
+      if (req.user?.role === 'medecin') data.id_medecin_traitant = req.user.id_user;
 
       const patient = await patientRepository.create(data);
+      const role    = req.user?.role ?? '';
+      const lien    = getDossierLien(role, patient.id_patient);
+
+      // ✅ Notifier admins ET secrétaires
+      notificationService.notifyAdminsAndSecretaires({
+        titre:    'Nouveau patient enregistré',
+        message:  `${patient.nom_patient} ${patient.prenom_patient} a été enregistré par ${req.user?.prenom} ${req.user?.nom}`,
+        type:     'info',
+        priorite: 'normale',
+        lien,
+      }).catch(console.error);
+
       res.status(201).json({ success: true, message: 'Patient créé avec succès', data: patient });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async update(req: AuthRequest, res: Response, next: NextFunction) {
@@ -65,26 +64,33 @@ export class PatientController {
       const patient = await patientRepository.update(id, req.body);
       if (!patient) return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       res.json({ success: true, message: 'Patient mis à jour avec succès', data: patient });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const id = parseInt(req.params.id as string);
+      const id      = parseInt(req.params.id as string);
+      const patient = await patientRepository.findById(id);
       await patientRepository.delete(id);
+
+      if (patient) {
+        // ✅ Notifier admins ET secrétaires
+        notificationService.notifyAdminsAndSecretaires({
+          titre:    'Patient supprimé',
+          message:  `Le dossier de ${patient.nom_patient} ${patient.prenom_patient} a été supprimé par ${req.user?.prenom} ${req.user?.nom}`,
+          type:     'info',
+          priorite: 'haute',
+        }).catch(console.error);
+      }
+
       res.json({ success: true, message: 'Patient supprimé avec succès' });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async getExternes(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-
       if (req.user?.role === 'medecin') {
         const result = await patientRepository.findAll(
           { page, limit },
@@ -92,19 +98,15 @@ export class PatientController {
         );
         return res.json({ success: true, data: result.data, pagination: result.pagination });
       }
-
       const result = await patientRepository.findByStatus('externe', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async getHospitalises(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-
       if (req.user?.role === 'medecin') {
         const result = await patientRepository.findAll(
           { page, limit },
@@ -112,37 +114,27 @@ export class PatientController {
         );
         return res.json({ success: true, data: result.data, pagination: result.pagination });
       }
-
       const result = await patientRepository.findByStatus('hospitalise', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async search(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const query = req.query.q as string;
       if (!query) return res.status(400).json({ success: false, message: 'Paramètre de recherche requis' });
-
       let patients = await patientRepository.search(query);
-
       if (req.user?.role === 'medecin') {
         patients = patients.filter(p => p.id_medecin_traitant === req.user!.id_user);
       }
-
       res.json({ success: true, data: patients });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 
   async getStats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const stats = await patientRepository.getStats();
       res.json({ success: true, data: stats });
-    } catch (error) {
-      next(error);
-    }
+    } catch (error) { next(error); }
   }
 }

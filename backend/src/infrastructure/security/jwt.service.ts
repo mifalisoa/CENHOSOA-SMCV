@@ -8,6 +8,9 @@ export interface JwtPayload {
     id_user: number;
     email: string;   // était email_user
     role: string;    // était role_user
+     nom: string;
+    prenom: string;
+
 }
 
 export class JwtService {

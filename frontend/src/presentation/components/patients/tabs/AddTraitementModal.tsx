@@ -15,6 +15,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
   // État du formulaire
   const [formData, setFormData] = useState<Partial<CreateTraitementDTO>>({
     id_patient: patient.id_patient,
+    // ✅ FIX: format YYYY-MM-DD attendu par <input type="date">
     date_prescription: new Date().toISOString().split('T')[0],
     heure_prescription: new Date().toTimeString().slice(0, 5),
     type_document: 'ordonnance',
@@ -23,7 +24,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.medicament || !formData.dosage || !formData.frequence || !formData.duree) {
       setError('Veuillez remplir tous les champs obligatoires (médicament, dosage, fréquence, durée)');
@@ -37,7 +38,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
       await onSubmit(formData as CreateTraitementDTO);
       onClose();
     } catch (err: unknown) {
-  setError(err instanceof Error ? err.message : 'Erreur lors de la création');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setLoading(false);
     }
@@ -50,15 +51,15 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 sm:p-6 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">💊 Nouvelle prescription</h2>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1"> Nouvelle prescription</h2>
               <p className="text-indigo-100 text-sm">
                 Patient : {patient.nom_patient} {patient.prenom_patient}
               </p>
             </div>
             <button
               onClick={onClose}
-               title="Fermer"
-               aria-label="Fermer"
+              title="Fermer"
+              aria-label="Fermer"
               className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,8 +76,8 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
           </div>
         )}
 
-        {/* Form Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+        {/* ✅ FIX: id ajouté sur le form pour lier le bouton submit externe */}
+        <form id="traitement-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Type et informations générales */}
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 sm:p-4">
@@ -140,7 +141,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                   </label>
                   <input
                     type="time"
-                    required 
+                    required
                     title="Heure de prescription"
                     value={formData.heure_prescription || ''}
                     onChange={(e) => setFormData({ ...formData, heure_prescription: e.target.value })}
@@ -332,8 +333,11 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
           >
             Annuler
           </button>
+
+          {/* ✅ FIX: type="submit" + form="traitement-form" pour soumettre le bon formulaire */}
           <button
-            onClick={handleSubmit}
+            type="submit"
+            form="traitement-form"
             disabled={loading}
             className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm flex items-center gap-2"
           >
