@@ -1,15 +1,25 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth }   from '../../hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  roles?: string[]; // si fourni, vérifie le rôle en plus de l'authentification
+  roles?:   string[];
+}
+
+// Rôles qui utilisent le dashboard médecin
+const MEDICAL_ROLES = ['medecin', 'interne', 'stagiaire', 'infirmier'];
+
+function getRoleRedirect(role: string): string {
+  if (MEDICAL_ROLES.includes(role)) return '/doctor';
+  if (role === 'secretaire')        return '/secretary';
+  return '/dashboard';
 }
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isInitializing, user } = useAuth();
 
-  if (isLoading) {
+  // ✅ isInitializing au lieu de isLoading — attend la vérification du token
+  if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -24,16 +34,9 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si des rôles sont requis, vérifier que l'utilisateur a le bon rôle
-  if (roles && roles.length > 0 && user) {
-    if (!roles.includes(user.role)) {
-      // Rediriger vers le bon dashboard selon le rôle réel
-      switch (user.role) {
-        case 'medecin':    return <Navigate to="/doctor"    replace />;
-        case 'secretaire': return <Navigate to="/secretary" replace />;
-        default:           return <Navigate to="/dashboard" replace />;
-      }
-    }
+  // ✅ Vérifie le rôle — gère tous les rôles médicaux correctement
+  if (roles && roles.length > 0 && user && !roles.includes(user.role)) {
+    return <Navigate to={getRoleRedirect(user.role)} replace />;
   }
 
   return <>{children}</>;

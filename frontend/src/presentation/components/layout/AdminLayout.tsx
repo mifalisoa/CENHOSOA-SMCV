@@ -1,17 +1,21 @@
 // frontend/src/presentation/components/layout/AdminLayout.tsx
 
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { AdminSidebar }         from './AdminSidebar';
-import { AdminHeader }          from './AdminHeader';
-import { LogoutConfirmModal }   from '../common/LogoutConfirmModal';
-import { useLogout }            from '../../hooks/useLogout';
-import { Menu, X }              from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';  // ✅ ajout useCallback
+import { AdminSidebar }          from './AdminSidebar';
+import { AdminHeader }           from './AdminHeader';
+import { LogoutConfirmModal }    from '../common/LogoutConfirmModal';
+import { useLogout }             from '../../hooks/useLogout';
+import { Menu, X }               from 'lucide-react';
 import { NotificationsProvider } from '../../context/NotificationsContext';
+import { useSessionTimeout }     from '../../hooks/useSessionTimeout';  // ✅ nouveau
+import { useAuth }               from '../../hooks/useAuth';             // ✅ nouveau
+import { toast }                 from 'sonner';                          // ✅ nouveau
 
 export default function AdminLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
+  const { logout } = useAuth();  // ✅ nouveau
 
   const [isMobile,           setIsMobile]           = useState(false);
   const [isMobileMenuOpen,   setIsMobileMenuOpen]   = useState(false);
@@ -21,6 +25,15 @@ export default function AdminLayout() {
     showLogoutModal, requestLogout, cancelLogout, confirmLogout,
     userName, userRole,
   } = useLogout();
+
+  // ✅ Timeout de session — deconnexion apres 3 minutes d'inactivite
+  const handleTimeout = useCallback(async () => {
+    toast.error('Session expiree. Veuillez vous reconnecter.');
+    await logout();
+    navigate('/login', { replace: true });
+  }, [logout, navigate]);
+
+  useSessionTimeout({ onTimeout: handleTimeout });  // ✅ nouveau
 
   const getCurrentView = (): string => {
     if (location.pathname.includes('/patients-externes'))     return 'patients-externes';
@@ -62,11 +75,9 @@ export default function AdminLayout() {
   };
 
   return (
-    // ✅ NotificationsProvider enveloppe tout le layout → une seule instance partagée
     <NotificationsProvider>
       <div className="min-h-screen bg-gray-50">
 
-        {/* Bouton menu mobile */}
         {isMobile && (
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -80,7 +91,6 @@ export default function AdminLayout() {
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsMobileMenuOpen(false)} />
         )}
 
-        {/* Sidebar */}
         <aside className={`fixed left-0 top-0 h-full bg-white shadow-xl border-r border-gray-200 transition-all duration-300 z-40 ${
           isMobile
             ? `w-64 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`
@@ -96,7 +106,6 @@ export default function AdminLayout() {
           />
         </aside>
 
-        {/* Contenu principal */}
         <div className={`transition-all duration-300 ${
           isMobile ? 'ml-0' : isSidebarCollapsed ? 'ml-20' : 'ml-70'
         }`}>
@@ -108,7 +117,6 @@ export default function AdminLayout() {
           </main>
         </div>
 
-        {/* Modal confirmation déconnexion */}
         <LogoutConfirmModal
           isOpen={showLogoutModal}
           onConfirm={confirmLogout}

@@ -5,35 +5,28 @@ import { notificationService, NotificationData } from '../../application/service
 
 const MEDICAL_ROLES = ['medecin', 'interne', 'stagiaire', 'infirmier'];
 
-/**
- * Génère le lien vers le dossier patient selon le rôle de l'utilisateur.
- * - Rôles médicaux → /doctor/patients/:id/dossier
- * - Admin/autres   → /patients/:id/dossier
- */
 export function getDossierLien(role: string, patientId: number): string {
   return MEDICAL_ROLES.includes(role)
     ? `/doctor/patients/${patientId}/dossier`
     : `/patients/${patientId}/dossier`;
 }
 
-/**
- * Lien toujours destiné au médecin traitant (toujours sur la route /doctor/).
- */
 export function getDossierLienMedecin(patientId: number): string {
   return `/doctor/patients/${patientId}/dossier`;
 }
 
-/**
- * Notifie le médecin traitant d'un patient si l'auteur de l'action
- * est un interne, stagiaire ou infirmier.
- */
 export async function notifyMedecinTraitant(
   id_patient:  number,
   auteurRole:  string,
   data:        NotificationData
 ): Promise<void> {
-  // Seuls interne/stagiaire/infirmier déclenchent une notif au médecin
-  if (!['interne', 'stagiaire', 'infirmier'].includes(auteurRole)) return;
+  // ── Logs de diagnostic — à retirer une fois le bug trouvé ────────────────
+  console.log('🔔 [notifyMedecinTraitant]', { id_patient, auteurRole, titre: data.titre });
+
+  if (!['interne', 'stagiaire', 'infirmier'].includes(auteurRole)) {
+    console.log('⛔ [notifyMedecinTraitant] Rôle non autorisé:', auteurRole);
+    return;
+  }
 
   try {
     const result = await pool.query(
@@ -41,9 +34,15 @@ export async function notifyMedecinTraitant(
       [id_patient]
     );
     const id_medecin = result.rows[0]?.id_medecin_traitant;
-    if (!id_medecin) return;
+    console.log('👨‍⚕️ [notifyMedecinTraitant] Médecin trouvé:', id_medecin, '| patient:', id_patient);
+
+    if (!id_medecin) {
+      console.log('⚠️ [notifyMedecinTraitant] Aucun médecin traitant pour patient', id_patient);
+      return;
+    }
 
     await notificationService.notifyUser(id_medecin, data);
+    console.log('✅ [notifyMedecinTraitant] Notif envoyée au médecin', id_medecin);
   } catch (err) {
     console.error('[notifyMedecinTraitant] Erreur:', err);
   }

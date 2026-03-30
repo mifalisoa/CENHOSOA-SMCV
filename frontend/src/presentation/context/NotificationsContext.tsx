@@ -8,12 +8,14 @@ import { httpClient } from '../../infrastructure/http/axios.config';
 import { io, Socket } from 'socket.io-client';
 import { NotificationsContext } from './NotificationsTypes';
 import type { Notification }    from './NotificationsTypes';
+import { useNotificationSound } from '../hooks/useNotificationSound';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user }  = useAuth();
   const socketRef = useRef<Socket | null>(null);
+  const { play }  = useNotificationSound();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount,   setUnreadCount]   = useState(0);
@@ -58,6 +60,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         return [notif, ...prev];
       });
       setUnreadCount(prev => prev + 1);
+
+      // ✅ Son à chaque nouvelle notification temps réel
+      play();
     });
 
     socket.on('disconnect', () => {
@@ -70,7 +75,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?.id_user]);
+  }, [user?.id_user, play]);
 
   const refetch = useCallback(async () => {
     try {

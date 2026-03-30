@@ -1,77 +1,79 @@
-import { createContext, useState, useEffect, ReactNode } from 'react';
-import type { User } from '../../core/entities/User';
+import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { loginUseCase, logoutUseCase, getCurrentUserUseCase } from '../../di/container';
 import { TokenStorage } from '../../infrastructure/storage/TokenStorage';
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './AuthTypes';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<import('../../core/entities/User').User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Initialiser l'utilisateur depuis le storage au montage
+  // 🔄 Initialisation au montage (Refresh page)
   useEffect(() => {
+    console.log('🔄 [AuthProvider] Montage du composant');
     const initAuth = async () => {
+      console.log('🔍 [AuthProvider] Vérification du token initial...');
       try {
         const token = TokenStorage.getToken();
         if (token) {
           const currentUser = await getCurrentUserUseCase.execute();
+          console.log('✅ [AuthProvider] Session restaurée:', currentUser.email, '| role:', currentUser.role);
           setUser(currentUser);
+        } else {
+          console.log('⚠️ [AuthProvider] Aucun token en stockage');
         }
       } catch (error) {
-        console.error('Erreur initialisation auth:', error);
+        console.error('❌ [AuthProvider] Échec restauration session:', error);
         TokenStorage.removeToken();
+        setUser(null);
       } finally {
-        setIsLoading(false);
+        console.log('✅ [AuthProvider] Initialisation terminée');
+        setIsInitializing(false);
       }
     };
 
     initAuth();
   }, []);
 
+  // 🔵 Action de Login
   const login = async (email: string, password: string) => {
+    console.log('🔵 [AuthContext] login appelé pour:', email);
     setIsLoading(true);
     try {
-      const response = await loginUseCase.execute({ email: email, password });
+      const response = await loginUseCase.execute({ email, password });
+      console.log('🟢 [AuthContext] login réussi, user:', response.user.role);
       setUser(response.user);
-    } catch (error) {
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 🚪 Action de Logout
   const logout = async () => {
+    console.log('🚪 [AuthContext] logout appelé');
     setIsLoading(true);
     try {
       await logoutUseCase.execute();
       setUser(null);
     } catch (error) {
-      console.error('Erreur logout:', error);
+      console.error('❌ [AuthContext] Erreur lors du logout:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 🔄 Rafraîchir les données utilisateur
   const refreshUser = async () => {
     try {
       const currentUser = await getCurrentUserUseCase.execute();
       setUser(currentUser);
     } catch (error) {
-      console.error('Erreur refresh user:', error);
+      console.error('❌ [AuthContext] Erreur refresh user:', error);
       setUser(null);
     }
   };
@@ -82,9 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isInitializing,
         login,
         logout,
-        refreshUser
+        refreshUser,
       }}
     >
       {children}
