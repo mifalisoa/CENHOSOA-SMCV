@@ -10,31 +10,17 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 
 // Dependency Injection
 const utilisateurRepository = new PostgresUtilisateurRepository(pool);
-const loginUser = new LoginUser(utilisateurRepository);
+const loginUser    = new LoginUser(utilisateurRepository);
 const registerUser = new RegisterUser(utilisateurRepository);
 const authController = new AuthController(loginUser, registerUser);
 
 const router = Router();
 
-/**
- * @route POST /api/auth/login
- * @desc Connexion utilisateur
- * @access Public
- */
-router.post('/login', validateRequest(loginSchema), authController.login);
-
-/**
- * @route POST /api/auth/register
- * @desc Inscription utilisateur
- * @access Public (ou protégé selon vos besoins)
- */
+router.post('/login',    validateRequest(loginSchema),    authController.login);
 router.post('/register', validateRequest(registerSchema), authController.register);
+router.get( '/me',       authMiddleware,                  authController.me);
 
-/**
- * @route GET /api/auth/me
- * @desc Obtenir l'utilisateur connecté
- * @access Private
- */
-router.get('/me', authMiddleware, authController.me);
+// ✅ Logout — supprime la session active et log la déconnexion
+router.post('/logout',   authMiddleware,                  authController.logout);
 
 export default router;

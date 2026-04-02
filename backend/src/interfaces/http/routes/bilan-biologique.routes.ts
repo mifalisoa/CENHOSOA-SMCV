@@ -5,6 +5,7 @@ import { roleMiddleware }                     from '../middlewares/role.middlewa
 import { permissionMiddleware }               from '../middlewares/permission.middleware'; // ✅ nouveau
 import { pool }                               from '../../../config/database';
 import { PostgresBilanBiologiqueRepository } from '../../../infrastructure/database/postgres/repositories/PostgresBilanBiologiqueRepository';
+import { logAction } from '../middlewares/action-logger.middleware';
 
 const router = Router();
 const bilanRepository = new PostgresBilanBiologiqueRepository(pool);
@@ -18,12 +19,14 @@ const ECRITURE = ['admin', 'medecin', 'interne'];
 router.post(  '/',
   roleMiddleware(ECRITURE),
   permissionMiddleware('bilans.write'),
+  logAction('create', 'bilans'), 
   bilanController.create
 );
 
 router.get(   '/patient/:patientId',
   roleMiddleware(LECTURE),
   permissionMiddleware('bilans.read'),
+  logAction('read', 'bilans'),
   bilanController.getByPatientId
 );
 
@@ -42,12 +45,14 @@ router.get(   '/:id',
 router.put(   '/:id',
   roleMiddleware(ECRITURE),
   permissionMiddleware('bilans.write'),
+  logAction('update', 'bilans'),
   bilanController.update
 );
 
 router.delete('/:id',
   roleMiddleware(ECRITURE),
   permissionMiddleware('bilans.write'),
+   logAction('delete', 'bilans'),
   bilanController.delete
 );
 

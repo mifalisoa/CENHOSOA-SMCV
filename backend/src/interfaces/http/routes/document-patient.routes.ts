@@ -8,6 +8,7 @@ import { Router } from 'express';
 import { DocumentPatientController }           from '../controllers/DocumentPatientController';
 import { authMiddleware }                       from '../middlewares/auth.middleware';
 import { roleMiddleware }                       from '../middlewares/role.middleware';
+import { logAction }                            from '../middlewares/action-logger.middleware';
 import { pool }                                 from '../../../config/database';
 import { PostgresDocumentPatientRepository }   from '../../../infrastructure/database/postgres/repositories/PostgresDocumentPatientRepository';
 
@@ -22,11 +23,11 @@ const TOUS     = ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier', 'secr
 // Suppression — pas le secrétaire
 const ECRITURE = ['admin', 'medecin', 'interne', 'infirmier'];
 
-router.post(  '/',                       roleMiddleware(TOUS),     documentController.create);
-router.get(   '/patient/:patientId',     roleMiddleware(TOUS),     documentController.getByPatientId);
-router.get(   '/admission/:admissionId', roleMiddleware(TOUS),     documentController.getByAdmissionId);
-router.get(   '/:id',                    roleMiddleware(TOUS),     documentController.getById);
-router.put(   '/:id',                    roleMiddleware(TOUS),     documentController.update);
-router.delete('/:id',                    roleMiddleware(ECRITURE), documentController.delete);
+router.post(  '/',                       roleMiddleware(TOUS),     logAction('create', 'documents'), documentController.create);
+router.get(   '/patient/:patientId',     roleMiddleware(TOUS),     logAction('read',   'documents'), documentController.getByPatientId);
+router.get(   '/admission/:admissionId', roleMiddleware(TOUS),     logAction('read',   'documents'), documentController.getByAdmissionId);
+router.get(   '/:id',                    roleMiddleware(TOUS),     logAction('read',   'documents'), documentController.getById);
+router.put(   '/:id',                    roleMiddleware(TOUS),     logAction('update', 'documents'), documentController.update);
+router.delete('/:id',                    roleMiddleware(ECRITURE), logAction('delete', 'documents'), documentController.delete);
 
 export default router;

@@ -17,6 +17,9 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { roleMiddleware } from '../middlewares/role.middleware';
 import { permissionMiddleware } from '../middlewares/permission.middleware'; // ✅ nouveau
 import { ROLES } from '../../../config/constants';
+import { logAction } from '../middlewares/action-logger.middleware';
+
+
 
 // Dependency Injection
 const admissionRepository   = new PostgresAdmissionRepository(pool);
@@ -58,6 +61,7 @@ router.post('/',
   roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
   permissionMiddleware('admissions.write'),
   validateRequest(createAdmissionSchema),
+    logAction('create', 'admissions'),   
   admissionController.create
 );
 
@@ -65,12 +69,14 @@ router.patch('/:id/assign-lit',
   roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
   permissionMiddleware('admissions.write'),
   validateRequest(assignLitSchema),
+  logAction('update', 'admissions'),
   admissionController.assignLit
 );
 
 router.patch('/:id/cloturer',
   roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR]),
   permissionMiddleware('admissions.write'),
+   logAction('update', 'admissions'),
   admissionController.cloturer
 );
 
