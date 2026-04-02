@@ -1,31 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TraitementRepository } from '../../infrastructure/repositories/TraitementRepository';
-import type { Traitement, CreateTraitementDTO } from '../../core/entities/Traitement';
+import type { Traitement, CreateTraitementDTO, CreateOrdonnanceDTO } from '../../core/entities/Traitement';
 
 const traitementRepository = new TraitementRepository();
 
 export const useTraitements = (patientId?: number) => {
   const [traitements, setTraitements] = useState<Traitement[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
 
   const fetchTraitements = useCallback(async () => {
     if (!patientId) return;
-    
     setLoading(true);
     setError(null);
     try {
       const data = await traitementRepository.getByPatientId(patientId);
       setTraitements(data);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des traitements';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des traitements');
       console.error('Erreur fetchTraitements:', err);
     } finally {
       setLoading(false);
     }
   }, [patientId]);
 
+  // Crée un seul médicament (rétrocompatibilité)
   const createTraitement = async (data: CreateTraitementDTO): Promise<Traitement | null> => {
     setLoading(true);
     setError(null);
@@ -34,9 +33,26 @@ export const useTraitements = (patientId?: number) => {
       setTraitements(prev => [newTraitement, ...prev]);
       return newTraitement;
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du traitement';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création du traitement');
       console.error('Erreur createTraitement:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Crée une ordonnance avec N médicaments — insère tous en tête de liste
+  const createOrdonnance = async (data: CreateOrdonnanceDTO): Promise<Traitement[] | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const created = await traitementRepository.createMany(data);
+      // Insère tous les nouveaux médicaments en tête, dans l'ordre de création
+      setTraitements(prev => [...created, ...prev]);
+      return created;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de l\'ordonnance');
+      console.error('Erreur createOrdonnance:', err);
       return null;
     } finally {
       setLoading(false);
@@ -51,8 +67,7 @@ export const useTraitements = (patientId?: number) => {
       setTraitements(prev => prev.map(t => t.id_traitement === id ? updated : t));
       return true;
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
       console.error('Erreur updateTraitement:', err);
       return false;
     } finally {
@@ -68,8 +83,7 @@ export const useTraitements = (patientId?: number) => {
       setTraitements(prev => prev.filter(t => t.id_traitement !== id));
       return true;
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
       console.error('Erreur deleteTraitement:', err);
       return false;
     } finally {
@@ -87,6 +101,7 @@ export const useTraitements = (patientId?: number) => {
     error,
     refreshTraitements: fetchTraitements,
     createTraitement,
+    createOrdonnance,   // ✅ nouvelle méthode
     updateTraitement,
     deleteTraitement,
   };

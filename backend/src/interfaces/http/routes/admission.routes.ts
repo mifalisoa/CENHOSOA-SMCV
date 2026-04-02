@@ -15,89 +15,63 @@ import { validateRequest } from '../middlewares/validation.middleware';
 import { createAdmissionSchema, assignLitSchema } from '../validators/admission.validator';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { roleMiddleware } from '../middlewares/role.middleware';
+import { permissionMiddleware } from '../middlewares/permission.middleware'; // ✅ nouveau
 import { ROLES } from '../../../config/constants';
 
 // Dependency Injection
-const admissionRepository = new PostgresAdmissionRepository(pool);
-const patientRepository = new PostgresPatientRepository(pool);
+const admissionRepository   = new PostgresAdmissionRepository(pool);
+const patientRepository     = new PostgresPatientRepository(pool);
 const utilisateurRepository = new PostgresUtilisateurRepository(pool);
-const litRepository = new PostgresLitRepository(pool);
+const litRepository         = new PostgresLitRepository(pool);
 
-const createAdmission = new CreateAdmission(admissionRepository, patientRepository, utilisateurRepository, litRepository);
-const getAdmissionById = new GetAdmissionById(admissionRepository);
-const listAdmissions = new ListAdmissions(admissionRepository);
+const createAdmission     = new CreateAdmission(admissionRepository, patientRepository, utilisateurRepository, litRepository);
+const getAdmissionById    = new GetAdmissionById(admissionRepository);
+const listAdmissions      = new ListAdmissions(admissionRepository);
 const getAdmissionsEnCours = new GetAdmissionsEnCours(admissionRepository);
-const assignLit = new AssignLit(admissionRepository, litRepository);
-const cloturerAdmission = new CloturerAdmission(admissionRepository, patientRepository, litRepository);
+const assignLit           = new AssignLit(admissionRepository, litRepository);
+const cloturerAdmission   = new CloturerAdmission(admissionRepository, patientRepository, litRepository);
 
 const admissionController = new AdmissionController(
-    createAdmission,
-    getAdmissionById,
-    listAdmissions,
-    getAdmissionsEnCours,
-    assignLit,
-    cloturerAdmission
+  createAdmission, getAdmissionById, listAdmissions,
+  getAdmissionsEnCours, assignLit, cloturerAdmission
 );
 
 const router = Router();
-
-// Toutes les routes nécessitent une authentification
 router.use(authMiddleware);
 
-/**
- * @route GET /api/admissions
- * @desc Liste de toutes les admissions (avec pagination)
- * @access Private
- */
-router.get('/', admissionController.list);
-
-/**
- * @route GET /api/admissions/en-cours
- * @desc Liste des admissions en cours
- * @access Private
- */
-router.get('/en-cours', admissionController.getEnCours);
-
-/**
- * @route GET /api/admissions/:id
- * @desc Détails d'une admission
- * @access Private
- */
-router.get('/:id', admissionController.getById);
-
-/**
- * @route POST /api/admissions
- * @desc Créer une admission
- * @access Private (docteur, secretaire, admin)
- */
-router.post(
-    '/',
-    roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
-    validateRequest(createAdmissionSchema),
-    admissionController.create
+router.get('/',
+  permissionMiddleware('admissions.read'),
+  admissionController.list
 );
 
-/**
- * @route PATCH /api/admissions/:id/assign-lit
- * @desc Assigner un lit à une admission
- * @access Private (docteur, secretaire, admin)
- */
-router.patch(
-    '/:id/assign-lit',
-    roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
-    validateRequest(assignLitSchema),
-    admissionController.assignLit
+router.get('/en-cours',
+  permissionMiddleware('admissions.read'),
+  admissionController.getEnCours
 );
 
-/**
- * @route PATCH /api/admissions/:id/cloturer
- * @desc Clôturer une admission (sortie)
- * @access Private (docteur, admin)
- */
-router.patch(
-    '/:id/cloturer',
-    roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR]),
-    admissionController.cloturer
+router.get('/:id',
+  permissionMiddleware('admissions.read'),
+  admissionController.getById
+);
+
+router.post('/',
+  roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
+  permissionMiddleware('admissions.write'),
+  validateRequest(createAdmissionSchema),
+  admissionController.create
+);
+
+router.patch('/:id/assign-lit',
+  roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR, ROLES.SECRETAIRE]),
+  permissionMiddleware('admissions.write'),
+  validateRequest(assignLitSchema),
+  admissionController.assignLit
+);
+
+router.patch('/:id/cloturer',
+  roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR]),
+  permissionMiddleware('admissions.write'),
+  admissionController.cloturer
 );
 
 export default router;

@@ -38,8 +38,10 @@ router.use((req, res, next) => {
 });
 
 router.use('/auth', authRoutes);
-router.use('/utilisateurs', utilisateurRoutes);
+
 router.use('/utilisateurs', userPermissionsRoutes); 
+router.use('/utilisateurs', utilisateurRoutes);
+
 
 router.use('/patients', patientRoutes);
 router.use('/patients', patientTransferRoutes);

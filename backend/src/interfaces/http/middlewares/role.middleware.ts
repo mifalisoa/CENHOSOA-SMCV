@@ -1,5 +1,3 @@
-// backend/src/interfaces/http/middlewares/role.middleware.ts
-
 import { Request, Response, NextFunction } from 'express';
 
 export const roleMiddleware = (allowedRoles: string | string[]) => {
@@ -9,7 +7,19 @@ export const roleMiddleware = (allowedRoles: string | string[]) => {
         return res.status(401).json({ success: false, message: 'Non authentifié' });
       }
 
-      const userRole = req.user.role;   // était req.user.role_user || req.user.role
+      // 1. On définit d'abord les variables de comparaison
+      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      const userRole = req.user.role; 
+
+      // 2. MAINTENANT le log fonctionnera car rolesArray existe
+      console.log(
+        '🔑 [roleMiddleware] user:', 
+        req.user?.email, 
+        '| role:', 
+        userRole, 
+        '| required:', 
+        rolesArray
+      );
 
       if (!userRole) {
         return res.status(403).json({
@@ -18,12 +28,12 @@ export const roleMiddleware = (allowedRoles: string | string[]) => {
         });
       }
 
-      const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+      // 3. Normalisation pour éviter les erreurs de casse (Majuscules/Minuscules)
       const normalizedUserRole = String(userRole).trim().toLowerCase();
-      const normalizedAllowedRoles = rolesArray.map(r => r.trim().toLowerCase());
+      const normalizedAllowedRoles = rolesArray.map(r => String(r).trim().toLowerCase());
 
       if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
-        console.warn(`[Perms] Accès refusé pour ${req.user.email}. Rôle: ${userRole}`); // était email_user
+        console.warn(`[Perms] Accès refusé pour ${req.user.email}. Rôle: ${userRole}`);
         return res.status(403).json({
           success: false,
           message: 'Permissions insuffisantes',
