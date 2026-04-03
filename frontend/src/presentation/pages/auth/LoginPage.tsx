@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, X, HelpCircle, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, X, HelpCircle, AlertTriangle, CheckCircle2, ShieldAlert, KeyRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Input } from '../../components/common/Input';
 import { toast } from 'sonner';
@@ -12,32 +12,19 @@ const LOCKOUT_KEY  = 'cenhosoa_lockout_until';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS   = 5 * 60 * 1000;
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
 function LoginSkeleton() {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex flex-col md:flex-row">
           <div className="w-full md:w-5/12 bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center min-h-[280px] md:min-h-[600px] relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full -translate-x-48 -translate-y-48" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full translate-x-48 translate-y-48" />
             <div className="relative z-10 w-[160px] h-[160px] md:w-[260px] md:h-[260px] rounded-full bg-white/20 animate-pulse" />
           </div>
           <div className="w-full md:w-7/12 p-8 md:p-12 flex flex-col justify-center bg-white">
             <div className="max-w-sm mx-auto w-full space-y-5">
-              <div className="text-center space-y-2 mb-8">
-                <div className="h-8 w-36 bg-gray-200 rounded-xl animate-pulse mx-auto" />
-                <div className="h-4 w-56 bg-gray-100 rounded-lg animate-pulse mx-auto" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-                <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
-              </div>
+              <div className="h-8 w-36 bg-gray-200 rounded-xl animate-pulse mx-auto" />
+              <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
+              <div className="h-12 w-full bg-gray-100 rounded-xl animate-pulse" />
               <div className="h-12 w-full bg-cyan-200 rounded-xl animate-pulse" />
             </div>
           </div>
@@ -52,16 +39,11 @@ function LoginSkeleton() {
 function HelpModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-cyan-600" />
-            Instructions de connexion
+            <HelpCircle className="w-5 h-5 text-cyan-600" />Aide à la connexion
           </h3>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fermer">
             <X className="w-4 h-4 text-gray-500" />
@@ -72,10 +54,10 @@ function HelpModal({ onClose }: { onClose: () => void }) {
             <p className="font-semibold text-cyan-900 mb-2">Comment se connecter</p>
             <ul className="space-y-2 text-cyan-800">
               {[
-                'Utilisez votre email professionnel en minuscules',
-                'Votre mot de passe vous a ete fourni par l\'administrateur',
+                'Utilisez votre adresse email professionnelle',
+                'Votre mot de passe temporaire vous a été envoyé par email à la création de votre compte',
+                'À la première connexion, vous devrez choisir un nouveau mot de passe personnel',
                 'Le mot de passe respecte les majuscules et minuscules',
-                'La session expire apres 3 minutes d\'inactivite',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-cyan-600 mt-0.5 shrink-0" />
@@ -84,12 +66,19 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               ))}
             </ul>
           </div>
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+            <p className="font-semibold text-amber-900 mb-1 flex items-center gap-1">
+              <KeyRound className="w-4 h-4" /> Mot de passe oublié
+            </p>
+            <p className="text-amber-800 text-xs">
+              Contactez l'administrateur. Il réinitialisera votre compte et un nouveau mot de passe temporaire vous sera envoyé automatiquement par email.
+            </p>
+          </div>
           <div className="bg-red-50 border border-red-100 rounded-xl p-4">
             <p className="font-semibold text-red-900 mb-1 flex items-center gap-1">
-              <ShieldAlert className="w-4 h-4" /> Securite
+              <ShieldAlert className="w-4 h-4" /> Sécurité
             </p>
-            <p className="text-red-700 text-xs">Apres 5 tentatives echouees, le compte est bloque 5 minutes.</p>
-            <p className="font-semibold text-red-800 mt-2">admin@cenhosoa.mg</p>
+            <p className="text-red-700 text-xs">Après {MAX_ATTEMPTS} tentatives échouées, l'accès est bloqué 5 minutes.</p>
           </div>
         </div>
         <div className="p-5 pt-0">
@@ -102,34 +91,48 @@ function HelpModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Modal Mot de passe oublie ─────────────────────────────────────────────────
+// ── Modal Mot de passe oublié ─────────────────────────────────────────────────
 
 function ForgotModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto"
-      >
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900">Mot de passe oublie</h3>
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-cyan-600" />Mot de passe oublié
+          </h3>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fermer">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        <div className="p-5">
+        <div className="p-5 space-y-4">
           <div className="text-center">
-            <div className="w-14 h-14 bg-cyan-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-cyan-50 rounded-full flex items-center justify-center mx-auto mb-3">
               <Mail className="w-7 h-7 text-cyan-600" />
             </div>
-            <p className="font-medium text-gray-900 mb-2">Contactez l'administrateur</p>
-            <p className="text-sm text-gray-500 mb-4">L'administrateur reinitialise votre mot de passe et vous le communique.</p>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-              <p className="text-xs text-gray-400 mb-1">Adresse email de l'administrateur</p>
-              <p className="font-bold text-cyan-700">admin@cenhosoa.mg</p>
-            </div>
+            <p className="font-semibold text-gray-900 mb-1">Un nouveau mot de passe par email</p>
+            <p className="text-sm text-gray-500">Contactez l'administrateur — il réinitialisera votre compte depuis l'application.</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+            {[
+              { step: '1', text: "Contactez l'administrateur (en personne ou par téléphone)" },
+              { step: '2', text: 'Il réinitialise votre mot de passe depuis la gestion des utilisateurs' },
+              { step: '3', text: 'Vous recevez automatiquement un email avec un nouveau mot de passe temporaire' },
+              { step: '4', text: 'Connectez-vous et choisissez votre nouveau mot de passe personnel' },
+            ].map(({ step, text }) => (
+              <div key={step} className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-cyan-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                  {step}
+                </div>
+                <p className="text-sm text-gray-700">{text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+            <p className="text-xs text-blue-800 text-center">
+              💡 Le mot de passe temporaire est envoyé à l'adresse email enregistrée dans votre profil.
+            </p>
           </div>
         </div>
         <div className="p-5 pt-0">
@@ -149,7 +152,6 @@ export default function LoginPage() {
   const { login, isInitializing } = useAuth();
 
   const savedEmail = localStorage.getItem(REMEMBER_KEY) || '';
-
   const [email,       setEmail]       = useState(savedEmail);
   const [password,    setPassword]    = useState('');
   const [showPwd,     setShowPwd]     = useState(false);
@@ -159,14 +161,11 @@ export default function LoginPage() {
   const [showHelp,    setShowHelp]    = useState(false);
   const [showForgot,  setShowForgot]  = useState(false);
   const [touched,     setTouched]     = useState({ email: false, password: false });
-  // ✅ Caps Lock warning
   const [capsLock,    setCapsLock]    = useState(false);
-
   const [attempts,    setAttempts]    = useState(() => parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0'));
   const [lockedUntil, setLockedUntil] = useState(() => parseInt(localStorage.getItem(LOCKOUT_KEY)  || '0'));
   const [countdown,   setCountdown]   = useState(0);
 
-  // Compte a rebours blocage
   useEffect(() => {
     if (lockedUntil <= Date.now()) return;
     const interval = setInterval(() => {
@@ -180,24 +179,15 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [lockedUntil]);
 
-  // ✅ Detection Caps Lock via evenement clavier
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.getModifierState) {
-        setCapsLock(e.getModifierState('CapsLock'));
-      }
-    };
+    const handleKey = (e: KeyboardEvent) => { if (e.getModifierState) setCapsLock(e.getModifierState('CapsLock')); };
     window.addEventListener('keydown', handleKey);
     window.addEventListener('keyup',   handleKey);
-    return () => {
-      window.removeEventListener('keydown', handleKey);
-      window.removeEventListener('keyup',   handleKey);
-    };
+    return () => { window.removeEventListener('keydown', handleKey); window.removeEventListener('keyup', handleKey); };
   }, []);
 
   const isLocked = lockedUntil > Date.now();
 
-  // Validation en temps reel apres que le champ a ete quitte
   useEffect(() => {
     if (!touched.email) return;
     if (!email) setErrors(p => ({ ...p, email: 'Email requis' }));
@@ -208,17 +198,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (!touched.password) return;
     if (!password) setErrors(p => ({ ...p, password: 'Mot de passe requis' }));
-    else if (password.length < 6) setErrors(p => ({ ...p, password: 'Minimum 6 caracteres' }));
+    else if (password.length < 6) setErrors(p => ({ ...p, password: 'Minimum 6 caractères' }));
     else setErrors(p => ({ ...p, password: '' }));
   }, [password, touched.password]);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value.toLowerCase());
-  };
-
   const isFormValid = !!(email && password.length >= 6 && /\S+@\S+\.\S+/.test(email) && !errors.email && !errors.password);
 
-  // Force mot de passe
   const getStrength = () => {
     if (!password) return null;
     let s = 0;
@@ -229,7 +214,7 @@ export default function LoginPage() {
     if (/[^A-Za-z0-9]/.test(password)) s++;
     if (s <= 2) return { label: 'Faible', color: 'bg-red-400',   w: 'w-1/3' };
     if (s <= 3) return { label: 'Moyen',  color: 'bg-amber-400', w: 'w-2/3' };
-    return           { label: 'Fort',   color: 'bg-green-500', w: 'w-full' };
+    return           { label: 'Fort',    color: 'bg-green-500', w: 'w-full' };
   };
   const strength = getStrength();
 
@@ -238,16 +223,17 @@ export default function LoginPage() {
     if (isLocked) return;
     setTouched({ email: true, password: true });
     if (!email || !password || password.length < 6 || !/\S+@\S+\.\S+/.test(email)) return;
-
     setSubmitting(true);
     try {
-      await login(email, password);
+      // ✅ Récupère premier_connexion et redirige en conséquence
+      const { premier_connexion } = await login(email, password);
       localStorage.removeItem(ATTEMPTS_KEY);
       localStorage.removeItem(LOCKOUT_KEY);
       if (rememberMe) localStorage.setItem(REMEMBER_KEY, email);
       else            localStorage.removeItem(REMEMBER_KEY);
-      toast.success('Connexion reussie !');
-      navigate('/');
+      toast.success('Connexion réussie !');
+      if (premier_connexion) navigate('/changer-mot-de-passe');
+      else                   navigate('/');
     } catch (error: unknown) {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -256,7 +242,7 @@ export default function LoginPage() {
         const lockUntil = Date.now() + LOCKOUT_MS;
         setLockedUntil(lockUntil);
         localStorage.setItem(LOCKOUT_KEY, String(lockUntil));
-        toast.error('Compte bloque 5 minutes apres 5 tentatives.');
+        toast.error('Compte bloqué 5 minutes après 5 tentatives.');
       } else {
         const left = MAX_ATTEMPTS - newAttempts;
         toast.error(`${error instanceof Error ? error.message : 'Identifiants incorrects'} — ${left} tentative${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''}`);
@@ -271,12 +257,8 @@ export default function LoginPage() {
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-cyan-50 p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-5xl bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden"
-        >
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className="w-full max-w-5xl bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden">
           <div className="flex flex-col md:flex-row">
 
             {/* Left Panel */}
@@ -286,15 +268,13 @@ export default function LoginPage() {
               <div className="relative z-10 flex flex-col items-center gap-4 px-8">
                 <motion.img src="/logo.png" alt="CENHOSOA"
                   className="w-48 h-48 md:w-72 md:h-72 object-contain drop-shadow-xl"
-                  initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
                 />
                 <div className="text-center hidden md:block">
-                
                   <div className="mt-4 h-px bg-white/20 w-24 mx-auto" />
                   <p className="text-cyan-200 text-xs mt-3 leading-relaxed">
-                    Plateforme numerique de gestion<br />des dossiers patients
+                    Plateforme numérique de gestion<br />des dossiers patients
                   </p>
                 </div>
               </div>
@@ -303,29 +283,26 @@ export default function LoginPage() {
             {/* Right Panel */}
             <div className="w-full md:w-7/12 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
               <div className="max-w-sm mx-auto w-full">
-
                 <div className="mb-7">
                   <h2 className="text-2xl font-bold text-gray-900">Connexion</h2>
-                  <p className="text-gray-500 text-sm mt-1">Entrez vos identifiants pour acceder a votre espace</p>
+                  <p className="text-gray-500 text-sm mt-1">Entrez vos identifiants pour accéder à votre espace</p>
                 </div>
 
-                {/* Alerte blocage */}
                 <AnimatePresence>
                   {isLocked && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                       className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 overflow-hidden">
                       <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-red-800">Acces temporairement bloque</p>
+                        <p className="text-sm font-semibold text-red-800">Accès temporairement bloqué</p>
                         <p className="text-xs text-red-600 mt-0.5">
-                          Reessayez dans <span className="font-bold tabular-nums">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</span>
+                          Réessayez dans <span className="font-bold tabular-nums">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</span>
                         </p>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* Alerte tentatives */}
                 <AnimatePresence>
                   {!isLocked && attempts > 0 && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -339,32 +316,24 @@ export default function LoginPage() {
                 </AnimatePresence>
 
                 <form onSubmit={handleSubmit} noValidate className="space-y-5">
-
                   {/* Email */}
                   <div className="space-y-1.5">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">Adresse email</label>
                     <div className="relative">
                       <Mail className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.email && touched.email ? 'text-red-400' : 'text-cyan-500'}`} />
-                      <Input
-                        id="email" type="email"
-                        placeholder="prenom.nom@cenhosoa.mg"
-                        value={email}
-                        onChange={handleEmailChange}
+                      <Input id="email" type="email" placeholder="prenom.nom@cenhosoa.mg"
+                        value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())}
                         onBlur={() => setTouched(p => ({ ...p, email: true }))}
-                        autoComplete="email"
-                        disabled={isLocked}
-                        aria-invalid={!!(errors.email && touched.email)}
+                        autoComplete="email" disabled={isLocked} aria-invalid={!!(errors.email && touched.email)}
                         className={`pl-10 pr-9 py-2.5 w-full border-2 rounded-xl text-sm transition-all ${
-                          errors.email && touched.email   ? 'border-red-300 bg-red-50'
+                          errors.email && touched.email    ? 'border-red-300 bg-red-50'
                           : touched.email && !errors.email ? 'border-green-300 bg-green-50'
                           : 'border-gray-200 focus:border-cyan-500'
                         } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       />
                       {touched.email && (
                         <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                          {errors.email
-                            ? <AlertTriangle className="w-4 h-4 text-red-400" />
-                            : <CheckCircle2  className="w-4 h-4 text-green-500" />}
+                          {errors.email ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <CheckCircle2 className="w-4 h-4 text-green-500" />}
                         </div>
                       )}
                     </div>
@@ -383,15 +352,10 @@ export default function LoginPage() {
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
                     <div className="relative">
                       <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.password && touched.password ? 'text-red-400' : 'text-cyan-500'}`} />
-                      <Input
-                        id="password"
-                        type={showPwd ? 'text' : 'password'}
-                        placeholder="Votre mot de passe"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                      <Input id="password" type={showPwd ? 'text' : 'password'} placeholder="Votre mot de passe"
+                        value={password} onChange={(e) => setPassword(e.target.value)}
                         onBlur={() => setTouched(p => ({ ...p, password: true }))}
-                        autoComplete="current-password"
-                        disabled={isLocked}
+                        autoComplete="current-password" disabled={isLocked}
                         className={`pl-10 pr-10 py-2.5 w-full border-2 rounded-xl text-sm transition-all ${
                           errors.password && touched.password ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-cyan-500'
                         } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -402,25 +366,17 @@ export default function LoginPage() {
                         {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-
-                    {/* ✅ Caps Lock warning — affiché uniquement si actif */}
                     <AnimatePresence>
                       {capsLock && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                          className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
-                          role="alert"
-                        >
+                        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                          className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" role="alert">
                           <svg className="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 11l3-3m0 0l3 3m-3-3v8M5 20h14a2 2 0 002-2V8a2 2 0 00-.586-1.414l-5-5A2 2 0 0012.172 1H5a2 2 0 00-2 2v15a2 2 0 002 2z" />
                           </svg>
-                          <p className="text-xs text-amber-800 font-medium">
-                            Majuscules actives — votre mot de passe est sensible a la casse
-                          </p>
+                          <p className="text-xs text-amber-800 font-medium">Majuscules actives — le mot de passe est sensible à la casse</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
-
                     <AnimatePresence>
                       {errors.password && touched.password && (
                         <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -429,8 +385,6 @@ export default function LoginPage() {
                         </motion.p>
                       )}
                     </AnimatePresence>
-
-                    {/* Force + regles */}
                     <AnimatePresence>
                       {password && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
@@ -444,10 +398,10 @@ export default function LoginPage() {
                           </div>
                           <div className="grid grid-cols-2 gap-1">
                             {[
-                              { ok: password.length >= 6,            label: '6 caracteres min.' },
-                              { ok: /[A-Z]/.test(password),          label: 'Une majuscule' },
-                              { ok: /[0-9]/.test(password),          label: 'Un chiffre' },
-                              { ok: /[^A-Za-z0-9]/.test(password),   label: 'Caractere special' },
+                              { ok: password.length >= 6,          label: '6 caractères min.' },
+                              { ok: /[A-Z]/.test(password),        label: 'Une majuscule' },
+                              { ok: /[0-9]/.test(password),        label: 'Un chiffre' },
+                              { ok: /[^A-Za-z0-9]/.test(password), label: 'Caractère spécial' },
                             ].map((r, i) => (
                               <div key={i} className="flex items-center gap-1.5">
                                 <div className={`w-3 h-3 rounded-full flex items-center justify-center transition-colors ${r.ok ? 'bg-green-500' : 'bg-gray-200'}`}>
@@ -462,7 +416,6 @@ export default function LoginPage() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Remember me + mot de passe oublie */}
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
@@ -471,11 +424,10 @@ export default function LoginPage() {
                     </label>
                     <button type="button" onClick={() => setShowForgot(true)}
                       className="text-xs text-cyan-600 hover:text-cyan-700 hover:underline font-medium transition-colors">
-                      Mot de passe oublie ?
+                      Mot de passe oublié ?
                     </button>
                   </div>
 
-                  {/* Submit */}
                   <button type="submit" disabled={submitting || isLocked}
                     className={`w-full py-3 rounded-xl font-bold text-sm transition-all transform active:scale-[0.98] ${
                       isFormValid && !isLocked
@@ -485,12 +437,12 @@ export default function LoginPage() {
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Verification en cours...
+                        Vérification en cours...
                       </span>
                     ) : isLocked ? (
                       <span className="flex items-center justify-center gap-2">
                         <ShieldAlert className="w-4 h-4" />
-                        Bloque ({Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')})
+                        Bloqué ({Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')})
                       </span>
                     ) : 'Se connecter'}
                   </button>
@@ -498,13 +450,13 @@ export default function LoginPage() {
                   <div className="text-center pt-1">
                     <button type="button" onClick={() => setShowHelp(true)}
                       className="text-xs text-gray-400 hover:text-cyan-600 transition-colors inline-flex items-center gap-1">
-                      <HelpCircle className="w-3.5 h-3.5" /> Aide a la connexion
+                      <HelpCircle className="w-3.5 h-3.5" /> Aide à la connexion
                     </button>
                   </div>
                 </form>
 
                 <p className="text-center text-[10px] text-gray-300 uppercase tracking-widest mt-6">
-                  CENHOSOA - Plateforme Numerique
+                  CENHOSOA - Plateforme Numérique
                 </p>
               </div>
             </div>

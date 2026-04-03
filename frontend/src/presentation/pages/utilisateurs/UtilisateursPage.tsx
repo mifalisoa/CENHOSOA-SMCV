@@ -5,30 +5,77 @@ import {
   Users, UserPlus, Search, MoreVertical,
   Edit, Trash2, Lock, Unlock, ArrowLeft,
   RefreshCw, Shield, Mail, Phone, Calendar,
+  KeyRound,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { httpClient } from '../../../infrastructure/http/axios.config';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 import { UtilisateurFormModal, type UtilisateurFormData } from '../../components/modals/UtilisateurFormModal';
 import { UtilisateurPermissionsModal } from '../../components/modals/UtilisateurPermissionsModal';
 import { DEFAULT_PERMISSIONS, PERMISSION_LABELS } from '../../../shared/constants/permissions.constants';
-
 
 type RoleType   = 'admin' | 'medecin' | 'interne' | 'stagiaire' | 'infirmier' | 'secretaire';
 type StatutType = 'actif' | 'inactif' | 'suspendu';
 
 interface Utilisateur {
-  id_user:     number;
-  nom:         string;
-  prenom:      string;
-  email:       string;
-  role:        RoleType;
-  telephone?:  string;
-  specialite?: string;
-  statut:      StatutType;
-  created_at:  string;
-  updated_at:  string;
+  id_user:            number;
+  nom:                string;
+  prenom:             string;
+  email:              string;
+  role:               RoleType;
+  telephone?:         string;
+  specialite?:        string;
+  statut:             StatutType;
+  premier_connexion?: boolean;
+  created_at:         string;
+  updated_at:         string;
+}
+
+// ── Dialog confirmation générique ─────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+  titre:      string;
+  message:    string;
+  detail?:    string;
+  confirmLabel: string;
+  confirmColor: string;
+  icon:       React.ReactNode;
+  onConfirm:  () => void;
+  onCancel:   () => void;
+  loading?:   boolean;
+}
+
+function ConfirmDialog({ titre, message, detail, confirmLabel, confirmColor, icon, onConfirm, onCancel, loading }: ConfirmDialogProps) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${confirmColor === 'red' ? 'bg-red-100' : 'bg-amber-100'}`}>
+          {icon}
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">{titre}</h3>
+        <p className="text-gray-600 text-sm mb-1">{message}</p>
+        {detail && <p className="text-gray-400 text-xs mb-5">{detail}</p>}
+        {!detail && <div className="mb-5" />}
+        <div className="flex gap-3">
+          <button onClick={onCancel} disabled={loading}
+            className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+            Annuler
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+              confirmColor === 'red' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-500 hover:bg-amber-600'
+            }`}>
+            {loading
+              ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : confirmLabel
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const EMPTY_FORM: UtilisateurFormData = {
@@ -67,25 +114,24 @@ const getStatutColor = (statut: string) => {
   }
 };
 
-const getRoleLabel = (role: string) => {
-  const map: Record<string, string> = {
-    admin: 'Admin', medecin: 'Médecin', interne: 'Interne',
-    stagiaire: 'Stagiaire', infirmier: 'Infirmier', secretaire: 'Secrétaire',
-  };
-  return map[role] ?? role;
-};
+const getRoleLabel = (role: string) => ({
+  admin: 'Admin', medecin: 'Médecin', interne: 'Interne',
+  stagiaire: 'Stagiaire', infirmier: 'Infirmier', secretaire: 'Secrétaire',
+} as Record<string, string>)[role] ?? role;
 
 // ── Menu actions ──────────────────────────────────────────────────────────────
 
 interface ActionsMenuProps {
-  user:           Utilisateur;
-  onEdit:         () => void;
-  onPermissions:  () => void;
-  onChangeStatut: (statut: StatutType) => void;
-  onDelete:       () => void;
+  user:                   Utilisateur;
+  isSelf:                 boolean; // ✅ true si c'est le compte connecté
+  onEdit:                 () => void;
+  onPermissions:          () => void;
+  onChangeStatut:         (statut: StatutType) => void;
+  onDelete:               () => void;
+  onReinitialiserMdp:     () => void;
 }
 
-function ActionsMenu({ user, onEdit, onPermissions, onChangeStatut, onDelete }: ActionsMenuProps) {
+function ActionsMenu({ user, isSelf, onEdit, onPermissions, onChangeStatut, onDelete, onReinitialiserMdp }: ActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const ref             = useRef<HTMLDivElement>(null);
 
@@ -106,7 +152,7 @@ function ActionsMenu({ user, onEdit, onPermissions, onChangeStatut, onDelete }: 
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[190px] z-20">
+        <div className="absolute right-0 top-9 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[210px] z-20">
           <button onClick={() => { setOpen(false); onEdit(); }}
             className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
             <Edit className="w-4 h-4 text-gray-400" />Modifier
@@ -115,23 +161,38 @@ function ActionsMenu({ user, onEdit, onPermissions, onChangeStatut, onDelete }: 
             className="w-full px-4 py-2.5 text-left hover:bg-cyan-50 flex items-center gap-2.5 text-sm text-cyan-700 font-medium">
             <Shield className="w-4 h-4 text-cyan-500" />Gérer permissions
           </button>
+          {/* ✅ Réinitialiser mot de passe */}
+          <button onClick={() => { setOpen(false); onReinitialiserMdp(); }}
+            className="w-full px-4 py-2.5 text-left hover:bg-amber-50 flex items-center gap-2.5 text-sm text-amber-700">
+            <KeyRound className="w-4 h-4 text-amber-500" />Réinitialiser mot de passe
+          </button>
           <div className="my-1 border-t border-gray-100" />
-          {user.statut === 'actif' ? (
-            <button onClick={() => { setOpen(false); onChangeStatut('inactif'); }}
-              className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
-              <Lock className="w-4 h-4 text-gray-400" />Désactiver
-            </button>
-          ) : (
-            <button onClick={() => { setOpen(false); onChangeStatut('actif'); }}
-              className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
-              <Unlock className="w-4 h-4 text-gray-400" />Activer
+          {/* ✅ Masqué si c'est son propre compte */}
+          {!isSelf && (
+            user.statut === 'actif' ? (
+              <button onClick={() => { setOpen(false); onChangeStatut('inactif'); }}
+                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
+                <Lock className="w-4 h-4 text-gray-400" />Désactiver
+              </button>
+            ) : (
+              <button onClick={() => { setOpen(false); onChangeStatut('actif'); }}
+                className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
+                <Unlock className="w-4 h-4 text-gray-400" />Activer
+              </button>
+            )
+          )}
+          {!isSelf && <div className="my-1 border-t border-gray-100" />}
+          {!isSelf && (
+            <button onClick={() => { setOpen(false); onDelete(); }}
+              className="w-full px-4 py-2.5 text-left hover:bg-red-50 flex items-center gap-2.5 text-sm text-red-600">
+              <Trash2 className="w-4 h-4" />Supprimer
             </button>
           )}
-          <div className="my-1 border-t border-gray-100" />
-          <button onClick={() => { setOpen(false); onDelete(); }}
-            className="w-full px-4 py-2.5 text-left hover:bg-red-50 flex items-center gap-2.5 text-sm text-red-600">
-            <Trash2 className="w-4 h-4" />Supprimer
-          </button>
+          {isSelf && (
+            <div className="px-4 py-2 text-xs text-gray-400 italic">
+              Impossible de modifier votre propre compte
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -141,7 +202,8 @@ function ActionsMenu({ user, onEdit, onPermissions, onChangeStatut, onDelete }: 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function UtilisateursPage() {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
+  const { user: currentUser } = useAuth();
   const [utilisateurs,  setUtilisateurs]  = useState<Utilisateur[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [searchQuery,   setSearchQuery]   = useState('');
@@ -153,6 +215,11 @@ export default function UtilisateursPage() {
   const [modalMode,            setModalMode]            = useState<'create' | 'edit'>('create');
   const [selectedUser,         setSelectedUser]         = useState<Utilisateur | null>(null);
   const [formInitialData,      setFormInitialData]      = useState<UtilisateurFormData>(EMPTY_FORM);
+
+  // ✅ Dialogs de confirmation
+  const [confirmDelete,  setConfirmDelete]  = useState<Utilisateur | null>(null);
+  const [confirmReinit,  setConfirmReinit]  = useState<Utilisateur | null>(null);
+  const [actionLoading,  setActionLoading]  = useState(false);
 
   useEffect(() => { loadUtilisateurs(); }, []);
 
@@ -197,7 +264,7 @@ export default function UtilisateursPage() {
     try {
       if (modalMode === 'create') {
         await httpClient.post('/utilisateurs', data);
-        toast.success('Utilisateur créé avec succès');
+        toast.success('Utilisateur créé — email envoyé avec les identifiants');
       } else {
         const updateData = { ...data };
         if (!updateData.mot_de_passe) delete (updateData as Partial<UtilisateurFormData>).mot_de_passe;
@@ -213,22 +280,44 @@ export default function UtilisateursPage() {
     }
   };
 
-  const handleDelete = async (user: Utilisateur) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${user.prenom} ${user.nom} ?`)) return;
+  // ✅ Suppression avec dialog
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
     try {
-      await httpClient.delete(`/utilisateurs/${user.id_user}`);
+      setActionLoading(true);
+      await httpClient.delete(`/utilisateurs/${confirmDelete.id_user}`);
       toast.success('Utilisateur supprimé avec succès');
+      setConfirmDelete(null);
       loadUtilisateurs();
     } catch (error: unknown) {
       const message = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
       toast.error(message || 'Erreur lors de la suppression');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ✅ Réinitialisation mot de passe avec dialog
+  const handleReinitialiserMdp = async () => {
+    if (!confirmReinit) return;
+    try {
+      setActionLoading(true);
+      await httpClient.post(`/utilisateurs/${confirmReinit.id_user}/reinitialiser-mot-de-passe`);
+      toast.success(`Mot de passe réinitialisé — email envoyé à ${confirmReinit.email}`);
+      setConfirmReinit(null);
+      loadUtilisateurs();
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
+      toast.error(message || 'Erreur lors de la réinitialisation');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleChangeStatut = async (user: Utilisateur, newStatut: StatutType) => {
     try {
       await httpClient.patch(`/utilisateurs/${user.id_user}/statut`, { statut: newStatut });
-      toast.success(`Utilisateur ${newStatut === 'actif' ? 'activé' : newStatut === 'inactif' ? 'désactivé' : 'suspendu'}`);
+      toast.success(`Utilisateur ${newStatut === 'actif' ? 'activé' : 'désactivé'}`);
       loadUtilisateurs();
     } catch (error: unknown) {
       const message = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
@@ -271,7 +360,7 @@ export default function UtilisateursPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Gestion des Utilisateurs</h1>
-                  <p className="text-white/90 mt-1">Comptes, rôles et permissions — CENHOSOA</p>
+                  <p className="text-white/90 mt-1">Comptes, rôles et permissions — CENHOSOA-SMCV</p>
                 </div>
               </div>
             </div>
@@ -287,7 +376,6 @@ export default function UtilisateursPage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-4 gap-3">
             {[
               { label: 'Total',             value: stats.total     },
@@ -316,14 +404,12 @@ export default function UtilisateursPage() {
               />
             </div>
             <select value={filterRole} onChange={(e) => setFilterRole(e.target.value as RoleType | 'all')}
-              title="Sélectionner le rôle" 
-              aria-label="Rôle de l'utilisateur"
+              title="Filtrer par rôle" aria-label="Rôle de l'utilisateur"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none">
               {ROLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <select value={filterStatut} onChange={(e) => setFilterStatut(e.target.value as StatutType | 'all')}
-              title="Sélectionner le statut" 
-              aria-label="Statut de l'utilisateur"
+              title="Filtrer par statut" aria-label="Statut de l'utilisateur"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none">
               <option value="all">Tous les statuts</option>
               <option value="actif">Actif</option>
@@ -333,7 +419,7 @@ export default function UtilisateursPage() {
           </div>
         </div>
 
-        {/* Grille utilisateurs */}
+        {/* Grille */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-cyan-500 border-t-transparent" />
@@ -371,15 +457,24 @@ export default function UtilisateursPage() {
                       </span>
                       <ActionsMenu
                         user={user}
+                        isSelf={user.id_user === currentUser?.id_user}
                         onEdit={() => handleEdit(user)}
                         onPermissions={() => { setSelectedUser(user); setShowPermissionsModal(true); }}
                         onChangeStatut={(s) => handleChangeStatut(user, s)}
-                        onDelete={() => handleDelete(user)}
+                        onDelete={() => setConfirmDelete(user)}
+                        onReinitialiserMdp={() => setConfirmReinit(user)}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
+                    {/* ✅ Badge premier_connexion */}
+                    {user.premier_connexion && (
+                      <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span className="text-xs text-amber-700 font-medium">Mot de passe temporaire — connexion en attente</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-gray-600"><Mail className="w-4 h-4" />{user.email}</div>
                     {user.telephone  && <div className="flex items-center gap-2 text-gray-600"><Phone className="w-4 h-4" />{user.telephone}</div>}
                     {user.specialite && <div className="flex items-center gap-2 text-gray-600"><Shield className="w-4 h-4" /><span className="font-medium">{user.specialite}</span></div>}
@@ -416,6 +511,7 @@ export default function UtilisateursPage() {
         )}
       </div>
 
+      {/* Modals */}
       {showFormModal && (
         <UtilisateurFormModal
           mode={modalMode}
@@ -428,6 +524,36 @@ export default function UtilisateursPage() {
         <UtilisateurPermissionsModal
           utilisateur={selectedUser}
           onClose={() => setShowPermissionsModal(false)}
+        />
+      )}
+
+      {/* ✅ Dialog confirmation suppression */}
+      {confirmDelete && (
+        <ConfirmDialog
+          titre="Supprimer cet utilisateur ?"
+          message={`${confirmDelete.prenom} ${confirmDelete.nom}`}
+          detail={`${confirmDelete.email} · ${getRoleLabel(confirmDelete.role)}`}
+          confirmLabel="Supprimer"
+          confirmColor="red"
+          icon={<Trash2 className="w-7 h-7 text-red-600" />}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(null)}
+          loading={actionLoading}
+        />
+      )}
+
+      {/* ✅ Dialog confirmation réinitialisation mot de passe */}
+      {confirmReinit && (
+        <ConfirmDialog
+          titre="Réinitialiser le mot de passe ?"
+          message={`${confirmReinit.prenom} ${confirmReinit.nom}`}
+          detail={`Un nouveau mot de passe temporaire sera envoyé à ${confirmReinit.email}`}
+          confirmLabel="Réinitialiser et envoyer"
+          confirmColor="amber"
+          icon={<KeyRound className="w-7 h-7 text-amber-600" />}
+          onConfirm={handleReinitialiserMdp}
+          onCancel={() => setConfirmReinit(null)}
+          loading={actionLoading}
         />
       )}
     </div>

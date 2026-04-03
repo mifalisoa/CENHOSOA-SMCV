@@ -23,4 +23,6 @@ router.get( '/me',       authMiddleware,                  authController.me);
 // ✅ Logout — supprime la session active et log la déconnexion
 router.post('/logout',   authMiddleware,                  authController.logout);
 
+router.post('/changer-mot-de-passe', authMiddleware, authController.changerMotDePasse);
+
 export default router;

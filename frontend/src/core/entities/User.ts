@@ -8,21 +8,19 @@ export type UserRole =
   | 'infirmier'
   | 'secretaire';
 
-// LEÇON : Exporter le type séparément permet de l'utiliser partout
-// sans répéter la liste des rôles (App.tsx, ProtectedRoute, etc.)
-
 export interface User {
-  id_user:     number;
-  nom:         string;
-  prenom:      string;
-  email:       string;
-  role:        UserRole;
-  specialite?: string | null;
-  telephone?:  string | null;
-  actif?:      boolean;
-  statut?:     'actif' | 'inactif' | 'suspendu';
-  created_at?: Date;
-  updated_at?: Date;
+  id_user:             number;
+  nom:                 string;
+  prenom:              string;
+  email:               string;
+  role:                UserRole;
+  specialite?:         string | null;
+  telephone?:          string | null;
+  actif?:              boolean;
+  statut?:             'actif' | 'inactif' | 'suspendu';
+  premier_connexion?:  boolean; // ✅ true = doit changer son mot de passe
+  created_at?:         Date;
+  updated_at?:         Date;
 }
 
 export interface LoginCredentials {
@@ -31,6 +29,7 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
-  user:  User;
-  token: string;
+  user:              User;
+  token:             string;
+  premier_connexion?: boolean; // ✅ retourné par le backend au login
 }

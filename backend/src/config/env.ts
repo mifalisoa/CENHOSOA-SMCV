@@ -32,4 +32,11 @@ export const env = {
     isDevelopment: process.env.NODE_ENV === 'development',
     isProduction: process.env.NODE_ENV === 'production',
     isTest: process.env.NODE_ENV === 'test',
+
+    // Email (Nodemailer) - CORRIGÉ ICI
+    SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+    SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+    SMTP_USER: process.env.SMTP_USER || '',
+    SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
+    SMTP_FROM: process.env.SMTP_FROM || 'CENHOSOA-SMCV <mifalyandrianandraina93@gmail.com>',
 };

@@ -9,53 +9,44 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<import('../../core/entities/User').User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [user,           setUser]           = useState<import('../../core/entities/User').User | null>(null);
+  const [isLoading,      setIsLoading]      = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // 🔄 Initialisation au montage (Refresh page)
+  // Initialisation au montage
   useEffect(() => {
-    console.log('🔄 [AuthProvider] Montage du composant');
     const initAuth = async () => {
-      console.log('🔍 [AuthProvider] Vérification du token initial...');
       try {
         const token = TokenStorage.getToken();
         if (token) {
           const currentUser = await getCurrentUserUseCase.execute();
-          console.log('✅ [AuthProvider] Session restaurée:', currentUser.email, '| role:', currentUser.role);
           setUser(currentUser);
-        } else {
-          console.log('⚠️ [AuthProvider] Aucun token en stockage');
         }
       } catch (error) {
         console.error('❌ [AuthProvider] Échec restauration session:', error);
         TokenStorage.removeToken();
         setUser(null);
       } finally {
-        console.log('✅ [AuthProvider] Initialisation terminée');
         setIsInitializing(false);
       }
     };
-
     initAuth();
   }, []);
 
-  // 🔵 Action de Login
-  const login = async (email: string, password: string) => {
-    console.log('🔵 [AuthContext] login appelé pour:', email);
+  // ✅ Login — retourne { premier_connexion } pour que LoginPage redirige
+  const login = async (email: string, password: string): Promise<{ premier_connexion: boolean }> => {
     setIsLoading(true);
     try {
       const response = await loginUseCase.execute({ email, password });
-      console.log('🟢 [AuthContext] login réussi, user:', response.user.role);
       setUser(response.user);
+      return { premier_connexion: response.premier_connexion ?? false };
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 🚪 Action de Logout
+  // Logout
   const logout = async () => {
-    console.log('🚪 [AuthContext] logout appelé');
     setIsLoading(true);
     try {
       await logoutUseCase.execute();
@@ -67,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // 🔄 Rafraîchir les données utilisateur
+  // Rafraîchir les données utilisateur
   const refreshUser = async () => {
     try {
       const currentUser = await getCurrentUserUseCase.execute();
@@ -79,17 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        isInitializing,
-        login,
-        logout,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, isInitializing, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

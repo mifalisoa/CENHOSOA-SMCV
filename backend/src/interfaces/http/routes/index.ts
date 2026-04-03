@@ -27,6 +27,8 @@ import patientTransferRoutes from './patientTransfer.Routes';
 import securiteRoutes from './securite.routes';
 import dashboardRoutes from './dashboard.routes';
 import userPermissionsRoutes from './userPermissions.routes';
+import statsRoutes from './stats.routes';
+import setupRoutes from './setup.routes';
 
 
 
@@ -75,5 +77,9 @@ router.use('/patients', litTransferRoutes);
 router.use('/securite', securiteRoutes);
 
 router.use('/dashboard', dashboardRoutes);
+
+router.use('/stats', statsRoutes);
+
+router.use('/setup', setupRoutes);
 
 export default router;

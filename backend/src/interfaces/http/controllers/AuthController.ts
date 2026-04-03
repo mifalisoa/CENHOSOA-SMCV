@@ -1,27 +1,25 @@
 // backend/src/interfaces/http/controllers/AuthController.ts
 
 import { Request, Response, NextFunction } from 'express';
-import { LoginUser }          from '../../../application/use-cases/auth/LoginUser';
-import { RegisterUser }       from '../../../application/use-cases/auth/RegisterUser';
-import { successResponse }    from '../../../shared/utils/response.utils';
-import { HTTP_STATUS }        from '../../../config/constants';
-import { AuthRequest }        from '../middlewares/auth.middleware';
-import { pool }               from '../../../config/database';
+import { LoginUser }           from '../../../application/use-cases/auth/LoginUser';
+import { RegisterUser }        from '../../../application/use-cases/auth/RegisterUser';
+import { successResponse }     from '../../../shared/utils/response.utils';
+import { HTTP_STATUS }         from '../../../config/constants';
+import { AuthRequest }         from '../middlewares/auth.middleware';
+import { pool }                from '../../../config/database';
 import { notificationService } from '../../../application/services/NotificationService';
+import bcrypt                  from 'bcrypt';
 import {
   logLoginSuccess,
   logLoginFailed,
   createSession,
   deleteSession,
 } from '../middlewares/action-logger.middleware';
+import { sendMotDePasseChangé } from '../../../infrastructure/security/email.service';
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:      'Administrateur',
-  medecin:    'Médecin',
-  interne:    'Interne',
-  stagiaire:  'Stagiaire',
-  infirmier:  'Infirmier',
-  secretaire: 'Secrétaire',
+  admin: 'Administrateur', medecin: 'Médecin', interne: 'Interne',
+  stagiaire: 'Stagiaire', infirmier: 'Infirmier', secretaire: 'Secrétaire',
 };
 
 function getIP(req: Request): string {
@@ -45,20 +43,14 @@ export class AuthController {
     const email     = req.body.email || req.body.email_user || '';
 
     try {
-      const loginData = {
+      const result = await this.loginUser.execute({
         email,
         password: req.body.password || req.body.mot_de_passe,
-      };
+      });
 
-      const result = await this.loginUser.execute(loginData);
-
-      // ✅ Log connexion réussie
       await logLoginSuccess(result.user.id_user, ip, userAgent);
-
-      // ✅ Crée la session active (token JWT comme session_id)
       await createSession(result.user.id_user, result.token, req);
 
-      // Notification aux admins (sauf si c'est un admin)
       if (result.user.role !== 'admin') {
         notificationService.notifyAdmins({
           titre:    'Nouvelle connexion',
@@ -69,9 +61,12 @@ export class AuthController {
         }).catch(console.error);
       }
 
-      res.status(HTTP_STATUS.OK).json(successResponse(result, 'Connexion réussie'));
+      // ✅ Inclut premier_connexion pour que le frontend redirige
+      res.status(HTTP_STATUS.OK).json(successResponse({
+        ...result,
+        premier_connexion: result.user.premier_connexion ?? false,
+      }, 'Connexion réussie'));
     } catch (error) {
-      // ✅ Log tentative échouée
       await logLoginFailed(email, ip, userAgent).catch(console.error);
       next(error);
     }
@@ -79,27 +74,90 @@ export class AuthController {
 
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const registerData = {
+      const result = await this.registerUser.execute({
         ...req.body,
         password: req.body.password || req.body.mot_de_passe,
-      };
-      const result = await this.registerUser.execute(registerData);
+      });
       res.status(HTTP_STATUS.CREATED).json(successResponse(result, 'Utilisateur créé avec succès'));
     } catch (error) {
       next(error);
     }
   };
 
-  // ✅ Logout — supprime la session active
-  logout = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // ✅ POST /auth/changer-mot-de-passe
+  changerMotDePasse = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      // Récupère le token depuis l'en-tête Authorization
-      const token = req.headers.authorization?.replace('Bearer ', '') || '';
-      if (token) {
-        await deleteSession(token);
+      const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
+      const userId = req.user?.id_user;
+
+      if (!nouveau_mot_de_passe || nouveau_mot_de_passe.length < 8) {
+        res.status(400).json({
+          success: false,
+          message: 'Le nouveau mot de passe doit contenir au moins 8 caractères',
+        });
+        return;
       }
 
-      // Log déconnexion
+      const userResult = await pool.query(
+        `SELECT id_user, nom, prenom, email, mot_de_passe, premier_connexion
+         FROM utilisateurs WHERE id_user = $1`,
+        [userId]
+      );
+
+      if (userResult.rows.length === 0) {
+        res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+        return;
+      }
+
+      const user = userResult.rows[0];
+
+      // Si pas première connexion → vérifie l'ancien mot de passe
+      if (!user.premier_connexion) {
+        if (!ancien_mot_de_passe) {
+          res.status(400).json({ success: false, message: "L'ancien mot de passe est requis" });
+          return;
+        }
+        const valid = await bcrypt.compare(ancien_mot_de_passe, user.mot_de_passe);
+        if (!valid) {
+          res.status(400).json({ success: false, message: 'Ancien mot de passe incorrect' });
+          return;
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(nouveau_mot_de_passe, 10);
+      await pool.query(
+        `UPDATE utilisateurs
+         SET mot_de_passe = $1, premier_connexion = FALSE,
+             mot_de_passe_temporaire = FALSE, updated_at = NOW()
+         WHERE id_user = $2`,
+        [hashedPassword, userId]
+      );
+
+      // Email de confirmation
+      try {
+        await sendMotDePasseChangé({ to: user.email, prenom: user.prenom, nom: user.nom });
+      } catch (emailError) {
+        console.error('⚠️ [Auth] Email confirmation non envoyé:', emailError);
+      }
+
+      // Log
+      await pool.query(
+        `INSERT INTO logs_action (id_utilisateur, action, module, ip_address, statut)
+         VALUES ($1, 'update', 'auth', $2, 'success')`,
+        [userId, getIP(req)]
+      ).catch(console.error);
+
+      res.status(HTTP_STATUS.OK).json(successResponse(null, 'Mot de passe modifié avec succès'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  logout = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '') || '';
+      if (token) await deleteSession(token);
+
       if (req.user?.id_user) {
         await pool.query(
           `INSERT INTO logs_action (id_utilisateur, action, module, ip_address, statut)
@@ -114,11 +172,11 @@ export class AuthController {
     }
   };
 
-  // Retourne l'utilisateur complet depuis la DB (pas juste le payload JWT)
   me = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const result = await pool.query(
-        `SELECT id_user, nom, prenom, email, role, specialite, telephone, statut, created_at
+        `SELECT id_user, nom, prenom, email, role, specialite, telephone,
+                statut, premier_connexion, created_at
          FROM utilisateurs WHERE id_user = $1`,
         [req.user?.id_user]
       );

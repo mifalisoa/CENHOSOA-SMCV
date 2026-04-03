@@ -13,38 +13,41 @@ interface ApiResponse<T> {
 export class AuthRepository implements IAuthRepository {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // 🔵 ÉTAPE 1 : Appel initial (Vérifie que le clic UI arrive jusqu'ici)
     console.log('🔵 [AuthRepository] login appelé avec:', credentials.email);
 
     try {
-      // 🚀 ÉTAPE 2 : Requête vers le Backend
-      const response = await httpClient.post<ApiResponse<{ token: string; user: User }>>(
+      const response = await httpClient.post<ApiResponse<{
+        token:             string;
+        user:              User;
+        premier_connexion?: boolean; // ✅ ajouté
+      }>>(
         '/auth/login',
         { email: credentials.email, mot_de_passe: credentials.password }
       );
 
-      // 🟢 ÉTAPE 3 : Réception de la réponse
       console.log('🟢 [AuthRepository] Réponse reçue:', response.data);
 
       if (response.data.success && response.data.data) {
-        const { token, user } = response.data.data;
-        
-        // 💾 ÉTAPE 4 : Avant sauvegarde
+        const { token, user, premier_connexion } = response.data.data;
+
         console.log('💾 [AuthRepository] Sauvegarde token pour:', user.email, '| role:', user.role);
-        
+        console.log('🔍 DEBUG premier_connexion:', premier_connexion, '| data complet:', JSON.stringify(response.data.data));
+
         this.saveToken(token);
-        TokenStorage.saveUser(user);
-        
-        // 🔍 ÉTAPE 5 : Vérification immédiate du Storage
+
+        // ✅ Sauvegarde premier_connexion dans l'objet user pour le contexte
+        const userAvecFlag: User = { ...user, premier_connexion: premier_connexion ?? false };
+        TokenStorage.saveUser(userAvecFlag);
+
         const persistedToken = TokenStorage.getToken();
         console.log('💾 [AuthRepository] Token persisté:', persistedToken?.substring(0, 20) + '...');
-        
-        return { user, token };
+
+        // ✅ Retourne premier_connexion pour que AuthContext puisse rediriger
+        return { user: userAvecFlag, token, premier_connexion };
       }
 
       throw new Error(response.data.message || 'Erreur de connexion');
     } catch (error: unknown) {
-      // 🔴 ÉTAPE D'ERREUR : Log du crash
       console.error('🔴 [AuthRepository] Erreur dans le bloc catch:', error);
 
       if (error && typeof error === 'object' && 'response' in error) {
@@ -71,15 +74,7 @@ export class AuthRepository implements IAuthRepository {
     }
   }
 
-  getStoredToken(): string | null {
-    return TokenStorage.getToken();
-  }
-
-  saveToken(token: string): void {
-    TokenStorage.saveToken(token);
-  }
-
-  removeToken(): void {
-    TokenStorage.removeToken();
-  }
+  getStoredToken(): string | null { return TokenStorage.getToken(); }
+  saveToken(token: string): void  { TokenStorage.saveToken(token); }
+  removeToken(): void             { TokenStorage.removeToken(); }
 }
