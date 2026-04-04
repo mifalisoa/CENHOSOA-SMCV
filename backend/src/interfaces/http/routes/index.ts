@@ -29,6 +29,7 @@ import dashboardRoutes from './dashboard.routes';
 import userPermissionsRoutes from './userPermissions.routes';
 import statsRoutes from './stats.routes';
 import setupRoutes from './setup.routes';
+import searchRoutes from './search.routes';
 
 
 
@@ -81,5 +82,8 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/stats', statsRoutes);
 
 router.use('/setup', setupRoutes);
+
+router.use('/search', searchRoutes);
+
 
 export default router;
