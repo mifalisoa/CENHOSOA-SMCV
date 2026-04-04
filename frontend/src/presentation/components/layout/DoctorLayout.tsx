@@ -13,7 +13,8 @@ import { SidebarOverlay }        from '../common/SidebarOverlay';
 import { NotificationsProvider } from '../../context/NotificationsContext';
 import { useSessionTimeout }     from '../../hooks/useSessionTimeout';  // ✅ nouveau
 import { useAuth }               from '../../hooks/useAuth';             // ✅ nouveau
-import { toast }                 from 'sonner';                          // ✅ nouveau
+import { toast }                 from 'sonner';     
+import { HelpButton } from '../common/HelpButton';                     // ✅ nouveau
 
 interface DoctorLayoutProps {
   onLogout:     () => void;
@@ -67,6 +68,8 @@ export function DoctorLayout({ userRole, sidebarRole }: DoctorLayoutProps) {
             <Outlet />
           </main>
         </div>
+
+        <HelpButton />
 
         <LogoutConfirmModal
           isOpen={showLogoutModal}

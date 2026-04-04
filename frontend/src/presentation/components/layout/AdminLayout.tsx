@@ -10,7 +10,8 @@ import { Menu, X }               from 'lucide-react';
 import { NotificationsProvider } from '../../context/NotificationsContext';
 import { useSessionTimeout }     from '../../hooks/useSessionTimeout';  // ✅ nouveau
 import { useAuth }               from '../../hooks/useAuth';             // ✅ nouveau
-import { toast }                 from 'sonner';                          // ✅ nouveau
+import { toast }                 from 'sonner';  
+import { HelpButton } from '../common/HelpButton';                        // ✅ nouveau
 
 export default function AdminLayout() {
   const navigate  = useNavigate();
@@ -116,6 +117,8 @@ export default function AdminLayout() {
             <Outlet />
           </main>
         </div>
+
+         <HelpButton />
 
         <LogoutConfirmModal
           isOpen={showLogoutModal}

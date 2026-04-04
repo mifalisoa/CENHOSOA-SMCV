@@ -13,6 +13,7 @@ import { NotificationsProvider }  from '../../context/NotificationsContext';
 import { useSessionTimeout }      from '../../hooks/useSessionTimeout';
 import { useAuth }                from '../../hooks/useAuth';
 import { toast }                  from 'sonner';
+import { HelpButton } from '../common/HelpButton';
 
 interface SecretaryLayoutProps {
   children:     ReactNode;
@@ -74,6 +75,8 @@ export function SecretaryLayout({ children, currentView, onViewChange }: Secreta
             {children}
           </main>
         </div>
+
+        <HelpButton />
 
         <LogoutConfirmModal
           isOpen={showLogoutModal}
