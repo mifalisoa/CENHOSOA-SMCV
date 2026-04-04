@@ -1,15 +1,15 @@
 // frontend/src/App.tsx
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster }       from 'sonner';
-import { AuthProvider }  from './presentation/store/AuthContext';
+import { Toaster }        from 'sonner';
+import { AuthProvider }   from './presentation/store/AuthContext';
 import { ProtectedRoute } from './presentation/pages/auth/ProtectedRoute';
-import { useAuth }       from './presentation/hooks/useAuth';
+import { useAuth }        from './presentation/hooks/useAuth';
 import { useEffect, useState } from 'react';
-import axios             from 'axios';
-import type { UserRole } from './core/entities/User';
+import axios              from 'axios';
+import type { UserRole }  from './core/entities/User';
 
-// Auth pages
+// Auth
 import LoginPage            from './presentation/pages/auth/LoginPage';
 import SetupPage            from './presentation/pages/auth/SetupPage';
 import ChangerMotDePassePage from './presentation/pages/auth/ChangerMotDePassePage';
@@ -36,7 +36,8 @@ import DoctorDashboardHome from './presentation/pages/dashboard/sections/DoctorD
 import PatientsPage        from './presentation/pages/patients/PatientsPage';
 
 // Secrétaire
-import SecretaryDashboard from './presentation/pages/dashboard/SecretaryDashboard';
+import { SecretaryLayout }    from './presentation/components/layout/SecretaryLayout';
+import SecretaryDashboardHome from './presentation/pages/dashboard/sections/SecretaryDashboardHome';
 
 const MEDICAL_ROLES: UserRole[] = ['medecin', 'interne', 'stagiaire', 'infirmier'];
 
@@ -44,30 +45,21 @@ const ROLE_DISPLAY_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> =
   medecin: 'docteur', interne: 'interne', stagiaire: 'stagiaire', infirmier: 'docteur',
 };
 
-// ── Vérification setup au démarrage ──────────────────────────────────────────
-
 function SetupGuard({ children }: { children: React.ReactNode }) {
   const [setupDone, setSetupDone] = useState<boolean | null>(null);
-
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/setup/status`)
       .then(res => setSetupDone(res.data.data.setup_done))
-      .catch(() => setSetupDone(true)); // En cas d'erreur, on laisse passer
+      .catch(() => setSetupDone(true));
   }, []);
-
-  if (setupDone === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent" />
-      </div>
-    );
-  }
-
+  if (setupDone === null) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent" />
+    </div>
+  );
   if (!setupDone) return <Navigate to="/setup" replace />;
   return <>{children}</>;
 }
-
-// ── Redirection selon le rôle ─────────────────────────────────────────────────
 
 function RoleBasedRedirect() {
   const { user } = useAuth();
@@ -92,28 +84,15 @@ function RequirePasswordChanged({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// ── Routes ────────────────────────────────────────────────────────────────────
-
 function AppRoutes() {
   return (
     <Routes>
-      {/* Setup initial — accessible uniquement si setup pas fait */}
-      <Route path="/setup" element={<SetupPage />} />
-
-      {/* Reset mot de passe — public */}
-      <Route path="/mot-de-passe-oublie"     element={<ForgotPasswordPage />} />
-      <Route path="/reset-password/:token"   element={<ResetPasswordPage />} />
-
-      {/* Login */}
-      <Route path="/login" element={<SetupGuard><LoginPage /></SetupGuard>} />
-
-      {/* Racine */}
-      <Route path="/" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
-
-      {/* Changement mot de passe obligatoire */}
-      <Route path="/changer-mot-de-passe"
-        element={<ProtectedRoute><ChangerMotDePassePage /></ProtectedRoute>}
-      />
+      <Route path="/setup"                 element={<SetupPage />} />
+      <Route path="/mot-de-passe-oublie"   element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/login"                 element={<SetupGuard><LoginPage /></SetupGuard>} />
+      <Route path="/"                      element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />
+      <Route path="/changer-mot-de-passe"  element={<ProtectedRoute><ChangerMotDePassePage /></ProtectedRoute>} />
 
       {/* ── ADMIN ── */}
       <Route element={
@@ -139,20 +118,24 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route path="/doctor"                       element={<DoctorDashboardHome />} />
-        <Route path="/doctor/patients-externes"     element={<PatientsPage key="externes"     defaultTab="externes"    />} />
+        <Route path="/doctor/patients-externes"     element={<PatientsPage key="externes"     defaultTab="externes"     />} />
         <Route path="/doctor/patients-hospitalises" element={<PatientsPage key="hospitalises" defaultTab="hospitalises" />} />
         <Route path="/doctor/planning"              element={<PlanningPage />} />
         <Route path="/doctor/patients/:id/dossier"  element={<PatientDossierPage />} />
       </Route>
 
       {/* ── SECRÉTAIRE ── */}
-      <Route path="/secretary/*"
-        element={
-          <ProtectedRoute roles={['secretaire']}>
-            <RequirePasswordChanged><SecretaryDashboard /></RequirePasswordChanged>
-          </ProtectedRoute>
-        }
-      />
+      <Route element={
+        <ProtectedRoute roles={['secretaire']}>
+          <RequirePasswordChanged><SecretaryLayout /></RequirePasswordChanged>
+        </ProtectedRoute>
+      }>
+        <Route path="/secretary"                       element={<SecretaryDashboardHome />} />
+        <Route path="/secretary/planning"              element={<PlanningPage />} />
+        <Route path="/secretary/patients-externes"     element={<PatientsExternesView />} />
+        <Route path="/secretary/patients-hospitalises" element={<PatientsHospitalises />} />
+        <Route path="/secretary/patients/:id/dossier"  element={<PatientDossierPage />} />
+      </Route>
 
       {/* Fallback */}
       <Route path="*" element={<ProtectedRoute><RoleBasedRedirect /></ProtectedRoute>} />

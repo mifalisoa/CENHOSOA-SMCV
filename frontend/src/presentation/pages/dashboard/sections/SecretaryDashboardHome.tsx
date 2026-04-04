@@ -1,7 +1,8 @@
 // frontend/src/presentation/pages/dashboard/sections/SecretaryDashboardHome.tsx
 
 import { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion }      from 'framer-motion';
 import {
   Calendar, Clock, Users, CalendarDays,
   Plus, ArrowRight, CheckCircle2, XCircle,
@@ -31,22 +32,10 @@ interface RdvRecent {
   motif_rdv?:      string;
 }
 
-interface SecretaryDashboardHomeProps { onGoToPlanning: () => void; }
+// Plus besoin de prop — on utilise useNavigate directement
+export default function SecretaryDashboardHome() {
+  const navigate = useNavigate();
 
-const STATUT_LABEL: Record<string, string> = {
-  planifie: 'En attente', confirme: 'Confirmé',
-  termine: 'Terminé', annule: 'Annulé', absent: 'Absent',
-};
-
-const STATUT_COLOR: Record<string, string> = {
-  planifie: 'text-orange-600 bg-orange-50 border-orange-200',
-  confirme: 'text-cyan-600   bg-cyan-50   border-cyan-200',
-  termine:  'text-gray-600   bg-gray-50   border-gray-200',
-  annule:   'text-red-600    bg-red-50    border-red-200',
-  absent:   'text-yellow-600 bg-yellow-50 border-yellow-200',
-};
-
-export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDashboardHomeProps) {
   const [stats,     setStats]     = useState<Stats | null>(null);
   const [rdvDuJour, setRdvDuJour] = useState<RdvRecent[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -58,8 +47,8 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
     setLoading(true); setError(null);
     try {
       const [rdvRes, patientsRes] = await Promise.all([
-        httpClient.get('/rendez-vous',  { params: { date: today } }),
-        httpClient.get('/patients',     { params: { limit: 1000 } }),
+        httpClient.get('/rendez-vous', { params: { date: today } }),
+        httpClient.get('/patients',    { params: { limit: 1000 } }),
       ]);
       const rdvList      = rdvRes.data.data      ?? rdvRes.data      ?? [];
       const patientsList = patientsRes.data.data ?? [];
@@ -90,11 +79,44 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
   useEffect(() => { loadData(); }, [loadData]);
 
   const kpis = stats ? [
-    { icon: Calendar,     color: 'bg-cyan-500',   value: stats.rdvAujourdhui, label: "RDV Aujourd'hui", sub: `${stats.rdvConfirmes} confirmés` },
-    { icon: Clock,        color: 'bg-orange-500', value: stats.rdvEnAttente,  label: 'En attente',       sub: 'À confirmer'                     },
-    { icon: CalendarDays, color: 'bg-red-500',    value: stats.rdvAnnules,    label: 'Annulés',          sub: "Aujourd'hui"                     },
-    { icon: Users,        color: 'bg-blue-500',   value: stats.totalPatients, label: 'Patients',         sub: `${stats.patientsExternes} ext. · ${stats.patientsHospitalises} hosp.` },
+    {
+      icon: Calendar, color: 'bg-cyan-500',
+      value: stats.rdvAujourdhui, label: "RDV Aujourd'hui",
+      sub: `${stats.rdvConfirmes} confirmés`,
+      onClick: () => navigate('/secretary/planning'),
+    },
+    {
+      icon: Clock, color: 'bg-orange-500',
+      value: stats.rdvEnAttente, label: 'En attente',
+      sub: 'À confirmer',
+      onClick: () => navigate('/secretary/planning'),
+    },
+    {
+      icon: CalendarDays, color: 'bg-red-500',
+      value: stats.rdvAnnules, label: 'Annulés',
+      sub: "Aujourd'hui",
+      onClick: () => navigate('/secretary/planning'),
+    },
+    {
+      icon: Users, color: 'bg-blue-500',
+      value: stats.totalPatients, label: 'Patients',
+      sub: `${stats.patientsExternes} ext. · ${stats.patientsHospitalises} hosp.`,
+      onClick: () => navigate('/secretary/patients-externes'),
+    },
   ] : [];
+
+  const STATUT_LABEL: Record<string, string> = {
+    planifie: 'En attente', confirme: 'Confirmé',
+    termine: 'Terminé', annule: 'Annulé', absent: 'Absent',
+  };
+
+  const STATUT_COLOR: Record<string, string> = {
+    planifie: 'text-orange-600 bg-orange-50 border-orange-200',
+    confirme: 'text-cyan-600   bg-cyan-50   border-cyan-200',
+    termine:  'text-gray-600   bg-gray-50   border-gray-200',
+    annule:   'text-red-600    bg-red-50    border-red-200',
+    absent:   'text-yellow-600 bg-yellow-50 border-yellow-200',
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -117,7 +139,7 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
   return (
     <div className="space-y-4 sm:space-y-8">
 
-      {/* En-tête — empilé sur mobile */}
+      {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tableau de bord</h1>
@@ -133,25 +155,27 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Actualiser</span>
           </button>
-          <button onClick={onGoToPlanning}
+          <button onClick={() => navigate('/secretary/planning')}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-md shadow-cyan-100">
-            <Plus className="w-4 h-4" />
-            <span>Nouveau RDV</span>
+            <Plus className="w-4 h-4" /><span>Nouveau RDV</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards — 2 colonnes sur mobile, 4 sur desktop */}
+      {/* KPI Cards — cliquables */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {kpis.map((kpi, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-            <Card className="hover:shadow-lg transition-shadow border border-gray-100">
+            <Card
+              onClick={kpi.onClick}
+              className="hover:shadow-lg transition-all border border-gray-100 cursor-pointer hover:border-cyan-200 hover:-translate-y-0.5 active:scale-95"
+            >
               <CardContent className="p-3 sm:p-6">
                 <div className="flex items-start justify-between mb-2 sm:mb-4">
                   <div className={`w-9 h-9 sm:w-12 sm:h-12 ${kpi.color} rounded-xl flex items-center justify-center shadow-sm`}>
                     <kpi.icon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300" />
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-0.5 sm:mb-1">{kpi.value}</div>
                 <div className="text-xs sm:text-sm font-semibold text-gray-700 mb-0.5">{kpi.label}</div>
@@ -171,7 +195,7 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600" />
                 Rendez-vous du jour
               </CardTitle>
-              <button onClick={onGoToPlanning}
+              <button onClick={() => navigate('/secretary/planning')}
                 className="text-xs text-cyan-600 font-semibold hover:text-cyan-700 flex items-center gap-1">
                 Voir tout <ArrowRight className="w-3 h-3" />
               </button>
@@ -182,14 +206,15 @@ export default function SecretaryDashboardHome({ onGoToPlanning }: SecretaryDash
               <div className="text-center py-8 sm:py-10 text-gray-400">
                 <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-gray-200" />
                 <p className="text-sm font-medium">Aucun rendez-vous aujourd'hui</p>
-                <button onClick={onGoToPlanning} className="mt-3 text-xs text-cyan-600 font-semibold hover:underline">
+                <button onClick={() => navigate('/secretary/planning')}
+                  className="mt-3 text-xs text-cyan-600 font-semibold hover:underline">
                   Planifier un RDV →
                 </button>
               </div>
             ) : (
               <div className="space-y-2">
                 {rdvDuJour.map(rdv => (
-                  <div key={rdv.id_rdv} onClick={onGoToPlanning}
+                  <div key={rdv.id_rdv} onClick={() => navigate('/secretary/planning')}
                     className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-gray-100 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all cursor-pointer">
                     <div className="w-12 sm:w-14 text-center shrink-0">
                       <span className="text-xs sm:text-sm font-bold text-cyan-600">{rdv.heure_rdv}</span>
