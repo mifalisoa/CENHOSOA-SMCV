@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, Users, Bed, Calendar, Activity,
   Heart, Stethoscope, FileText, ClipboardList, BarChart3,
-  PieChart, ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, AlertCircle
+  PieChart, ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { httpClient } from '../../infrastructure/http/axios.config';
+import { httpClient }  from '../../infrastructure/http/axios.config';
 import {
   LineChart, Line, BarChart, Bar,
   PieChart as RechartsPie, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, Area, AreaChart
+  ResponsiveContainer, Area, AreaChart,
 } from 'recharts';
 import { toast } from 'sonner';
 import { exportStatsToPDF, exportStatsToExcel } from '../../infrastructure/utils/statsExport';
@@ -55,157 +55,137 @@ interface Stats {
 
 // ── Constantes visuelles ──────────────────────────────────────────────────────
 
-const CYAN    = '#08C5D1';
-const GREEN   = '#10B981';
-const AMBER   = '#F59E0B';
-const RED     = '#EF4444';
-const BLUE    = '#3B82F6';
+const CYAN       = '#08C5D1';
+const GREEN      = '#10B981';
+const AMBER      = '#F59E0B';
+const RED        = '#EF4444';
+const BLUE       = '#3B82F6';
 const PIE_COLORS = [CYAN, GREEN, AMBER, RED, BLUE];
+
+const tooltipStyle = {
+  contentStyle: {
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '12px',
+  },
+};
 
 // ── Composant ─────────────────────────────────────────────────────────────────
 
 export default function StatistiquesPage() {
   const navigate = useNavigate();
+
   const [stats,     setStats]     = useState<Stats | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [periode,   setPeriode]   = useState<'semaine' | 'mois' | 'trimestre' | 'annee'>('mois');
   const [exporting, setExporting] = useState(false);
 
-  // ✅ useCallback — satisfait exhaustive-deps
   const loadStats = useCallback(async () => {
     try {
-      setLoading(true);
-      setLoadError(null);
+      setLoading(true); setLoadError(null);
       const response = await httpClient.get(`/stats?periode=${periode}`);
       setStats(response.data.data);
-    } catch (error) {
-      console.error('❌ [Statistiques] Erreur:', error);
+    } catch {
       setLoadError('Impossible de charger les statistiques.');
       toast.error('Erreur lors du chargement des statistiques');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [periode]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
-
-  // ── Export ────────────────────────────────────────────────────────────────
 
   const handleExport = async (format: 'pdf' | 'excel') => {
     if (!stats) return;
     try {
       setExporting(true);
       const exportData = {
-        periode,
-        date_generation: new Date().toLocaleString('fr-FR'),
-        patients:     stats.patients,
-        lits:         stats.lits,
-        rendez_vous:  stats.rendez_vous,
-        admissions:   stats.admissions,
-        documents:    stats.documents,
+        periode, date_generation: new Date().toLocaleString('fr-FR'),
+        patients: stats.patients, lits: stats.lits,
+        rendez_vous: stats.rendez_vous, admissions: stats.admissions, documents: stats.documents,
       };
-      if (format === 'pdf') {
-        exportStatsToPDF(exportData);
-        toast.success('PDF généré');
-      } else {
-        exportStatsToExcel(exportData);
-        toast.success('Excel généré');
-      }
-    } catch {
-      toast.error(`Erreur lors de l'export ${format.toUpperCase()}`);
-    } finally {
-      setExporting(false);
-    }
+      if (format === 'pdf') { exportStatsToPDF(exportData); toast.success('PDF généré'); }
+      else                   { exportStatsToExcel(exportData); toast.success('Excel généré'); }
+    } catch { toast.error(`Erreur lors de l'export ${format.toUpperCase()}`); }
+    finally { setExporting(false); }
   };
 
-  // ── Tooltip commun ────────────────────────────────────────────────────────
+  // ── États loading / erreur ────────────────────────────────────────────────
 
-  const tooltipStyle = {
-    contentStyle: {
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      fontSize: '12px',
-    },
-  };
-
-  // ── États de chargement / erreur ──────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-14 w-14 border-4 border-cyan-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Chargement des statistiques...</p>
-        </div>
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-14 w-14 border-4 border-cyan-600 border-t-transparent mx-auto mb-4" />
+        <p className="text-gray-600 font-medium">Chargement des statistiques...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (loadError || !stats) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center bg-white rounded-xl border border-gray-200 shadow p-10 max-w-md">
-          <AlertCircle className="w-14 h-14 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Erreur de chargement</h3>
-          <p className="text-gray-500 text-sm mb-6">{loadError}</p>
-          <button onClick={loadStats}
-            className="px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 flex items-center gap-2 mx-auto">
-            <RefreshCw className="w-4 h-4" />Réessayer
-          </button>
-        </div>
+  if (loadError || !stats) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="text-center bg-white rounded-xl border border-gray-200 shadow p-8 max-w-md w-full">
+        <AlertCircle className="w-14 h-14 text-red-400 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Erreur de chargement</h3>
+        <p className="text-gray-500 text-sm mb-6">{loadError}</p>
+        <button onClick={loadStats}
+          className="px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 flex items-center gap-2 mx-auto">
+          <RefreshCw className="w-4 h-4" />Réessayer
+        </button>
       </div>
-    );
-  }
-
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── Header — cyan uniforme ── */}
+      {/* ── Header ── */}
       <div className="bg-cyan-600 text-white shadow-lg">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-4">
+        <div className="p-4 sm:p-6">
+
+          {/* Ligne 1 : retour + titre + actions */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <button onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 text-cyan-100 hover:text-white transition-colors">
+                className="flex items-center gap-1.5 text-cyan-100 hover:text-white shrink-0">
                 <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Retour</span>
+                <span className="font-medium hidden sm:inline">Retour</span>
               </button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <BarChart3 className="w-7 h-7 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg shrink-0">
+                  <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Statistiques & Analyses</h1>
-                  <p className="text-cyan-100 text-sm">Tableau de bord analytique — CENHOSOA</p>
+                <div className="min-w-0">
+                  <h1 className="text-base sm:text-2xl font-bold truncate">Statistiques & Analyses</h1>
+                  <p className="text-cyan-100 text-xs hidden sm:block">Tableau de bord analytique — CENHOSOA</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button onClick={loadStats} disabled={loading}
-                className="flex items-center gap-2 bg-white text-cyan-600 px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 transition-colors disabled:opacity-50 text-sm">
+            {/* Actions — icônes seules sur mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <button onClick={loadStats} disabled={loading} aria-label="Actualiser"
+                className="flex items-center gap-1.5 bg-white text-cyan-600 px-2 sm:px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 disabled:opacity-50 text-sm">
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Actualiser
+                <span className="hidden sm:inline">Actualiser</span>
               </button>
-              <button onClick={() => handleExport('pdf')} disabled={exporting}
-                className="flex items-center gap-2 bg-white text-cyan-600 px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 transition-colors disabled:opacity-50 text-sm">
-                <FileDown className="w-4 h-4" />PDF
+              <button onClick={() => handleExport('pdf')} disabled={exporting} aria-label="Exporter PDF"
+                className="flex items-center gap-1.5 bg-white text-cyan-600 px-2 sm:px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 disabled:opacity-50 text-sm">
+                <FileDown className="w-4 h-4" />
+                <span className="hidden sm:inline">PDF</span>
               </button>
-              <button onClick={() => handleExport('excel')} disabled={exporting}
-                className="flex items-center gap-2 bg-white text-cyan-600 px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 transition-colors disabled:opacity-50 text-sm">
-                <FileSpreadsheet className="w-4 h-4" />Excel
+              <button onClick={() => handleExport('excel')} disabled={exporting} aria-label="Exporter Excel"
+                className="flex items-center gap-1.5 bg-white text-cyan-600 px-2 sm:px-3 py-2 rounded-lg font-semibold hover:bg-cyan-50 disabled:opacity-50 text-sm">
+                <FileSpreadsheet className="w-4 h-4" />
+                <span className="hidden sm:inline">Excel</span>
               </button>
             </div>
           </div>
 
-          {/* Sélecteur période */}
-          <div className="flex gap-2">
+          {/* Sélecteur période — scrollable sur mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {(['semaine', 'mois', 'trimestre', 'annee'] as const).map(p => (
               <button key={p} onClick={() => setPeriode(p)}
-                className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-all capitalize ${
+                className={`px-3 sm:px-4 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
                   periode === p ? 'bg-white text-cyan-600' : 'bg-white/20 text-white hover:bg-white/30'
                 }`}>
                 {p === 'annee' ? 'Année' : p.charAt(0).toUpperCase() + p.slice(1)}
@@ -215,103 +195,98 @@ export default function StatistiquesPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
 
-        {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── KPI Cards — 2 colonnes sur mobile, 4 sur desktop ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
           {/* Patients */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-cyan-50 rounded-lg">
-                <Users className="w-6 h-6 text-cyan-600" />
+          <div className="bg-white rounded-xl p-3 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-cyan-50 rounded-lg">
+                <Users className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-600" />
               </div>
-              <div className={`flex items-center gap-1 text-sm font-semibold ${
+              <div className={`flex items-center gap-1 text-xs sm:text-sm font-semibold ${
                 stats.patients.evolution >= 0 ? 'text-green-600' : 'text-red-500'
               }`}>
-                {stats.patients.evolution >= 0
-                  ? <TrendingUp className="w-4 h-4" />
-                  : <TrendingDown className="w-4 h-4" />
-                }
+                {stats.patients.evolution >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                 {Math.abs(stats.patients.evolution)}%
               </div>
             </div>
-            <p className="text-gray-500 text-sm font-medium mb-1">Total Patients</p>
-            <p className="text-4xl font-bold text-gray-900 mb-2">{stats.patients.total}</p>
-            <div className="flex gap-3 text-xs">
+            <p className="text-gray-500 text-xs font-medium mb-0.5">Total Patients</p>
+            <p className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{stats.patients.total}</p>
+            <div className="flex gap-2 text-[10px] sm:text-xs">
               <span className="text-cyan-600 font-medium">{stats.patients.hospitalises} hosp.</span>
               <span className="text-gray-400">{stats.patients.externes} ext.</span>
             </div>
           </div>
 
           {/* Lits */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-cyan-50 rounded-lg">
-                <Bed className="w-6 h-6 text-cyan-600" />
+          <div className="bg-white rounded-xl p-3 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-cyan-50 rounded-lg">
+                <Bed className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-600" />
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 font-medium">Occupation</p>
-                <p className={`text-xl font-bold ${
+                <p className="text-[10px] text-gray-400 font-medium">Occupation</p>
+                <p className={`text-base sm:text-xl font-bold ${
                   stats.lits.taux_occupation > 80 ? 'text-red-500'
                     : stats.lits.taux_occupation > 60 ? 'text-amber-500'
                     : 'text-cyan-600'
                 }`}>{stats.lits.taux_occupation}%</p>
               </div>
             </div>
-            <p className="text-gray-500 text-sm font-medium mb-1">Gestion des Lits</p>
-            <p className="text-4xl font-bold text-gray-900 mb-2">{stats.lits.occupes}/{stats.lits.total}</p>
-            <span className="text-xs text-green-600 font-medium">{stats.lits.libres} disponibles</span>
+            <p className="text-gray-500 text-xs font-medium mb-0.5">Lits</p>
+            <p className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{stats.lits.occupes}/{stats.lits.total}</p>
+            <span className="text-[10px] sm:text-xs text-green-600 font-medium">{stats.lits.libres} disponibles</span>
           </div>
 
           {/* RDV */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-cyan-50 rounded-lg">
-                <Calendar className="w-6 h-6 text-cyan-600" />
+          <div className="bg-white rounded-xl p-3 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-cyan-50 rounded-lg">
+                <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-600" />
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 font-medium">Cette semaine</p>
-                <p className="text-xl font-bold text-cyan-600">{stats.rendez_vous.semaine}</p>
+                <p className="text-[10px] text-gray-400 font-medium">Semaine</p>
+                <p className="text-base sm:text-xl font-bold text-cyan-600">{stats.rendez_vous.semaine}</p>
               </div>
             </div>
-            <p className="text-gray-500 text-sm font-medium mb-1">Rendez-vous</p>
-            <p className="text-4xl font-bold text-gray-900 mb-2">{stats.rendez_vous.total_mois}</p>
-            <span className="text-xs text-cyan-600 font-medium">{stats.rendez_vous.aujourdhui} aujourd'hui</span>
+            <p className="text-gray-500 text-xs font-medium mb-0.5">Rendez-vous</p>
+            <p className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{stats.rendez_vous.total_mois}</p>
+            <span className="text-[10px] sm:text-xs text-cyan-600 font-medium">{stats.rendez_vous.aujourdhui} auj.</span>
           </div>
 
           {/* Admissions */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 bg-cyan-50 rounded-lg">
-                <Activity className="w-6 h-6 text-cyan-600" />
+          <div className="bg-white rounded-xl p-3 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-cyan-50 rounded-lg">
+                <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-600" />
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 font-medium">Durée moy.</p>
-                <p className="text-xl font-bold text-cyan-600">{stats.admissions.duree_moyenne}j</p>
+                <p className="text-[10px] text-gray-400 font-medium">Durée moy.</p>
+                <p className="text-base sm:text-xl font-bold text-cyan-600">{stats.admissions.duree_moyenne}j</p>
               </div>
             </div>
-            <p className="text-gray-500 text-sm font-medium mb-1">Admissions</p>
-            <p className="text-4xl font-bold text-gray-900 mb-2">{stats.admissions.en_cours}</p>
-            <span className="text-xs text-gray-400 font-medium">{stats.admissions.terminees} terminées</span>
+            <p className="text-gray-500 text-xs font-medium mb-0.5">Admissions</p>
+            <p className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{stats.admissions.en_cours}</p>
+            <span className="text-[10px] sm:text-xs text-gray-400 font-medium">{stats.admissions.terminees} terminées</span>
           </div>
         </div>
 
-        {/* ── Graphiques courbes ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Graphiques — hauteur réduite sur mobile ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
           {/* Évolution patients */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Évolution des Patients (30j)</h3>
-              <TrendingUp className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Évolution Patients (30j)</h3>
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
             {stats.patients.historique.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-                Pas encore de données sur cette période
-              </div>
+              <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Pas de données</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={stats.patients.historique}>
                   <defs>
                     <linearGradient id="gradPatients" x1="0" y1="0" x2="0" y2="1">
@@ -320,53 +295,53 @@ export default function StatistiquesPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#d1d5db" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="#d1d5db" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="#d1d5db" width={30} />
                   <Tooltip {...tooltipStyle} />
                   <Area type="monotone" dataKey="total" stroke={CYAN} strokeWidth={2}
                     fillOpacity={1} fill="url(#gradPatients)" name="Total" />
                   <Line type="monotone" dataKey="nouveaux" stroke={GREEN} strokeWidth={2}
-                    dot={{ r: 3 }} name="Nouveaux" />
+                    dot={{ r: 2 }} name="Nouveaux" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </div>
 
           {/* Taux occupation lits */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Taux d'Occupation Lits (30j)</h3>
-              <Bed className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Occupation Lits (30j)</h3>
+              <Bed className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={200}>
               <LineChart data={stats.lits.historique}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#d1d5db" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#d1d5db" domain={[0, 100]} />
-                <Tooltip {...tooltipStyle} formatter={(v) => typeof v === "number" ? `${v}%` : v} />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                <YAxis tick={{ fontSize: 10 }} stroke="#d1d5db" domain={[0, 100]} width={30} />
+                <Tooltip {...tooltipStyle} formatter={(v) => typeof v === 'number' ? `${v}%` : v} />
                 <Line type="monotone" dataKey="taux" stroke={CYAN} strokeWidth={2.5}
-                  dot={{ r: 3, fill: CYAN }} activeDot={{ r: 5 }} name="Taux %" />
+                  dot={{ r: 2, fill: CYAN }} activeDot={{ r: 4 }} name="Taux %" />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* ── Pie + Bar ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Pie + Bar RDV ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
           {/* Pie — types RDV */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Répartition Types de RDV</h3>
-              <PieChart className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Types de RDV</h3>
+              <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
             {stats.rendez_vous.par_type.length === 0 ? (
-              <div className="flex items-center justify-center h-56 text-gray-400 text-sm">Aucun rendez-vous</div>
+              <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Aucun rendez-vous</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={220}>
                 <RechartsPie>
                   <Pie data={stats.rendez_vous.par_type} cx="50%" cy="50%"
-                    outerRadius={95} dataKey="count" nameKey="type"
+                    outerRadius={80} dataKey="count" nameKey="type"
                     label={(e) => `${e.name}: ${((e.percent || 0) * 100).toFixed(0)}%`}
                     labelLine={false}>
                     {stats.rendez_vous.par_type.map((_, i) => (
@@ -380,19 +355,19 @@ export default function StatistiquesPage() {
           </div>
 
           {/* Bar — RDV par statut */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Rendez-vous par Statut</h3>
-              <Calendar className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">RDV par Statut</h3>
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
             {stats.rendez_vous.par_statut.length === 0 ? (
-              <div className="flex items-center justify-center h-56 text-gray-400 text-sm">Aucun rendez-vous</div>
+              <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Aucun rendez-vous</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={stats.rendez_vous.par_statut} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} stroke="#d1d5db" />
-                  <YAxis dataKey="statut" type="category" tick={{ fontSize: 11 }} stroke="#d1d5db" width={80} />
+                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                  <YAxis dataKey="statut" type="category" tick={{ fontSize: 10 }} stroke="#d1d5db" width={70} />
                   <Tooltip {...tooltipStyle} />
                   <Bar dataKey="count" fill={CYAN} radius={[0, 6, 6, 0]} name="Nombre" />
                 </BarChart>
@@ -401,22 +376,22 @@ export default function StatistiquesPage() {
           </div>
         </div>
 
-        {/* ── Bar lits + historique admissions ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Bar lits + admissions ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
           {/* Bar — lits par catégorie */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Occupation Lits par Catégorie</h3>
-              <BarChart3 className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Lits par Catégorie</h3>
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stats.lits.par_categorie}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="categorie" tick={{ fontSize: 11 }} stroke="#d1d5db" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#d1d5db" />
+                <XAxis dataKey="categorie" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                <YAxis tick={{ fontSize: 10 }} stroke="#d1d5db" width={30} />
                 <Tooltip {...tooltipStyle} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Bar dataKey="occupes" fill={CYAN}    name="Occupés"    radius={[6, 6, 0, 0]} />
                 <Bar dataKey="libres"  fill="#E5E7EB" name="Disponibles" radius={[6, 6, 0, 0]} />
               </BarChart>
@@ -424,15 +399,15 @@ export default function StatistiquesPage() {
           </div>
 
           {/* Area — admissions */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Admissions (30j)</h3>
-              <Activity className="w-5 h-5 text-cyan-600" />
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Admissions (30j)</h3>
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
             </div>
             {stats.admissions.historique.length === 0 ? (
-              <div className="flex items-center justify-center h-56 text-gray-400 text-sm">Pas encore de données</div>
+              <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Pas de données</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={stats.admissions.historique}>
                   <defs>
                     <linearGradient id="gradAdm" x1="0" y1="0" x2="0" y2="1">
@@ -441,8 +416,8 @@ export default function StatistiquesPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#d1d5db" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="#d1d5db" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#d1d5db" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="#d1d5db" width={30} />
                   <Tooltip {...tooltipStyle} />
                   <Area type="monotone" dataKey="count" stroke={GREEN} strokeWidth={2}
                     fillOpacity={1} fill="url(#gradAdm)" name="Admissions" />
@@ -453,29 +428,29 @@ export default function StatistiquesPage() {
         </div>
 
         {/* ── Documents médicaux ── */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-base font-bold text-gray-900">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900">
               Documents Médicaux
               <span className="ml-2 px-2 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-semibold rounded-full">
-                {stats.documents.total} total
+                {stats.documents.total}
               </span>
             </h3>
-            <FileText className="w-5 h-5 text-cyan-600" />
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 shrink-0" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {[
-              { icon: ClipboardList, label: 'Observations',    value: stats.documents.observations     },
-              { icon: Activity,      label: 'Bilans',          value: stats.documents.bilans            },
-              { icon: Stethoscope,   label: 'Soins médicaux',  value: stats.documents.soins_medicaux   },
-              { icon: Heart,         label: 'Soins infirmiers', value: stats.documents.soins_infirmiers },
-              { icon: FileText,      label: 'Traitements',     value: stats.documents.traitements       },
-              { icon: FileSpreadsheet, label: 'Comptes rendus', value: stats.documents.comptes_rendus  },
+              { icon: ClipboardList,   label: 'Observations',     value: stats.documents.observations     },
+              { icon: Activity,        label: 'Bilans',           value: stats.documents.bilans            },
+              { icon: Stethoscope,     label: 'S. Médicaux',      value: stats.documents.soins_medicaux   },
+              { icon: Heart,           label: 'S. Infirmiers',    value: stats.documents.soins_infirmiers },
+              { icon: FileText,        label: 'Traitements',      value: stats.documents.traitements       },
+              { icon: FileSpreadsheet, label: 'Comptes rendus',   value: stats.documents.comptes_rendus   },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
-                <Icon className="w-6 h-6 text-cyan-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900 mb-0.5">{value}</p>
-                <p className="text-xs text-gray-500">{label}</p>
+              <div key={label} className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center border border-gray-100">
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 mx-auto mb-1.5" />
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 mb-0.5">{value}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 leading-tight">{label}</p>
               </div>
             ))}
           </div>
