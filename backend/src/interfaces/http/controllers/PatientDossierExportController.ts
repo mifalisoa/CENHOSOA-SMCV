@@ -11,7 +11,7 @@ import { PostgresDocumentPatientRepository } from '../../../infrastructure/datab
 import { ObservationPDFService } from '../../../application/services/ObservationPDFService';
 import { BilanBiologiquePDFService } from '../../../application/services/BilanBiologiquePDFService';
 import { SoinMedicalPDFService } from '../../../application/services/SoinMedicalPDFService';
-import { SoinInfirmierPDFService } from '../../../application/services/SoininfirmierPDFservice';
+import { SoinInfirmierPDFService } from '../../../application/services/SoinInfirmierPDFService';
 import { TraitementPDFService } from '../../../application/services/TraitementPDFService';
 import { pool } from '../../../config/database';
 import archiver from 'archiver';

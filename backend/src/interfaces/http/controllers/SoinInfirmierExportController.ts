@@ -1,7 +1,7 @@
 // backend/src/interfaces/http/controllers/SoinInfirmierExportController.ts
 
 import { Request, Response, NextFunction } from 'express';
-import { SoinInfirmierPDFService } from '../../../application/services/SoininfirmierPDFservice';
+import { SoinInfirmierPDFService } from '../../../application/services/SoinInfirmierPDFService';
 import { PostgresSoinInfirmierRepository } from '../../../infrastructure/database/postgres/repositories/PostgresSoinInfirmierRepository';
 import { PostgresPatientRepository } from '../../../infrastructure/database/postgres/repositories/PostgresPatientRepository';
 import { pool } from '../../../config/database';
