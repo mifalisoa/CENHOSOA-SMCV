@@ -4,6 +4,7 @@ import { httpClient }     from '../../../../../infrastructure/http/axios.config'
 import type { CreatePatientDTO } from '../../../../../core/entities/Patient';
 import { AddPatientHospitaliseModal } from '../../../../components/patients/AddPatientHospitaliseModal';
 import { useDossierPath } from '../../../../hooks/useDossierPath';
+import { PatientCardSkeletonList } from '../../../../components/common/PatientCardSkeleton';
 import { 
   Search, Building2, MapPin, Phone, 
   User, ChevronRight, Plus, Filter, 
@@ -11,15 +12,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
 interface LitInfo {
   id_patient:  number;
   numero_lit:  string;
   service_lit: string;
 }
-
-// ── Composant ─────────────────────────────────────────────────────────────────
 
 export default function PatientsHospitalises() {
   const { navigateToDossier } = useDossierPath();
@@ -33,7 +30,6 @@ export default function PatientsHospitalises() {
   const ITEMS_PER_PAGE = 5;
   const { patients, loading, refetch } = usePatients('hospitalise');
 
-  // Charger les lits au montage pour obtenir les infos de localisation
   useEffect(() => {
     httpClient.get('/lits').then(res => {
       const lits: Array<{
@@ -53,7 +49,7 @@ export default function PatientsHospitalises() {
         }
       });
       setLitsMap(map);
-    }).catch(() => {/* silencieux — pas bloquant */});
+    }).catch(() => {});
   }, []);
 
   const handleCreatePatient = async (data: CreatePatientDTO & { id_lit?: number }) => {
@@ -125,12 +121,6 @@ export default function PatientsHospitalises() {
     return pages;
   };
 
-  if (loading && patients.length === 0) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-10 h-10 border-4 border-cyan-100 border-t-cyan-500 rounded-full animate-spin" />
-    </div>
-  );
-
   return (
     <div className="w-full flex flex-col gap-3 sm:gap-4 pb-4 px-0 sm:px-4" style={{ height: 'calc(100vh - 100px)' }}>
 
@@ -178,7 +168,9 @@ export default function PatientsHospitalises() {
 
       {/* Liste patients */}
       <div className="flex-1 overflow-y-auto min-h-0 space-y-2 sm:space-y-3 pr-0.5">
-        {currentPatients.length === 0 ? (
+        {loading && patients.length === 0 ? (
+          <PatientCardSkeletonList count={5} />
+        ) : currentPatients.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <User size={40} className="mb-3 opacity-30" />
             <p className="font-bold text-sm">Aucun patient trouvé</p>
@@ -193,7 +185,6 @@ export default function PatientsHospitalises() {
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500 opacity-0 group-hover:opacity-100 transition-all" />
 
-                {/* Infos patient */}
                 <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                   <div className="shrink-0 w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center font-black text-lg sm:text-2xl border border-cyan-100 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
                     {p.nom_patient[0]}
@@ -223,16 +214,13 @@ export default function PatientsHospitalises() {
                   </div>
                 </div>
 
-                {/* Localisation + Admission */}
                 <div className="flex items-center justify-between lg:justify-end gap-4 sm:gap-10 border-t lg:border-t-0 pt-3 lg:pt-0">
                   <div className="flex flex-col text-left">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Localisation</p>
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5">
                         <Building2 size={12} className="text-cyan-500" />
-                        <span className="text-xs font-bold text-slate-700">
-                          {litInfo?.service_lit ?? '—'}
-                        </span>
+                        <span className="text-xs font-bold text-slate-700">{litInfo?.service_lit ?? '—'}</span>
                       </div>
                       {litInfo?.numero_lit ? (
                         <span className="text-[10px] font-black text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-lg border border-cyan-100 w-fit">

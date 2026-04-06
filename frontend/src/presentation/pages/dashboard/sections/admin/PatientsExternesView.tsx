@@ -9,6 +9,7 @@ import { AddPatientExterneModal } from '../../../../components/patients/AddPatie
 import { Button } from '../../../../components/common/Button';
 import type { CreatePatientDTO } from '../../../../../core/entities/Patient';
 import { useDossierPath } from '../../../../hooks/useDossierPath';
+import { PatientCardSkeletonList } from '../../../../components/common/PatientCardSkeleton';
 
 export default function PatientsExternesView() {
   const { navigateToDossier } = useDossierPath();
@@ -129,10 +130,8 @@ export default function PatientsExternesView() {
 
       {/* Liste */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-cyan-100 border-t-cyan-500 rounded-full animate-spin" />
-        </div>
-      ) : (
+  <PatientCardSkeletonList count={5} />
+) : (
         <div className="grid grid-cols-1 gap-3 sm:gap-4">
           {currentPatients.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
