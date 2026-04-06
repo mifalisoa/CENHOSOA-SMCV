@@ -233,7 +233,11 @@ export default function LoginPage() {
       else            localStorage.removeItem(REMEMBER_KEY);
       toast.success('Connexion réussie !');
       if (premier_connexion) navigate('/changer-mot-de-passe');
-      else                   navigate('/');
+      else {
+  const redirectTo = sessionStorage.getItem('redirectAfterLogin') || '/';
+  sessionStorage.removeItem('redirectAfterLogin');
+  navigate(redirectTo, { replace: true });
+}
     } catch (error: unknown) {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);

@@ -33,6 +33,7 @@ export function DoctorLayout({ userRole, sidebarRole }: DoctorLayoutProps) {
 
   // ✅ Timeout de session — deconnexion apres 3 minutes d'inactivite
   const handleTimeout = useCallback(async () => {
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
     toast.error('Session expiree. Veuillez vous reconnecter.');
     await logout();
     navigate('/login', { replace: true });

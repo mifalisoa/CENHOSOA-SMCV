@@ -23,6 +23,7 @@ export function SecretaryLayout() {
   const { showLogoutModal, requestLogout, cancelLogout, confirmLogout, userName, userRole } = useLogout();
 
   const handleTimeout = useCallback(async () => {
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
     toast.error('Session expirée. Veuillez vous reconnecter.');
     await logout();
     navigate('/login', { replace: true });
