@@ -54,6 +54,7 @@ export default function TransfererLitModal({
     try {
       setLoadingLits(true);
       const response = await httpClient.get('/lits');
+      console.log('Premier lit:', JSON.stringify(response.data[0]));
       // Filtrer uniquement les lits disponibles ET différents du lit actuel
       const lits = response.data.filter(
         (lit: LitDisponible & { statut: string }) => 
@@ -101,6 +102,11 @@ export default function TransfererLitModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔍 Données envoyées:', {
+    ancien_lit: litActuel.id_lit,
+    nouveau_lit: parseInt(nouveauLit),
+    nouveauLit_raw: nouveauLit,
+  });
 
     if (!nouveauLit) {
       setError('Veuillez sélectionner un nouveau lit');

@@ -5,7 +5,6 @@ import patientRoutes from './patient.routes';
 import rendezVousRoutes from './rendez-vous.routes';
 import admissionRoutes from './admission.routes';
 import litRoutes from './lit.routes';
-import litTransferRoutes from './litTransfer.Routes';
 import prescriptionRoutes from './prescription.routes';
 import observationRoutes from './observation.routes';
 import observationExportRoutes from './observationExport.Routes'; 
@@ -51,7 +50,7 @@ router.use('/patients', patientTransferRoutes);
 router.use('/patients', patientDossierExportRoutes)
 router.use('/rendez-vous', rendezVousRoutes);
 router.use('/admissions', admissionRoutes);
-router.use('/lits', litRoutes);
+
 router.use('/prescriptions', prescriptionRoutes);
 
 router.use('/observations', observationExportRoutes); 
@@ -73,7 +72,7 @@ router.use('/soins-infirmiers', soinInfirmierExportRoutes);
 router.use('/traitements', traitementExportRoutes);
 
 router.use('/lits', litRoutes);
-router.use('/patients', litTransferRoutes);
+
 
 router.use('/securite', securiteRoutes);
 

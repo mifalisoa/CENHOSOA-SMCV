@@ -33,7 +33,9 @@ export class LitTransferService {
       if (admissionCheck.rows.length === 0) throw new Error('Aucune admission active trouvée pour ce patient');
       const admission = admissionCheck.rows[0];
 
-      if (admission.id_lit !== data.ancien_lit) throw new Error(`Le patient n'est pas dans le lit ${data.ancien_lit}`);
+      if (Number(admission.id_lit) !== Number(data.ancien_lit)) {
+        throw new Error(`Le patient n'est pas dans le lit ${data.ancien_lit}`);
+      }
 
       const nouveauLitCheck = await client.query('SELECT * FROM lit WHERE id_lit = $1', [data.nouveau_lit]);
       if (nouveauLitCheck.rows.length === 0) throw new Error("Le nouveau lit n'existe pas");
@@ -41,9 +43,8 @@ export class LitTransferService {
       if (nouveauLit.statut_lit !== 'disponible') throw new Error(`Le lit ${nouveauLit.numero_lit} n'est pas disponible`);
 
       await client.query(`UPDATE lit SET statut_lit = 'disponible' WHERE id_lit = $1`, [data.ancien_lit]);
-      await client.query(`UPDATE lit SET statut_lit = 'occupe' WHERE id_lit = $1`,     [data.nouveau_lit]);
+      await client.query(`UPDATE lit SET statut_lit = 'occupe' WHERE id_lit = $1`, [data.nouveau_lit]);
 
-      // Construire la note de transfert en JS avant de l'envoyer à PostgreSQL
       const dateTransfert = data.date_transfert || new Date().toISOString().split('T')[0];
       const noteTransfert = `\n[Transfert le ${dateTransfert}] Lit ${data.ancien_lit} → Lit ${data.nouveau_lit}. Motif: ${data.motif_transfert}`;
 
@@ -55,7 +56,9 @@ export class LitTransferService {
         [data.nouveau_lit, noteTransfert, admission.id_admission]
       );
 
+      // SAVEPOINT pour que l'échec de l'historique n'annule pas la transaction
       try {
+        await client.query('SAVEPOINT historique');
         await client.query(
           `INSERT INTO historique_transferts_lits
            (id_patient, id_admission, ancien_lit, nouveau_lit, motif, date_transfert, effectue_par)
@@ -64,7 +67,8 @@ export class LitTransferService {
            data.motif_transfert, data.date_transfert || new Date().toISOString(), 1]
         );
       } catch {
-        console.log('Table historique_transferts_lits non trouvée');
+        await client.query('ROLLBACK TO SAVEPOINT historique');
+        console.log('Table historique_transferts_lits non trouvée — transfert continué');
       }
 
       await client.query('COMMIT');
@@ -72,6 +76,7 @@ export class LitTransferService {
 
     } catch (error) {
       await client.query('ROLLBACK');
+      console.error('❌ ROLLBACK transfert lit:', error);
       throw error;
     } finally {
       client.release();

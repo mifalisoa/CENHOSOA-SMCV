@@ -43,6 +43,7 @@ interface LitActuel {
   id_lit:     number;
   numero_lit: string;
   categorie:  string;
+  id_admission?: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -139,14 +140,18 @@ export default function PatientDossierPage() {
     return () => { cancelled = true; };
   }, [id, getPatientById]);
 
-  const loadLitActuel = async (patientId: number) => {
-    try {
-      const response = await httpClient.get('/lits');
-      const lits: Array<{ id_lit: number; numero_lit: string; categorie: string; statut: string; patient_actuel?: { id_patient: number } }> = response.data;
-      const lit = lits.find(l => l.statut === 'occupe' && l.patient_actuel?.id_patient === patientId);
-      if (lit) setLitActuel({ id_lit: lit.id_lit, numero_lit: lit.numero_lit, categorie: lit.categorie });
-    } catch { /* silencieux */ }
-  };
+ const loadLitActuel = async (patientId: number) => {
+  try {
+    const [litsRes, admissionRes] = await Promise.all([
+      httpClient.get('/lits'),
+      httpClient.get(`/patients/${patientId}/admission-active`),
+    ]);
+    const lits: Array<{ id_lit: number; numero_lit: string; categorie: string; statut: string; patient_actuel?: { id_patient: number } }> = litsRes.data;
+    const lit = lits.find(l => l.statut === 'occupe' && l.patient_actuel?.id_patient === patientId);
+    const idAdmission = admissionRes.data?.data?.id_admission;
+    if (lit) setLitActuel({ id_lit: lit.id_lit, numero_lit: lit.numero_lit, categorie: lit.categorie, id_admission: idAdmission });
+  } catch { /* silencieux */ }
+};
 
   const handleTransferSuccess = async () => {
     if (!id) return;
@@ -358,7 +363,9 @@ export default function PatientDossierPage() {
           onSuccess={handleTransferSuccess} />
       )}
       {showRendreExterneModal && (
-        <RendreExterneModal patient={patient}
+        <RendreExterneModal
+          patient={patient}
+          id_admission={litActuel?.id_admission ?? 0}
           onClose={() => setShowRendreExterneModal(false)}
           onSuccess={handleTransferSuccess} />
       )}

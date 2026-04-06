@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 interface RendreExterneModalProps {
   patient: Patient;
+  id_admission: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -32,7 +33,7 @@ const Spinner = () => (
   <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
 );
 
-export default function RendreExterneModal({ patient, onClose, onSuccess }: RendreExterneModalProps) {
+export default function RendreExterneModal({ patient, id_admission,onClose, onSuccess }: RendreExterneModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +64,7 @@ export default function RendreExterneModal({ patient, onClose, onSuccess }: Rend
 
     try {
       const response = await httpClient.post(`/patients/${patient.id_patient}/rendre-externe`, {
+        id_admission: id_admission,
         motif_sortie: formData.motif_sortie,
         date_sortie: formData.date_sortie,
       });
