@@ -4,11 +4,13 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateObservationDTO } from '../../../../core/entities/Observation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, FileText, Stethoscope, Calendar, Clock, User, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, FileText, Stethoscope, Calendar, Clock, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
 import AddObservationModal from './AddObservationModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
+
 
 interface ObservationsTabProps {
   patient: Patient;
@@ -195,10 +197,7 @@ export default function ObservationsTab({ patient }: ObservationsTabProps) {
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {obs.heure_observation}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-gray-400" />
-                          {obs.medecin}
-                        </span>
+                        
                       </div>
                     </div>
 
@@ -238,6 +237,11 @@ export default function ObservationsTab({ patient }: ObservationsTabProps) {
                       </div>
                     )}
                   </div>
+                  <SignatureBadge
+  nom={obs.medecin}
+  date={String(obs.date_observation)}
+  heure={obs.heure_observation}
+/>
 
                   {/* ── Détails complets (accordion) ── */}
                   {isExpanded && (

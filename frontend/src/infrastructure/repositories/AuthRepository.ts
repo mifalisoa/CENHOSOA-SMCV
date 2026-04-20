@@ -51,8 +51,11 @@ export class AuthRepository implements IAuthRepository {
       console.error('🔴 [AuthRepository] Erreur dans le bloc catch:', error);
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { data?: { error?: string } } };
-        throw new Error(axiosError.response?.data?.error || 'Erreur de connexion');
+        const axiosError = error as { response?: { data?: { message?: string; error?: string } } };
+        throw new Error(
+           axiosError.response?.data?.message || 
+           axiosError.response?.data?.error ||  
+           'Email ou mot de passe incorrect' );
       }
       throw new Error(error instanceof Error ? error.message : 'Erreur inconnue');
     }

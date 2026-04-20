@@ -4,9 +4,10 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateSoinInfirmierDTO } from '../../../../core/entities/SoinInfirmier';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Syringe, Calendar, Clock, User, CheckCircle, Activity, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Syringe, Calendar, Clock, CheckCircle, Activity, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
 import AddSoinInfirmierModal from './AddSoinInfirmierModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
 
@@ -232,10 +233,7 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {soin.heure_soin}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-gray-400" />
-                          {soin.realise_par}
-                        </span>
+                        
                       </div>
                     </div>
 
@@ -298,6 +296,13 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                       ))}
                     </div>
                   )}
+                  <SignatureBadge
+  nom={soin.realise_par}
+  date={String(soin.date_soin)}
+  heure={soin.heure_soin}
+  verifie={soin.verifie}
+  role="infirmier"
+/>
                 </div>
 
                 {/* ── Détails (accordion) ── */}

@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { Patient } from '../../../core/entities/Patient';
 import {
   Phone, FileText, ChevronLeft, Stethoscope, Beaker,
-  Heart, Syringe, Pill, FileCheck, Shield, FileArchive, Bed,
+  Heart, Syringe, Pill, FileCheck, Shield, FileArchive, Bed, UserPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -258,6 +258,25 @@ export default function PatientDossierPage() {
               <span className="hidden sm:flex items-center gap-1">
                 <Shield className="w-3 h-3 opacity-70" />{patient.assurance || 'Aucune'}
               </span>
+
+              {/* Badge créateur — AJOUTER ICI */}
+{patient.createur_nom && (
+  <>
+    <span className="opacity-60 hidden sm:inline">•</span>
+    <span className="hidden sm:flex items-center gap-1.5 bg-white/15 border border-white/20 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+      <UserPlus className="w-3 h-3 opacity-80" />
+      <span className="opacity-70">Enregistré par</span>
+      <span className="font-bold">
+        {patient.createur_role === 'medecin' ? 'Dr. ' : ''}
+        {patient.createur_prenom} {patient.createur_nom}
+      </span>
+      <span className="opacity-60">•</span>
+      <span className="opacity-70">
+        {new Date(patient.date_enregistrement).toLocaleDateString('fr-FR')}
+      </span>
+    </span>
+  </>
+)}
             </div>
           </div>
 

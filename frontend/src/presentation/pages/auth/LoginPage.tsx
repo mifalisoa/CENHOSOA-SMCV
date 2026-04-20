@@ -165,6 +165,7 @@ export default function LoginPage() {
   const [attempts,    setAttempts]    = useState(() => parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0'));
   const [lockedUntil, setLockedUntil] = useState(() => parseInt(localStorage.getItem(LOCKOUT_KEY)  || '0'));
   const [countdown,   setCountdown]   = useState(0);
+  const [loginError,  setLoginError]  = useState<string | null>(null);
 
   useEffect(() => {
     if (lockedUntil <= Date.now()) return;
@@ -238,20 +239,28 @@ export default function LoginPage() {
   sessionStorage.removeItem('redirectAfterLogin');
   navigate(redirectTo, { replace: true });
 }
-    } catch (error: unknown) {
+    } catch (_error: unknown) {  
+  console.log('Erreur login reçue:', _error);
       const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      localStorage.setItem(ATTEMPTS_KEY, String(newAttempts));
-      if (newAttempts >= MAX_ATTEMPTS) {
-        const lockUntil = Date.now() + LOCKOUT_MS;
-        setLockedUntil(lockUntil);
-        localStorage.setItem(LOCKOUT_KEY, String(lockUntil));
-        toast.error('Compte bloqué 5 minutes après 5 tentatives.');
-      } else {
-        const left = MAX_ATTEMPTS - newAttempts;
-        toast.error(`${error instanceof Error ? error.message : 'Identifiants incorrects'} — ${left} tentative${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''}`);
-      }
-    } finally {
+  setAttempts(newAttempts);
+  localStorage.setItem(ATTEMPTS_KEY, String(newAttempts));
+
+  const message = newAttempts >= MAX_ATTEMPTS
+    ? 'Compte bloqué 5 minutes après 5 tentatives.'
+    : 'Email ou mot de passe incorrect.';
+
+  setLoginError(message);
+
+  if (newAttempts >= MAX_ATTEMPTS) {
+    const lockUntil = Date.now() + LOCKOUT_MS;
+    setLockedUntil(lockUntil);
+    localStorage.setItem(LOCKOUT_KEY, String(lockUntil));
+    toast.error(message);
+  } else {
+    const left = MAX_ATTEMPTS - newAttempts;
+    toast.error(`${message} — ${left} tentative${left > 1 ? 's' : ''} restante${left > 1 ? 's' : ''}`);
+  }
+} finally {
       setSubmitting(false);
     }
   };
@@ -271,7 +280,7 @@ export default function LoginPage() {
               <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full translate-x-40 translate-y-40" />
               <div className="relative z-10 flex flex-col items-center gap-4 px-8">
                 <motion.img src="/logo.png" alt="CENHOSOA"
-                  className="w-48 h-48 md:w-72 md:h-72 object-contain drop-shadow-xl"
+                  className="w-60 h-60 md:w-80 md:h-80 object-contain drop-shadow-xl"
                   initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
                 />
@@ -357,7 +366,7 @@ export default function LoginPage() {
                     <div className="relative">
                       <Lock className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${errors.password && touched.password ? 'text-red-400' : 'text-cyan-500'}`} />
                       <Input id="password" type={showPwd ? 'text' : 'password'} placeholder="Votre mot de passe"
-                        value={password} onChange={(e) => setPassword(e.target.value)}
+                        value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(null); }}
                         onBlur={() => setTouched(p => ({ ...p, password: true }))}
                         autoComplete="current-password" disabled={isLocked}
                         className={`pl-10 pr-10 py-2.5 w-full border-2 rounded-xl text-sm transition-all ${
@@ -431,6 +440,21 @@ export default function LoginPage() {
                       Mot de passe oublié ?
                     </button>
                   </div>
+
+                  <AnimatePresence>
+            {loginError && !isLocked && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2"
+                role="alert"
+              >
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                <p className="text-xs text-red-700 font-medium">{loginError}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
                   <button type="submit" disabled={submitting || isLocked}
                     className={`w-full py-3 rounded-xl font-bold text-sm transition-all transform active:scale-[0.98] ${

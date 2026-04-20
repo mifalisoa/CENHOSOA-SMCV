@@ -18,7 +18,8 @@ export function PatientCardSkeleton() {
           </div>
           {/* Infos secondaires */}
           <div className="flex gap-3">
-            <div className="h-3 bg-slate-100 rounded w-16" />
+            <div className="h-3 bg-slate
+            -100 rounded w-16" />
             <div className="h-3 bg-slate-100 rounded w-24" />
             <div className="h-3 bg-slate-100 rounded w-20" />
           </div>

@@ -14,6 +14,10 @@ export interface Patient {
   date_enregistrement:  Date | string;
   medecin_traitant:     string;
   id_medecin_traitant?: number | null;
+  id_createur?:      number | null;
+  createur_nom?:     string | null;
+  createur_prenom?:  string | null;
+  createur_role?:    string | null;
   lit?:                 string;
 }
 

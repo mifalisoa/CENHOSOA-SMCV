@@ -1,4 +1,4 @@
-// frontend/src/core/entities/Patient.ts  &  backend/src/domain/entities/Patient.ts
+//  backend/src/domain/entities/Patient.ts
 
 export interface Patient {
   id_patient:          number;
@@ -16,7 +16,11 @@ export interface Patient {
   statut_patient:      'externe' | 'hospitalise' | 'sorti'; // sans accent
   date_enregistrement: Date;
   medecin_traitant:    string;
-  id_medecin_traitant?: number | null;                       // ← nouveau
+  id_medecin_traitant?: number | null; 
+  id_createur?:      number | null;
+  createur_nom?:     string | null;
+  createur_prenom?:  string | null;
+  createur_role?:    string | null;                      // ← nouveau
   prochain_rdv?:       Date | string;
   lit?:                string;
 }

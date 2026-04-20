@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 
-const TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+const TIMEOUT_MS = 5 * 60 * 1000; // 5   minutes
 
 const ACTIVITY_EVENTS: string[] = [
   'mousemove', 'mousedown', 'keydown',

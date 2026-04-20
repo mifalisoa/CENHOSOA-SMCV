@@ -21,7 +21,7 @@ export class PatientController {
         assurance: req.query.assurance as string | undefined,
         search:    req.query.search    as string | undefined,
       };
-      if (req.user?.role === 'medecin') filters.id_medecin_traitant = req.user.id_user;
+      // ✅ Tous les rôles voient tous les patients
       const result = await patientRepository.findAll({ page, limit }, filters);
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -40,12 +40,12 @@ export class PatientController {
     try {
       const data = { ...req.body };
       if (req.user?.role === 'medecin') data.id_medecin_traitant = req.user.id_user;
+      data.id_createur = req.user?.id_user ?? null;
 
       const patient = await patientRepository.create(data);
       const role    = req.user?.role ?? '';
       const lien    = getDossierLien(role, patient.id_patient);
 
-      // ✅ Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Nouveau patient enregistré',
         message:  `${patient.nom_patient} ${patient.prenom_patient} a été enregistré par ${req.user?.prenom} ${req.user?.nom}`,
@@ -74,7 +74,6 @@ export class PatientController {
       await patientRepository.delete(id);
 
       if (patient) {
-        // ✅ Notifier admins ET secrétaires
         notificationService.notifyAdminsAndSecretaires({
           titre:    'Patient supprimé',
           message:  `Le dossier de ${patient.nom_patient} ${patient.prenom_patient} a été supprimé par ${req.user?.prenom} ${req.user?.nom}`,
@@ -91,13 +90,7 @@ export class PatientController {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      if (req.user?.role === 'medecin') {
-        const result = await patientRepository.findAll(
-          { page, limit },
-          { statut: 'externe', id_medecin_traitant: req.user.id_user }
-        );
-        return res.json({ success: true, data: result.data, pagination: result.pagination });
-      }
+      // ✅ Tous les rôles voient tous les patients externes
       const result = await patientRepository.findByStatus('externe', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -107,13 +100,7 @@ export class PatientController {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      if (req.user?.role === 'medecin') {
-        const result = await patientRepository.findAll(
-          { page, limit },
-          { statut: 'hospitalise', id_medecin_traitant: req.user.id_user }
-        );
-        return res.json({ success: true, data: result.data, pagination: result.pagination });
-      }
+      // ✅ Tous les rôles voient tous les patients hospitalisés
       const result = await patientRepository.findByStatus('hospitalise', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -123,10 +110,8 @@ export class PatientController {
     try {
       const query = req.query.q as string;
       if (!query) return res.status(400).json({ success: false, message: 'Paramètre de recherche requis' });
-      let patients = await patientRepository.search(query);
-      if (req.user?.role === 'medecin') {
-        patients = patients.filter(p => p.id_medecin_traitant === req.user!.id_user);
-      }
+      // ✅ Tous les rôles voient tous les résultats de recherche
+      const patients = await patientRepository.search(query);
       res.json({ success: true, data: patients });
     } catch (error) { next(error); }
   }

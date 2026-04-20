@@ -4,9 +4,10 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateOrdonnanceDTO } from '../../../../core/entities/Traitement';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Pill, Calendar, Clock, User, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Pill, Calendar, Clock, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
 import AddTraitementModal from './AddTraitementModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
 
@@ -217,12 +218,7 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {groupe.heure}
                         </span>
-                        {groupe.prescripteur && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-3.5 h-3.5 text-gray-400" />
-                            {groupe.prescripteur}
-                          </span>
-                        )}
+                        
                       </div>
                     </div>
 
@@ -259,6 +255,14 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                       <p className="text-sm text-gray-800">{groupe.diagnostic}</p>
                     </div>
                   )}
+                  {groupe.prescripteur && (
+  <SignatureBadge
+    nom={groupe.prescripteur}
+    date={String(groupe.date)}
+    heure={groupe.heure}
+    role="medecin"
+  />
+)}
 
                   {/* Aperçu médicaments quand réduit — pills */}
                   {!isExpanded && (

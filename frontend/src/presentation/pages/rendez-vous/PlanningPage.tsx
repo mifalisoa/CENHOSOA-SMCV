@@ -13,7 +13,6 @@ import { httpClient }     from '../../../infrastructure/http/axios.config';
 import NouveauRdvModal    from '../../components/rendez-vous/NouveauRdvModal';
 import type { RendezVous } from '../../../core/entities/RendezVous';
 import { toast }          from 'sonner';
-import { useAuth }        from '../../hooks/useAuth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -483,7 +482,7 @@ function MobileListView({ rdvFiltres, docteurs, onSelectRdv, openModal, loadingR
 
 export default function PlanningPage() {
   const navigate  = useNavigate();
-  const { user }  = useAuth();
+  
   const isMobile  = useIsMobile();
   const { rendezVous, loading: loadingRdv, fetchByDate } = useRendezVous();
 
@@ -519,25 +518,24 @@ export default function PlanningPage() {
       const response = await httpClient.get('/utilisateurs', { params: { role: 'medecin', statut: 'actif' } });
       const raw: Array<{ id_utilisateur?: number; id_user?: number; nom: string; prenom: string; specialite?: string }> =
         response.data.data ?? response.data ?? [];
-      let mapped = Array.isArray(raw) ? raw.map(u => ({
+      const mapped = Array.isArray(raw) ? raw.map(u => ({
         id_user: u.id_utilisateur ?? u.id_user ?? 0,
         nom: u.nom, prenom: u.prenom, specialite: u.specialite ?? 'Médecin',
       })) : [];
-      if (user?.role === 'medecin') mapped = mapped.filter(d => d.id_user === user.id_user);
+      
       setDocteurs(mapped);
     } catch {
       setErrorDocteurs('Impossible de charger les médecins.');
       setDocteurs([]);
     } finally { setLoadingDocteurs(false); }
-  }, [user]);
+  }, []);
 
   useEffect(() => { loadDocteurs(); }, [loadDocteurs]);
 
   useEffect(() => {
     const dateStr  = selectedDate.toISOString().split('T')[0];
-    const docteurId = user?.role === 'medecin' ? user.id_user : (selectedDocteur ?? undefined);
-    fetchByDate(dateStr, docteurId);
-  }, [selectedDate, selectedDocteur, fetchByDate, user]);
+    fetchByDate(dateStr, selectedDocteur ?? undefined);
+  }, [selectedDate, selectedDocteur, fetchByDate, ]);
 
   const goToPrev = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; });
   const goToNext = () => setSelectedDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; });
@@ -634,13 +632,13 @@ export default function PlanningPage() {
         {/* Filtres mobile */}
         <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2 overflow-x-auto">
           {/* Sélecteur médecin */}
-          {user?.role !== 'medecin' && (
-            <select value={selectedDocteur ?? ''} aria-label="Filtrer par médecin" onChange={e => setSelectedDocteur(e.target.value ? Number(e.target.value) : null)}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-cyan-400 shrink-0 bg-white">
-              <option value="">Tous les médecins</option>
-              {docteurs.map(d => <option key={d.id_user} value={d.id_user}>Dr. {d.prenom} {d.nom}</option>)}
-            </select>
-          )}
+          
+           <select value={selectedDocteur ?? ''} aria-label="Filtrer par médecin" onChange={e => setSelectedDocteur(e.target.value ? Number(e.target.value) : null)}
+             className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-cyan-400 shrink-0 bg-white">
+             <option value="">Tous les médecins</option>
+             {docteurs.map(d => <option key={d.id_user} value={d.id_user}>Dr. {d.prenom} {d.nom}</option>)}
+           </select>
+          
           {/* Filtre statut */}
           <select value={filterStatut} aria-label="Filtrer par statut" onChange={e => setFilterStatut(e.target.value as FilterStatut)}
             className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-cyan-400 shrink-0 bg-white">
@@ -828,17 +826,17 @@ export default function PlanningPage() {
             )}
             {!loadingDocteurs && !errorDocteurs && (
               <>
-                {user?.role !== 'medecin' && (
-                  <button onClick={() => setSelectedDocteur(null)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 border ${selectedDocteur === null ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">ALL</div>
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm">Tous les médecins</p>
-                      <p className="text-xs text-gray-500">Vue d'ensemble</p>
-                    </div>
-                    <span className="text-sm font-bold text-gray-500 shrink-0">{docteurs.length}</span>
-                  </button>
-                )}
+                
+                <button onClick={() => setSelectedDocteur(null)}
+  className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 border ${selectedDocteur === null ? 'bg-cyan-50 border-cyan-300' : 'bg-white hover:bg-gray-50 border-gray-200'}`}>
+  <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0">ALL</div>
+  <div className="flex-1 text-left min-w-0">
+    <p className="font-semibold text-gray-800 text-sm">Tous les médecins</p>
+    <p className="text-xs text-gray-500">Vue d'ensemble</p>
+  </div>
+  <span className="text-sm font-bold text-gray-500 shrink-0">{docteurs.length}</span>
+</button>
+                
                 {docteurs.map(doc => {
                   const count = getRdvCount(doc.id_user);
                   return (

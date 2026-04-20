@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Calendar, CheckCircle2, TrendingUp, ArrowRight, Skull, MapPin, Plus, User } from 'lucide-react';
+import { FileText, Calendar, CheckCircle2, TrendingUp, ArrowRight, Skull, MapPin, Plus } from 'lucide-react';
 import { useComptesRendus } from '../../../hooks/useComptesRendus';
 import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateCompteRenduDTO } from '../../../../core/entities/CompteRendu';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import AddCompteRenduModal from './AddCompteRenduModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 
 interface ComptesRendusTabProps {
   patient: Patient;
@@ -178,16 +179,15 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                       </div>
                     </div>
 
-                    {/* Médecin */}
-                    <div className="shrink-0">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        Médecin responsable
-                      </p>
-                      <p className="text-sm font-semibold text-gray-900">Dr. {cr.medecin}</p>
-                    </div>
+                    
+                    
                   </div>
                 </div>
+                <SignatureBadge
+  nom={`Dr. ${cr.medecin}`}
+  date={String(cr.date_sortie)}
+  role="medecin"
+/>
 
                 {/* ── Corps ── */}
                 <div className="p-5 sm:p-6 space-y-4">

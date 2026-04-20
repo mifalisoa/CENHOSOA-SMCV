@@ -4,9 +4,10 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateBilanBiologiqueDTO } from '../../../../core/entities/BilanBiologique';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Beaker, Calendar, Clock, User, Building2, Download, FileArchive, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Beaker, Calendar, Clock, Building2, Download, FileArchive, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import AddBilanBiologiqueModal from './AddBilanBiologiqueModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
 
@@ -325,12 +326,8 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {bilan.heure_prelevement}
                         </span>
-                        {bilan.prescripteur && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-3.5 h-3.5 text-gray-400" />
-                            Dr. {bilan.prescripteur}
-                          </span>
-                        )}
+                        
+                      
                       </div>
                     </div>
 
@@ -372,6 +369,14 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                       {bilan.nfs        && <ResultCard valKey="nfs"        value={bilan.nfs}        />}
                     </div>
                   )}
+                  {bilan.prescripteur && (
+  <SignatureBadge
+    nom={`Dr. ${bilan.prescripteur}`}
+    date={String(bilan.date_prelevement)}
+    heure={bilan.heure_prelevement}
+    role="medecin"
+  />
+)}
                 </div>
 
                 {/* Détails (accordion) */}

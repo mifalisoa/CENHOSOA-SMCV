@@ -15,8 +15,8 @@ export class PostgresPatientRepository implements IPatientRepository {
       `INSERT INTO patients (
         num_dossier, nom_patient, prenom_patient, date_naissance, sexe_patient,
         adresse_patient, tel_patient, assurance, statut_patient, medecin_traitant,
-        id_medecin_traitant, lit
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        id_medecin_traitant, lit, id_createur
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
         numDossier,
         data.nom_patient,
@@ -29,7 +29,7 @@ export class PostgresPatientRepository implements IPatientRepository {
         data.statut_patient       || 'externe',
         data.medecin_traitant,
         (data as any).id_medecin_traitant ?? null,
-        data.lit                  || null,
+        data.lit                  || null, (data as any).id_createur ?? null,
       ]
     );
     console.log('✅ [Repository] Patient créé avec succès');
@@ -37,8 +37,16 @@ export class PostgresPatientRepository implements IPatientRepository {
   }
 
   async findById(id: number): Promise<Patient | null> {
-    const result = await this.pool.query('SELECT * FROM patients WHERE id_patient = $1', [id]);
-    return result.rows[0] || null;
+    const result = await this.pool.query(`
+  SELECT p.*,
+    u.nom    AS createur_nom,
+    u.prenom AS createur_prenom,
+    u.role   AS createur_role
+  FROM patients p
+  LEFT JOIN utilisateurs u ON u.id_user = p.id_createur
+  WHERE p.id_patient = $1
+`, [id]);
+return result.rows[0] || null;
   }
 
   async findByNumDossier(numDossier: string): Promise<Patient | null> {

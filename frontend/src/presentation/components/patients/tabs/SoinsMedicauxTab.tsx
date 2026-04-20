@@ -4,9 +4,10 @@ import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateSoinMedicalDTO } from '../../../../core/entities/SoinMedical';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Heart, Calendar, Clock, User, CheckCircle, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Heart, Calendar, Clock, CheckCircle, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
 import AddSoinMedicalModal from './AddSoinMedicalModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
+import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
 
@@ -206,10 +207,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {soin.heure_soin}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3.5 h-3.5 text-gray-400" />
-                          {soin.realise_par}
-                        </span>
+                        
                       </div>
                     </div>
 
@@ -270,6 +268,14 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                       {soin.autre && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-medium rounded-full">Autre</span>}
                     </div>
                   )}
+                  {/* ✅ Signature */}
+<SignatureBadge
+  nom={soin.realise_par}
+  date={String(soin.date_soin)}
+  heure={soin.heure_soin}
+  verifie={soin.verifie}
+  role="medecin"
+/>
                 </div>
 
                 {/* ── Détails (accordion) ── */}
