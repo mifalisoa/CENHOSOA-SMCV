@@ -31,7 +31,7 @@ export class TraitementPDFService {
          .text('ANTANANARIVO', leftColX, startY + 24, { width: 210, align: 'center' });
     }
 
-    const titre = traitement.type_document === 'ordonnance' ? 'ORDONNANCE MÉDICALE' : 'TRAITEMENT';
+    const titre = traitement.type_document === 'ordonnance' ? 'ORDONNANCE MEDICALE' : 'TRAITEMENT';
     doc.fontSize(16).font('Helvetica-Bold')
        .text(titre, rightColX, startY + 10, { underline: true });
 
@@ -41,7 +41,7 @@ export class TraitementPDFService {
        .text(`NOM : ${patient.nom_patient.toUpperCase()}`, rightColX, patientY)
        .text(`PRENOMS : ${patient.prenom_patient}`, rightColX, patientY + 18)
        .text(`AGE : ${age} ans`, rightColX, patientY + 36)
-       .text(`GENRE : ${patient.sexe_patient === 'M' ? 'Masculin' : 'Féminin'}`, rightColX + 130, patientY + 36);
+       .text(`GENRE : ${patient.sexe_patient === 'M' ? 'Masculin' : 'Feminin'}`, rightColX + 130, patientY + 36);
 
     const prescY = patientY + 60;
     const datePresc = new Date(traitement.date_prescription);
@@ -70,7 +70,7 @@ export class TraitementPDFService {
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000')
        .text('PRESCRIPTION', 50, doc.y, { width: 495, underline: true });
     doc.moveDown(0.8);
-    doc.fontSize(20).font('Helvetica-Bold').text('℞', 50, doc.y);
+    doc.fontSize(20).font('Helvetica-Bold').text('Rp/', 50, doc.y);
     doc.moveDown(0.5);
     doc.fontSize(12).font('Helvetica-Bold')
        .text(`${traitement.medicament} - ${traitement.dosage}`, 50, doc.y, { width: 495 });
@@ -78,9 +78,9 @@ export class TraitementPDFService {
     doc.fontSize(10).font('Helvetica')
        .text(`Voie d'administration : ${traitement.voie_administration}`, 70, doc.y)
        .moveDown(0.5)
-       .text(`Fréquence : ${traitement.frequence}`, 70, doc.y)
+       .text(`Frequence : ${traitement.frequence}`, 70, doc.y)
        .moveDown(0.5)
-       .text(`Durée du traitement : ${traitement.duree}`, 70, doc.y);
+       .text(`Duree du traitement : ${traitement.duree}`, 70, doc.y);
     doc.moveDown(1.5);
   }
 
@@ -96,7 +96,7 @@ export class TraitementPDFService {
   private addObservations(doc: PDFKit.PDFDocument, observations: string) {
     if (doc.y > 700) doc.addPage();
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#d97706')
-       .text('OBSERVATIONS SPÉCIALES', 50, doc.y, { width: 495, underline: true });
+       .text('OBSERVATIONS SPECIALES', 50, doc.y, { width: 495, underline: true });
     doc.moveDown(0.5);
     doc.fontSize(10).font('Helvetica').fillColor('#000000')
        .text(observations, 50, doc.y, { width: 495, align: 'justify' });
@@ -104,19 +104,39 @@ export class TraitementPDFService {
   }
 
   private addSignature(doc: PDFKit.PDFDocument, traitement: Traitement) {
-    doc.moveDown(3);
+    if (doc.y > 680) doc.addPage();
+
     const date = new Date(traitement.date_prescription);
-    doc.fontSize(10).font('Helvetica-Oblique').fillColor('#000000')
-       .text(`Fait à ${traitement.lieu_prescription || 'Antananarivo'}, le ${date.toLocaleDateString('fr-FR')}`, 50, doc.y, { width: 495, align: 'right' });
-    doc.moveDown(0.5);
+    const signY = doc.y + 20;
+
+    doc.moveTo(50, signY).lineTo(545, signY).lineWidth(0.5).strokeColor('#e2e8f0').stroke();
+
+    const boxX = 330;
+    const boxY = signY + 15;
+    const boxW = 215;
+
+    doc.roundedRect(boxX, boxY, boxW, 75, 6)
+       .fillColor('#f8fafc').fill()
+       .roundedRect(boxX, boxY, boxW, 75, 6)
+       .strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+    doc.fontSize(8).font('Helvetica').fillColor('#64748b')
+       .text(`Fait a ${traitement.lieu_prescription || 'Antananarivo'}, le ${date.toLocaleDateString('fr-FR')}`, boxX + 10, boxY + 10, { width: boxW - 20, align: 'center' });
+
     if (traitement.prescripteur) {
-      doc.font('Helvetica-Bold')
-         .text(traitement.prescripteur.toUpperCase(), 50, doc.y, { width: 495, align: 'right' });
-      doc.fontSize(9).font('Helvetica')
-         .text('Médecin prescripteur', 50, doc.y + 15, { width: 495, align: 'right' });
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a')
+         .text(traitement.prescripteur.toUpperCase(), boxX + 10, boxY + 28, { width: boxW - 20, align: 'center' });
     }
-    doc.moveDown(2);
-    doc.fontSize(8).font('Helvetica-Oblique').fillColor('#666666')
-       .text('Cachet et signature', 50, doc.y, { width: 495, align: 'right' });
+
+    doc.fontSize(8).font('Helvetica').fillColor('#64748b')
+       .text('Medecin prescripteur', boxX + 10, boxY + 43, { width: boxW - 20, align: 'center' });
+
+    doc.roundedRect(boxX + 30, boxY + 57, boxW - 60, 14, 3)
+       .fillColor('#dcfce7').fill();
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#15803d')
+       .text('Document verifie et valide', boxX + 10, boxY + 60, { width: boxW - 20, align: 'center' });
+
+    doc.fillColor('#000000');
+    doc.y = boxY + 95;
   }
 }

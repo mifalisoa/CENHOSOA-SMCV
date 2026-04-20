@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Calendar, CheckCircle2, TrendingUp, ArrowRight, Skull, MapPin, Plus } from 'lucide-react';
+import { FileText, Calendar, CheckCircle2, TrendingUp, ArrowRight, Skull, MapPin, Plus, Download } from 'lucide-react';
 import { useComptesRendus } from '../../../hooks/useComptesRendus';
 import type { Patient } from '../../../../core/entities/Patient';
 import type { CreateCompteRenduDTO } from '../../../../core/entities/CompteRendu';
@@ -8,6 +8,8 @@ import { fr } from 'date-fns/locale';
 import AddCompteRenduModal from './AddCompteRenduModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
 import { SignatureBadge } from '../../common/SignatureBadge';
+import { toast } from 'sonner';
+import { httpClient } from '../../../../infrastructure/http/axios.config';
 
 interface ComptesRendusTabProps {
   patient: Patient;
@@ -16,16 +18,32 @@ interface ComptesRendusTabProps {
 export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
   const { comptesRendus, loading, error, createCompteRendu } = useComptesRendus(patient.id_patient);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [downloading,  setDownloading]  = useState<number | null>(null);
 
   const handleCreateCompteRendu = async (data: CreateCompteRenduDTO) => {
     await createCompteRendu(data);
     setShowAddModal(false);
   };
 
-  // ✅ 3 couleurs — badge modalite de sortie :
-  // vert  = guéri (positif)
-  // gris  = amélioré, transféré, décès (neutre/informatif)
-  // rouge = non utilisé ici volontairement (pas de valeur critique à signaler)
+  const handleDownloadPDF = async (crId: number) => {
+    setDownloading(crId);
+    try {
+      const response = await httpClient.get(`/comptes-rendus/${crId}/pdf`, { responseType: 'blob' });
+      const url  = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `compte_rendu_${crId}_${patient.nom_patient}.pdf`);
+      document.body.appendChild(link); link.click(); link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('PDF téléchargé avec succès !');
+    } catch (err) {
+      console.error('Erreur téléchargement PDF:', err);
+      toast.error('Erreur lors du téléchargement du PDF');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const getModaliteBadge = (modalite: string) => {
     const badges = {
       gueri: {
@@ -68,8 +86,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
     );
   }
 
-  // ── Patient non hospitalisé ───────────────────────────────────────────────────
-
   if (patient.statut_patient !== 'hospitalise') {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-10 text-center">
@@ -100,7 +116,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
           </p>
         </div>
 
-        {/* ✅ Nouveau compte rendu — uniquement si permission write */}
         <PermissionGuard permission="compte-rendu.write">
           <button
             onClick={() => setShowAddModal(true)}
@@ -129,7 +144,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
           </div>
           <h4 className="text-sm font-semibold text-gray-700 mb-1">Aucun compte rendu d'hospitalisation</h4>
           <p className="text-xs text-gray-500 mb-5">Le compte rendu de fin d'hospitalisation apparaîtra ici.</p>
-          {/* ✅ Créer le premier — uniquement si permission write */}
           <PermissionGuard permission="compte-rendu.write">
             <button
               onClick={() => setShowAddModal(true)}
@@ -159,7 +173,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600">
                           Hospitalisation
                         </span>
-                        {/* ✅ Badge modalite — vert si guéri, gris sinon */}
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 ${badge.bg} ${badge.text} ${badge.border}`}>
                           <BadgeIcon className="w-3 h-3" />
                           {badge.label}
@@ -179,20 +192,32 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                       </div>
                     </div>
 
-                    
-                    
+                    {/* Bouton PDF */}
+                    <button
+                      onClick={() => handleDownloadPDF(cr.id_compte_rendu)}
+                      disabled={downloading === cr.id_compte_rendu}
+                      title="Télécharger en PDF"
+                      className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50 shrink-0"
+                    >
+                      {downloading === cr.id_compte_rendu
+                        ? <span className="inline-block w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                        : <Download className="w-3.5 h-3.5" />
+                      }
+                      <span className="hidden sm:inline">PDF</span>
+                    </button>
                   </div>
+
+                  {/* Signature */}
+                  <SignatureBadge
+                    nom={`Dr. ${cr.medecin}`}
+                    date={String(cr.date_sortie)}
+                    role="medecin"
+                  />
                 </div>
-                <SignatureBadge
-  nom={`Dr. ${cr.medecin}`}
-  date={String(cr.date_sortie)}
-  role="medecin"
-/>
 
                 {/* ── Corps ── */}
                 <div className="p-5 sm:p-6 space-y-4">
 
-                  {/* Résumé observation */}
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Résumé de l'observation</p>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -200,7 +225,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                     </div>
                   </div>
 
-                  {/* ✅ Diagnostic de sortie — vert (information positive critique) */}
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -211,7 +235,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                     </div>
                   </div>
 
-                  {/* Traitement de sortie — gris neutre */}
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Traitement de sortie</p>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -219,7 +242,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                     </div>
                   </div>
 
-                  {/* Lieu de transfert — gris, uniquement si présent */}
                   {cr.lieu_transfert && (
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -233,7 +255,6 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                     </div>
                   )}
 
-                  {/* Prochain RDV — gris, uniquement si présent */}
                   {cr.prochain_rdv && (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1">

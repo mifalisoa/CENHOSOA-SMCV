@@ -10,6 +10,8 @@ import { AppError } from '../../../shared/errors/AppError';
 import { notificationService } from '../../../application/services/NotificationService';
 import { notifyMedecinTraitant, getDossierLien, getDossierLienMedecin } from '../../../shared/utils/notificationHelpers';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { CompteRenduPDFService } from '../../../application/services/CompteRenduPDFService';
+import { pool } from '../../../config/database';
 
 export class CompteRenduController {
   constructor(private compteRenduRepository: ICompteRenduRepository) {}
@@ -31,13 +33,13 @@ export class CompteRenduController {
 
       notificationService.notifyAdmins({
         titre:   "Nouveau compte rendu d'hospitalisation",
-        message: `Compte rendu rédigé par ${auteur} pour le patient #${validatedData.id_patient}`,
+        message: `Compte rendu rédige par ${auteur} pour le patient #${validatedData.id_patient}`,
         type: 'info', priorite: 'normale', lien: lienAuteur,
       }).catch(console.error);
 
       notifyMedecinTraitant(validatedData.id_patient, role, {
         titre:   'Nouveau compte rendu sur votre patient',
-        message: `${auteur} a rédigé un compte rendu d'hospitalisation pour le patient #${validatedData.id_patient}`,
+        message: `${auteur} a redige un compte rendu d'hospitalisation pour le patient #${validatedData.id_patient}`,
         type: 'info', priorite: 'normale', lien: lienMedecin,
       }).catch(console.error);
 
@@ -123,6 +125,41 @@ export class CompteRenduController {
       if (error instanceof NotFoundError) { res.status(404).json({ success: false, message: error.message }); return; }
       console.error('Erreur suppression compte rendu:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
+    }
+  };
+
+  // ── PDF ───────────────────────────────────────────────────────────────────────
+
+  getPDF = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID compte rendu invalide' }); return; }
+
+      const compteRendu = await this.compteRenduRepository.findById(id);
+      if (!compteRendu) { res.status(404).json({ success: false, message: 'Compte rendu non trouvé' }); return; }
+
+      const patientResult = await pool.query(
+        'SELECT * FROM patients WHERE id_patient = $1',
+        [compteRendu.id_patient]
+      );
+      if (patientResult.rows.length === 0) {
+        res.status(404).json({ success: false, message: 'Patient non trouvé' });
+        return;
+      }
+      const patient = patientResult.rows[0];
+
+      const pdfService = new CompteRenduPDFService();
+      const doc = pdfService.generatePDF(compteRendu, patient);
+
+      const filename = `compte_rendu_${id}_${patient.nom_patient}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+      doc.pipe(res);
+      doc.end();
+    } catch (error) {
+      console.error('Erreur génération PDF compte rendu:', error);
+      res.status(500).json({ success: false, message: 'Erreur lors de la génération du PDF' });
     }
   };
 }

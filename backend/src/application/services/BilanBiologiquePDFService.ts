@@ -108,14 +108,42 @@ export class BilanBiologiquePDFService {
   }
 
   private addSignature(doc: PDFKit.PDFDocument, bilan: BilanBiologique) {
-    doc.moveDown(2);
+    if (doc.y > 680) doc.addPage();
+
     const date = new Date(bilan.date_prelevement);
-    doc.fontSize(10).font('Helvetica-Oblique')
-       .text(`Fait à Antananarivo, le ${date.toLocaleDateString('fr-FR')}`, 50, doc.y, { width: 495, align: 'right' });
+    const signY = doc.y + 20;
+
+    // Ligne de séparation
+    doc.moveTo(50, signY).lineTo(545, signY).lineWidth(0.5).strokeColor('#e2e8f0').stroke();
+
+    // Bloc signature — aligné à droite
+    const boxX = 330;
+    const boxY = signY + 15;
+    const boxW = 215;
+
+    // Fond du bloc
+    doc.roundedRect(boxX, boxY, boxW, 70, 6)
+       .fillColor('#f8fafc').fill()
+       .roundedRect(boxX, boxY, boxW, 70, 6)
+       .strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+    // Texte date
+    doc.fontSize(8).font('Helvetica').fillColor('#64748b')
+       .text(`Fait à Antananarivo, le ${date.toLocaleDateString('fr-FR')}`, boxX + 10, boxY + 10, { width: boxW - 20, align: 'center' });
+
+    // Nom prescripteur
     if (bilan.prescripteur) {
-      doc.moveDown(0.5);
-      doc.font('Helvetica-Bold')
-         .text(`Dr ${bilan.prescripteur.toUpperCase()}`, 50, doc.y, { width: 495, align: 'right' });
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a')
+         .text(`Dr. ${bilan.prescripteur.toUpperCase()}`, boxX + 10, boxY + 28, { width: boxW - 20, align: 'center' });
     }
+
+    // Badge "Document vérifié"
+    doc.roundedRect(boxX + 30, boxY + 48, boxW - 60, 14, 3)
+       .fillColor('#dcfce7').fill();
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#15803d')
+       .text('Document verifie et valide', boxX + 10, boxY + 51, { width: boxW - 20, align: 'center' });
+
+    doc.fillColor('#000000');
+    doc.y = boxY + 90;
   }
 }
