@@ -1,35 +1,102 @@
 import { useState } from 'react';
 import { useSoinsMedicaux } from '../../../hooks/useSoinsMedicaux';
+import { useAuth } from '../../../hooks/useAuth';
 import type { Patient } from '../../../../core/entities/Patient';
-import type { CreateSoinMedicalDTO } from '../../../../core/entities/SoinMedical';
+import type { SoinMedical, CreateSoinMedicalDTO } from '../../../../core/entities/SoinMedical';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Heart, Calendar, Clock, CheckCircle, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
-import AddSoinMedicalModal from './AddSoinMedicalModal';
-import { PermissionGuard } from '../../common/PermissionGuard';
-import { SignatureBadge } from '../../common/SignatureBadge';
-import { toast } from 'sonner';
-import { httpClient } from "../../../../infrastructure/http/axios.config";
+import {
+  Plus, Heart, Calendar, Clock, CheckCircle, FileText,
+  Download, FileArchive, ChevronDown, ChevronUp, Pencil,
+  Clock3, XCircle, ShieldCheck,
+} from 'lucide-react';
+import AddSoinMedicalModal    from './AddSoinMedicalModal';
+import EditSoinMedicalModal   from './EditSoinMedicalModal';
+import { PermissionGuard }    from '../../common/PermissionGuard';
+import { SignatureBadge }     from '../../common/SignatureBadge';
+import { toast }              from 'sonner';
+import { httpClient }         from '../../../../infrastructure/http/axios.config';
 
 interface SoinsMedicauxTabProps {
   patient: Patient;
 }
 
+function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
+  statut:          'en_attente' | 'valide' | 'rejete';
+  valideurNom?:    string;
+  valideurPrenom?: string;
+  modeGarde?:      boolean;
+}) {
+  if (statut === 'valide') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+        <CheckCircle className="w-3 h-3" />
+        {modeGarde ? 'Validé (garde)' : valideurNom
+          ? `Validé — Dr. ${valideurPrenom} ${valideurNom}`
+          : 'Validé'}
+      </span>
+    );
+  }
+  if (statut === 'rejete') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+        <XCircle className="w-3 h-3" />Rejeté
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+      <Clock3 className="w-3 h-3" />En attente de validation
+    </span>
+  );
+}
+
+function borderColor(statut: string) {
+  if (statut === 'valide')  return 'border-l-green-500';
+  if (statut === 'rejete')  return 'border-l-red-400';
+  return 'border-l-amber-400';
+}
+
 export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
-  const { soins, loading, error, createSoin, verifySoin } = useSoinsMedicaux(patient.id_patient);
+  const { soins, loading, error, createSoin, updateSoin, refreshSoins } = useSoinsMedicaux(patient.id_patient);
+  const { user } = useAuth();
+  const isMedecin = user?.role === 'medecin';
+
   const [showAddModal,   setShowAddModal]   = useState(false);
+  const [editingSoin,    setEditingSoin]    = useState<SoinMedical | null>(null);
   const [downloading,    setDownloading]    = useState<number | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
-  // IHM — accordion pour les détails ETT/ETO/autre
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId,     setExpandedId]     = useState<number | null>(null);
+  const [validating,     setValidating]     = useState<number | null>(null);
 
   const handleCreateSoin = async (data: CreateSoinMedicalDTO) => {
     await createSoin(data);
     setShowAddModal(false);
   };
 
-  const handleVerify = async (id: number) => {
-    await verifySoin(id);
+  const handleUpdateSoin = async (id: number, data: Partial<CreateSoinMedicalDTO>) => {
+    const ok = await updateSoin(id, data);
+    if (ok) {
+      toast.success('Soin modifié avec succès !');
+      setEditingSoin(null);
+    } else {
+      throw new Error('Erreur lors de la modification');
+    }
+  };
+
+  // ── Validation par le médecin ─────────────────────────────────────────────
+  const handleValider = async (soin: SoinMedical, statut: 'valide' | 'rejete') => {
+    setValidating(soin.id_soin_medical);
+    try {
+      await httpClient.patch(`/soins-medicaux/${soin.id_soin_medical}/valider`, { statut });
+      toast.success(statut === 'valide' ? 'Soin validé ✓' : 'Soin rejeté');
+      await refreshSoins();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la validation';
+      toast.error(message);
+    } finally {
+      setValidating(null);
+    }
   };
 
   const handleDownloadPDF = async (soinId: number) => {
@@ -43,8 +110,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(url);
       toast.success('PDF téléchargé avec succès !');
-    } catch (err) {
-      console.error('Erreur téléchargement PDF:', err);
+    } catch {
       toast.error('Erreur lors du téléchargement du PDF');
     } finally {
       setDownloading(null);
@@ -63,15 +129,12 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(url);
       toast.success(`${soins.length} soin(s) téléchargé(s) !`);
-    } catch (err) {
-      console.error('Erreur téléchargement ZIP:', err);
+    } catch {
       toast.error('Erreur lors du téléchargement du ZIP');
     } finally {
       setDownloadingAll(false);
     }
   };
-
-  // ── Chargement / erreur ───────────────────────────────────────────────────────
 
   if (loading && soins.length === 0) {
     return (
@@ -91,12 +154,10 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
     );
   }
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────────
-
   return (
     <div className="space-y-4 sm:space-y-6">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 sm:pb-4">
         <div>
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Soins médicaux</h3>
@@ -108,27 +169,17 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {/* ZIP — visible pour tous */}
           {soins.length > 0 && (
-            <button
-              onClick={handleDownloadAllZIP}
-              disabled={downloadingAll}
-              title="Télécharger tous les soins en ZIP"
-              className="flex-1 sm:flex-none px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 active:scale-95 transition-all shadow-sm font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-            >
+            <button onClick={handleDownloadAllZIP} disabled={downloadingAll}
+              className="flex-1 sm:flex-none px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 active:scale-95 transition-all shadow-sm font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50">
               {downloadingAll
                 ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span className="hidden sm:inline">Téléchargement...</span></>
-                : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>
-              }
+                : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
-
-          {/* ✅ Nouveau soin — uniquement si permission write */}
           <PermissionGuard permission="soins-medicaux.write">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm"
-            >
+            <button onClick={() => setShowAddModal(true)}
+              className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Nouveau soin</span>
               <span className="sm:hidden">Nouveau</span>
@@ -137,16 +188,20 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
         </div>
       </div>
 
-      {/* ── Modal ── */}
+      {/* Modals */}
       {showAddModal && (
-        <AddSoinMedicalModal
+        <AddSoinMedicalModal patient={patient} onClose={() => setShowAddModal(false)} onSubmit={handleCreateSoin} />
+      )}
+      {editingSoin && (
+        <EditSoinMedicalModal
           patient={patient}
-          onClose={() => setShowAddModal(false)}
-          onSubmit={handleCreateSoin}
+          soin={editingSoin}
+          onClose={() => setEditingSoin(null)}
+          onSubmit={handleUpdateSoin}
         />
       )}
 
-      {/* ── État vide ── */}
+      {/* État vide */}
       {soins.length === 0 ? (
         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-10 sm:p-14 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -154,105 +209,94 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
           </div>
           <h4 className="text-sm font-semibold text-gray-700 mb-1">Aucun soin médical enregistré</h4>
           <p className="text-xs text-gray-500 mb-5">Les soins médicaux réalisés apparaîtront ici.</p>
-          {/* ✅ Créer le premier — uniquement si permission write */}
           <PermissionGuard permission="soins-medicaux.write">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md text-sm font-medium inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Créer le premier soin
+            <button onClick={() => setShowAddModal(true)}
+              className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md text-sm font-medium inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" />Créer le premier soin
             </button>
           </PermissionGuard>
         </div>
       ) : (
         <div className="grid gap-3 sm:gap-4">
           {soins.map((soin) => {
-            const isExpanded = expandedId === soin.id_soin_medical;
-            const hasDetails = soin.ett || soin.eto || soin.autre;
+            const isExpanded   = expandedId === soin.id_soin_medical;
+            const hasDetails   = soin.ett || soin.eto || soin.autre;
+            const isValidating = validating === soin.id_soin_medical;
+            const statut       = soin.statut ?? (soin.verifie ? 'valide' : 'en_attente');
 
             return (
-              <div
-                key={soin.id_soin_medical}
-                className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all border-l-4 ${
-                  soin.verifie ? 'border-l-green-500' : 'border-l-cyan-500'
-                }`}
-              >
-                {/* ── En-tête ── */}
+              <div key={soin.id_soin_medical}
+                className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all border-l-4 ${borderColor(statut)}`}>
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-
-                    {/* Infos principales */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-700 flex items-center gap-1.5">
-                          <Heart className="w-3 h-3" />
-                          Soin médical
+                          <Heart className="w-3 h-3" />Soin médical
                         </span>
-                        {/* ✅ Badge vérifié — vert si vérifié */}
-                        {soin.verifie && (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Vérifié
-                          </span>
-                        )}
+                        <StatutBadge
+                          statut={statut}
+                          valideurNom={soin.valideur_nom}
+                          valideurPrenom={soin.valideur_prenom}
+                          modeGarde={soin.mode_garde}
+                        />
                       </div>
-
                       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {format(new Date(soin.date_soin), 'dd MMM yyyy', { locale: fr })}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {soin.heure_soin}
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />{soin.heure_soin}
                         </span>
-                        
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {/* PDF — visible pour tous (lecture) */}
-                      <button
-                        onClick={() => handleDownloadPDF(soin.id_soin_medical)}
-                        disabled={downloading === soin.id_soin_medical}
-                        title="Télécharger en PDF"
-                        className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50"
-                      >
-                        {downloading === soin.id_soin_medical
-                          ? <span className="inline-block w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></span>
-                          : <Download className="w-3.5 h-3.5" />
-                        }
-                        <span className="hidden sm:inline">PDF</span>
-                      </button>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
 
-                      {/* ✅ Marquer vérifié — uniquement si permission write */}
+                      {/* Boutons valider/rejeter — médecin uniquement, actes en attente */}
+                      {isMedecin && statut === 'en_attente' && (
+                        <>
+                          <button
+                            onClick={() => handleValider(soin, 'valide')}
+                            disabled={isValidating}
+                            className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
+                            {isValidating
+                              ? <span className="inline-block w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                              : <ShieldCheck className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">Valider</span>
+                          </button>
+                          <button
+                            onClick={() => handleValider(soin, 'rejete')}
+                            disabled={isValidating}
+                            className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Rejeter</span>
+                          </button>
+                        </>
+                      )}
+
                       <PermissionGuard permission="soins-medicaux.write">
-                        <button
-                          onClick={() => handleVerify(soin.id_soin_medical)}
-                          disabled={loading || soin.verifie}
-                          title={soin.verifie ? 'Déjà vérifié' : 'Marquer comme vérifié'}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 whitespace-nowrap border ${
-                            soin.verifie
-                              ? 'bg-green-50 text-green-700 border-green-200 cursor-default'
-                              : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {soin.verifie
-                            ? <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" />Vérifié</span>
-                            : 'Marquer vérifié'
-                          }
+                        <button onClick={() => setEditingSoin(soin)}
+                          className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Modifier</span>
                         </button>
                       </PermissionGuard>
 
-                      {/* Accordion — si détails disponibles */}
+                      <button onClick={() => handleDownloadPDF(soin.id_soin_medical)}
+                        disabled={downloading === soin.id_soin_medical}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
+                        {downloading === soin.id_soin_medical
+                          ? <span className="inline-block w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></span>
+                          : <Download className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
+
                       {hasDetails && (
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : soin.id_soin_medical)}
-                          title={isExpanded ? 'Masquer les détails' : 'Voir les détails'}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all text-xs font-medium flex items-center gap-1.5"
-                        >
+                        <button onClick={() => setExpandedId(isExpanded ? null : soin.id_soin_medical)}
+                          className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all text-xs font-medium flex items-center gap-1.5">
                           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           <span className="hidden sm:inline">{isExpanded ? 'Moins' : 'Détails'}</span>
                         </button>
@@ -260,7 +304,6 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                     </div>
                   </div>
 
-                  {/* Résumé des types de soins (toujours visible) */}
                   {hasDetails && !isExpanded && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {soin.ett   && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-medium rounded-full">ETT</span>}
@@ -268,20 +311,18 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                       {soin.autre && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-medium rounded-full">Autre</span>}
                     </div>
                   )}
-                  {/* ✅ Signature */}
-<SignatureBadge
-  nom={soin.realise_par}
-  date={String(soin.date_soin)}
-  heure={soin.heure_soin}
-  verifie={soin.verifie}
-  role="medecin"
-/>
+
+                  <SignatureBadge
+                    nom={soin.realise_par}
+                    date={String(soin.date_soin)}
+                    heure={soin.heure_soin}
+                    verifie={soin.verifie}
+                    role="medecin"
+                  />
                 </div>
 
-                {/* ── Détails (accordion) ── */}
                 {isExpanded && hasDetails && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 sm:px-5 py-4 space-y-3">
-
                     {soin.ett && (
                       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
                         <div className="flex items-start gap-2">
@@ -289,15 +330,12 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                             <Heart className="w-4 h-4 text-gray-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">
-                              ETT — Échocardiographie Transthoracique
-                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">ETT — Échocardiographie Transthoracique</p>
                             <p className="text-sm text-gray-800 whitespace-pre-line break-words leading-relaxed">{soin.ett}</p>
                           </div>
                         </div>
                       </div>
                     )}
-
                     {soin.eto && (
                       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
                         <div className="flex items-start gap-2">
@@ -305,15 +343,12 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                             <Heart className="w-4 h-4 text-gray-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">
-                              ETO — Échocardiographie Transœsophagienne
-                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">ETO — Échocardiographie Transœsophagienne</p>
                             <p className="text-sm text-gray-800 whitespace-pre-line break-words leading-relaxed">{soin.eto}</p>
                           </div>
                         </div>
                       </div>
                     )}
-
                     {soin.autre && (
                       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
                         <div className="flex items-start gap-2">
@@ -321,9 +356,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                             <FileText className="w-4 h-4 text-gray-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">
-                              Autre soin médical
-                            </p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Autre soin médical</p>
                             <p className="text-sm text-gray-800 whitespace-pre-line break-words leading-relaxed">{soin.autre}</p>
                           </div>
                         </div>

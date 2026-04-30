@@ -11,7 +11,6 @@ export const useSoinsMedicaux = (patientId?: number) => {
 
   const fetchSoins = useCallback(async () => {
     if (!patientId) return;
-    
     setLoading(true);
     setError(null);
     try {
@@ -43,6 +42,23 @@ export const useSoinsMedicaux = (patientId?: number) => {
     }
   };
 
+  const updateSoin = async (id: number, data: Partial<CreateSoinMedicalDTO>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await soinRepository.update(id, data);
+      setSoins(prev => prev.map(soin => soin.id_soin_medical === id ? updated : soin));
+      return true;
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
+      setError(errorMessage);
+      console.error('Erreur updateSoin:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verifySoin = async (id: number): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -59,6 +75,22 @@ export const useSoinsMedicaux = (patientId?: number) => {
       setLoading(false);
     }
   };
+  const validerSoin = async (id: number, statut: 'valide' | 'rejete'): Promise<boolean> => {
+  setLoading(true);
+  setError(null);
+  try {
+    const updated = await soinRepository.valider(id, statut);
+    setSoins(prev => prev.map(soin => soin.id_soin_medical === id ? updated : soin));
+    return true;
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la validation';
+    setError(errorMessage);
+    console.error('Erreur validerSoin:', err);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deleteSoin = async (id: number): Promise<boolean> => {
     setLoading(true);
@@ -87,7 +119,9 @@ export const useSoinsMedicaux = (patientId?: number) => {
     error,
     refreshSoins: fetchSoins,
     createSoin,
+    updateSoin,
     verifySoin,
+    validerSoin,
     deleteSoin,
   };
 };

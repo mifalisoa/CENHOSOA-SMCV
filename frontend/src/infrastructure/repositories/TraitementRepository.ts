@@ -1,6 +1,7 @@
 import { httpClient } from '../http/axios.config';
 import type { Traitement, CreateTraitementDTO, CreateOrdonnanceDTO } from '../../core/entities/Traitement';
 import type { ITraitementRepository } from '../../core/repositories/ITraitementRepository';
+import type { StatutValidation } from '../../shared/types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -11,13 +12,11 @@ interface ApiResponse<T> {
 
 export class TraitementRepository implements ITraitementRepository {
 
-  // Crée un seul médicament (rétrocompatibilité)
   async create(data: CreateTraitementDTO): Promise<Traitement> {
     const response = await httpClient.post<ApiResponse<Traitement>>('/traitements', data);
     return response.data.data;
   }
 
-  // ✅ Crée une ordonnance avec plusieurs médicaments en une seule requête
   async createMany(data: CreateOrdonnanceDTO): Promise<Traitement[]> {
     const response = await httpClient.post<ApiResponse<Traitement[]>>('/traitements', data);
     return response.data.data;
@@ -40,6 +39,14 @@ export class TraitementRepository implements ITraitementRepository {
 
   async update(id: number, data: Partial<CreateTraitementDTO>): Promise<Traitement> {
     const response = await httpClient.put<ApiResponse<Traitement>>(`/traitements/${id}`, data);
+    return response.data.data;
+  }
+
+  async valider(id: number, statut: StatutValidation): Promise<Traitement> {
+    const response = await httpClient.patch<ApiResponse<Traitement>>(
+      `/traitements/${id}/valider`,
+      { statut }
+    );
     return response.data.data;
   }
 

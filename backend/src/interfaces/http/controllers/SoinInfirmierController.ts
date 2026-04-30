@@ -11,6 +11,8 @@ import { AppError } from '../../../shared/errors/AppError';
 import { notificationService } from '../../../application/services/NotificationService';
 import { notifyMedecinTraitant, getDossierLien, getDossierLienMedecin } from '../../../shared/utils/notificationHelpers';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { RoleType } from '../../../shared/types';
+import { ValiderSoinInfirmier } from '../../../application/use-cases/soin-infirmier/ValiderSoinInfirmier';
 
 export class SoinInfirmierController {
   constructor(private soinRepository: ISoinInfirmierRepository) {}
@@ -19,9 +21,12 @@ export class SoinInfirmierController {
     try {
       const validatedData = createSoinInfirmierSchema.parse(req.body);
       const createSoin = new CreateSoinInfirmier(this.soinRepository);
+
       const soin = await createSoin.execute({
         ...validatedData,
-        date_soin: new Date(validatedData.date_soin),
+        date_soin:     new Date(validatedData.date_soin),
+        cree_par_id:   req.user?.id_user,
+        role_createur: req.user?.role as RoleType,
       });
 
       const auteur      = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
@@ -136,4 +141,40 @@ export class SoinInfirmierController {
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   };
-}
+
+  valider = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID soin invalide' }); return; }
+
+      if (!req.user) { res.status(401).json({ success: false, message: 'Non authentifié' }); return; }
+
+      const { statut } = req.body;
+      if (!statut || !['valide', 'rejete'].includes(statut)) {
+        res.status(400).json({ success: false, message: 'Statut invalide — valeurs acceptées : valide, rejete' });
+        return;
+      }
+
+      const validerSoin = new ValiderSoinInfirmier(this.soinRepository);
+      const soin = await validerSoin.execute({
+        id,
+        statut,
+        validateur_id:   req.user.id_user,
+        validateur_role: req.user.role as RoleType,
+        mode_garde:      false,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Soin infirmier ${statut === 'valide' ? 'validé' : 'rejeté'} avec succès`,
+        data: soin,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundError) { res.status(404).json({ success: false, message: error.message }); return; }
+      if (error instanceof AppError)      { res.status(error.statusCode).json({ success: false, message: error.message }); return; }
+      if (error instanceof Error)         { res.status(403).json({ success: false, message: error.message }); return; }
+      console.error('Erreur validation soin infirmier:', error);
+      res.status(500).json({ success: false, message: 'Erreur serveur' });
+    }
+  };
+}  

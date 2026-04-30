@@ -22,3 +22,6 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+// ── Validation des actes ──────────────────────────────────────────────────────
+export type StatutValidation = 'en_attente' | 'valide' | 'rejete';

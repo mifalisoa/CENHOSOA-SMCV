@@ -1,60 +1,128 @@
 import { useState, useMemo } from 'react';
 import { useTraitements } from '../../../hooks/useTraitements';
+import { useAuth } from '../../../hooks/useAuth';
 import type { Patient } from '../../../../core/entities/Patient';
-import type { CreateOrdonnanceDTO } from '../../../../core/entities/Traitement';
+import type { Traitement, CreateOrdonnanceDTO, CreateTraitementDTO } from '../../../../core/entities/Traitement';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Pill, Calendar, Clock, FileText, Download, FileArchive, ChevronDown, ChevronUp } from 'lucide-react';
-import AddTraitementModal from './AddTraitementModal';
-import { PermissionGuard } from '../../common/PermissionGuard';
-import { SignatureBadge } from '../../common/SignatureBadge';
-import { toast } from 'sonner';
-import { httpClient } from "../../../../infrastructure/http/axios.config";
+import {
+  Plus, Pill, Calendar, Clock, FileText, Download,
+  FileArchive, ChevronDown, ChevronUp, Pencil,
+  CheckCircle, Clock3, XCircle, ShieldCheck,
+} from 'lucide-react';
+import AddTraitementModal    from './AddTraitementModal';
+import EditTraitementModal   from './EditTraitementModal';
+import { PermissionGuard }   from '../../common/PermissionGuard';
+import { SignatureBadge }    from '../../common/SignatureBadge';
+import { toast }             from 'sonner';
+import { httpClient }        from '../../../../infrastructure/http/axios.config';
+import type { StatutValidation } from '../../../../shared/types';
 
 interface TraitementsTabProps {
   patient: Patient;
 }
 
-export default function TraitementsTab({ patient }: TraitementsTabProps) {
-  const { traitements, loading, error, createOrdonnance } = useTraitements(patient.id_patient);
-  const [showAddModal,   setShowAddModal]   = useState(false);
-  const [downloading,    setDownloading]    = useState<number | null>(null);
-  const [downloadingAll, setDownloadingAll] = useState(false);
-  // Accordion — par id_ordonnance (groupe) ou par id_traitement (individuel)
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
+  statut:          StatutValidation;
+  valideurNom?:    string;
+  valideurPrenom?: string;
+  modeGarde?:      boolean;
+}) {
+  if (statut === 'valide') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+        <CheckCircle className="w-3 h-3" />
+        {modeGarde ? 'Validé (garde)' : valideurNom
+          ? `Validé — Dr. ${valideurPrenom} ${valideurNom}`
+          : 'Validé'}
+      </span>
+    );
+  }
+  if (statut === 'rejete') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+        <XCircle className="w-3 h-3" />Rejeté
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+      <Clock3 className="w-3 h-3" />En attente de validation
+    </span>
+  );
+}
 
-  // ── Groupage par id_ordonnance ────────────────────────────────────────────────
-  // Les traitements sans id_ordonnance (anciens) sont traités individuellement
+function borderColor(statut: string) {
+  if (statut === 'valide') return 'border-l-green-500';
+  if (statut === 'rejete') return 'border-l-red-400';
+  return 'border-l-amber-400';
+}
+
+export default function TraitementsTab({ patient }: TraitementsTabProps) {
+  const { traitements, loading, error, createOrdonnance, updateTraitement, validerTraitement, refreshTraitements } = useTraitements(patient.id_patient);
+  const { user } = useAuth();
+  const isMedecin = user?.role === 'medecin';
+
+  const [showAddModal,      setShowAddModal]      = useState(false);
+  const [editingTraitement, setEditingTraitement] = useState<Traitement | null>(null);
+  const [downloading,       setDownloading]       = useState<number | null>(null);
+  const [downloadingAll,    setDownloadingAll]    = useState(false);
+  const [expandedKey,       setExpandedKey]       = useState<string | null>(null);
+  const [validating,        setValidating]        = useState<string | null>(null);
+
   const groupes = useMemo(() => {
     const map = new Map<string, typeof traitements>();
-
     traitements.forEach(t => {
-      // Clé = id_ordonnance si groupé, sinon id_traitement unique
       const key = t.id_ordonnance ?? `solo_${t.id_traitement}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(t);
     });
-
-    // Convertit en tableau trié par date décroissante (premier médicament du groupe)
     return Array.from(map.entries()).map(([key, items]) => ({
       key,
-      isGroupe: !!items[0].id_ordonnance,
+      isGroupe:     !!items[0].id_ordonnance,
       items,
-      // Infos communes prises sur le premier médicament
       date:         items[0].date_prescription,
       heure:        items[0].heure_prescription,
       type:         items[0].type_document,
       prescripteur: items[0].prescripteur,
       diagnostic:   items[0].diagnostic,
-      lieu:         items[0].lieu_prescription,
+      statut:       items[0].statut ?? 'en_attente',
+      valideurNom:     items[0].valideur_nom,
+      valideurPrenom:  items[0].valideur_prenom,
+      modeGarde:       items[0].mode_garde,
     }));
   }, [traitements]);
-
-  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleCreateOrdonnance = async (data: CreateOrdonnanceDTO) => {
     await createOrdonnance(data);
     setShowAddModal(false);
+  };
+
+  const handleUpdateTraitement = async (id: number, data: Partial<CreateTraitementDTO>) => {
+    const ok = await updateTraitement(id, data);
+    if (ok) {
+      toast.success('Médicament modifié avec succès !');
+      setEditingTraitement(null);
+    } else {
+      throw new Error('Erreur lors de la modification');
+    }
+  };
+
+  // Valide tous les médicaments d'un groupe (ordonnance) en une fois
+  const handleValiderGroupe = async (groupe: typeof groupes[0], statut: 'valide' | 'rejete') => {
+    setValidating(groupe.key);
+    try {
+      await Promise.all(groupe.items.map(t => validerTraitement(t.id_traitement, statut)));
+      toast.success(statut === 'valide'
+        ? `Ordonnance validée (${groupe.items.length} médicament(s)) ✓`
+        : 'Ordonnance rejetée');
+      await refreshTraitements();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la validation';
+      toast.error(message);
+    } finally {
+      setValidating(null);
+    }
   };
 
   const handleDownloadPDF = async (traitementId: number) => {
@@ -68,8 +136,7 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(url);
       toast.success('PDF téléchargé avec succès !');
-    } catch (err) {
-      console.error('Erreur téléchargement PDF:', err);
+    } catch {
       toast.error('Erreur lors du téléchargement du PDF');
     } finally {
       setDownloading(null);
@@ -88,15 +155,12 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(url);
       toast.success(`${traitements.length} traitement(s) téléchargé(s) !`);
-    } catch (err) {
-      console.error('Erreur téléchargement ZIP:', err);
+    } catch {
       toast.error('Erreur lors du téléchargement du ZIP');
     } finally {
       setDownloadingAll(false);
     }
   };
-
-  // ── Chargement / erreur ───────────────────────────────────────────────────────
 
   if (loading && traitements.length === 0) {
     return (
@@ -116,35 +180,28 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
     );
   }
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────────
-
   return (
     <div className="space-y-4 sm:space-y-6">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 sm:pb-4">
         <div>
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Traitements</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             {traitements.length === 0
               ? 'Aucun traitement enregistré'
-              : `${traitements.length} médicament${traitements.length > 1 ? 's' : ''} · ${groupes.length} prescription${groupes.length > 1 ? 's' : ''}`
-            }
+              : `${traitements.length} médicament${traitements.length > 1 ? 's' : ''} · ${groupes.length} prescription${groupes.length > 1 ? 's' : ''}`}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {traitements.length > 0 && (
             <button onClick={handleDownloadAllZIP} disabled={downloadingAll}
-              title="Télécharger tous les traitements en ZIP"
               className="flex-1 sm:flex-none px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 active:scale-95 transition-all shadow-sm font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50">
               {downloadingAll
                 ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span className="hidden sm:inline">Téléchargement...</span></>
-                : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>
-              }
+                : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
-
           <PermissionGuard permission="prescriptions.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -156,16 +213,18 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
         </div>
       </div>
 
-      {/* Modal */}
       {showAddModal && (
-        <AddTraitementModal
+        <AddTraitementModal patient={patient} onClose={() => setShowAddModal(false)} onSubmit={handleCreateOrdonnance} />
+      )}
+      {editingTraitement && (
+        <EditTraitementModal
           patient={patient}
-          onClose={() => setShowAddModal(false)}
-          onSubmit={handleCreateOrdonnance}
+          traitement={editingTraitement}
+          onClose={() => setEditingTraitement(null)}
+          onSubmit={handleUpdateTraitement}
         />
       )}
 
-      {/* État vide */}
       {traitements.length === 0 ? (
         <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-10 sm:p-14 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -176,71 +235,80 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
           <PermissionGuard permission="prescriptions.write">
             <button onClick={() => setShowAddModal(true)}
               className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md text-sm font-medium inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Créer la première prescription
+              <Plus className="w-4 h-4" />Créer la première prescription
             </button>
           </PermissionGuard>
         </div>
       ) : (
         <div className="grid gap-3 sm:gap-4">
           {groupes.map(groupe => {
-            const isExpanded = expandedKey === groupe.key;
-            const nbMeds     = groupe.items.length;
+            const isExpanded   = expandedKey === groupe.key;
+            const nbMeds       = groupe.items.length;
+            const isValidating = validating === groupe.key;
+            const statut       = groupe.statut as StatutValidation;
 
             return (
               <div key={groupe.key}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all border-l-4 border-l-cyan-500">
+                className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all border-l-4 ${borderColor(statut)}`}>
 
-                {/* ── En-tête du groupe ── */}
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-700 flex items-center gap-1.5">
-                          <FileText className="w-3 h-3" />
-                          {groupe.type}
+                          <FileText className="w-3 h-3" />{groupe.type}
                         </span>
-                        {/* Badge nombre de médicaments si > 1 */}
                         {nbMeds > 1 && (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyan-100 text-cyan-700 flex items-center gap-1">
-                            <Pill className="w-3 h-3" />
-                            {nbMeds} médicaments
+                            <Pill className="w-3 h-3" />{nbMeds} médicaments
                           </span>
                         )}
+                        <StatutBadge
+                          statut={statut}
+                          valideurNom={groupe.valideurNom}
+                          valideurPrenom={groupe.valideurPrenom}
+                          modeGarde={groupe.modeGarde}
+                        />
                       </div>
-
                       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {format(new Date(groupe.date), 'dd MMM yyyy', { locale: fr })}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {groupe.heure}
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />{groupe.heure}
                         </span>
-                        
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {/* PDF — premier médicament du groupe */}
-                      <button
-                        onClick={() => handleDownloadPDF(groupe.items[0].id_traitement)}
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      {isMedecin && statut === 'en_attente' && (
+                        <>
+                          <button onClick={() => handleValiderGroupe(groupe, 'valide')} disabled={isValidating}
+                            className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
+                            {isValidating
+                              ? <span className="inline-block w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                              : <ShieldCheck className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">Valider</span>
+                          </button>
+                          <button onClick={() => handleValiderGroupe(groupe, 'rejete')} disabled={isValidating}
+                            className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Rejeter</span>
+                          </button>
+                        </>
+                      )}
+
+                      <button onClick={() => handleDownloadPDF(groupe.items[0].id_traitement)}
                         disabled={downloading === groupe.items[0].id_traitement}
-                        title="Télécharger en PDF"
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
                         {downloading === groupe.items[0].id_traitement
                           ? <span className="inline-block w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></span>
-                          : <Download className="w-3.5 h-3.5" />
-                        }
+                          : <Download className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">PDF</span>
                       </button>
 
-                      {/* Accordion toggle */}
-                      <button
-                        onClick={() => setExpandedKey(isExpanded ? null : groupe.key)}
-                        title={isExpanded ? 'Réduire' : 'Voir les médicaments'}
+                      <button onClick={() => setExpandedKey(isExpanded ? null : groupe.key)}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all text-xs font-medium flex items-center gap-1.5">
                         {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">{isExpanded ? 'Réduire' : `Voir (${nbMeds})`}</span>
@@ -248,23 +316,22 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                     </div>
                   </div>
 
-                  {/* Diagnostic (toujours visible) */}
                   {groupe.diagnostic && (
                     <div className="mt-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Diagnostic</p>
                       <p className="text-sm text-gray-800">{groupe.diagnostic}</p>
                     </div>
                   )}
-                  {groupe.prescripteur && (
-  <SignatureBadge
-    nom={groupe.prescripteur}
-    date={String(groupe.date)}
-    heure={groupe.heure}
-    role="medecin"
-  />
-)}
 
-                  {/* Aperçu médicaments quand réduit — pills */}
+                  {groupe.prescripteur && (
+                    <SignatureBadge
+                      nom={groupe.prescripteur}
+                      date={String(groupe.date)}
+                      heure={groupe.heure}
+                      role="medecin"
+                    />
+                  )}
+
                   {!isExpanded && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {groupe.items.map(t => (
@@ -279,7 +346,6 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                   )}
                 </div>
 
-                {/* ── Détails médicaments (accordion) ── */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 sm:px-5 py-4 space-y-3">
                     {groupe.items.map((t, i) => (
@@ -289,11 +355,20 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                             <Pill className="w-4 h-4 text-cyan-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900">
-                              {nbMeds > 1 && <span className="text-gray-400 font-normal mr-1">#{i + 1}</span>}
-                              {t.medicament}
-                              <span className="font-normal text-gray-600 ml-1">— {t.dosage}</span>
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-bold text-gray-900">
+                                {nbMeds > 1 && <span className="text-gray-400 font-normal mr-1">#{i + 1}</span>}
+                                {t.medicament}
+                                <span className="font-normal text-gray-600 ml-1">— {t.dosage}</span>
+                              </p>
+                              <PermissionGuard permission="prescriptions.write">
+                                <button onClick={() => setEditingTraitement(t)}
+                                  className="px-2.5 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 active:scale-95 transition-all font-medium flex items-center gap-1 text-xs shrink-0">
+                                  <Pencil className="w-3 h-3" />
+                                  <span className="hidden sm:inline">Modifier</span>
+                                </button>
+                              </PermissionGuard>
+                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 mt-2">
                               <div>
                                 <p className="text-[10px] font-semibold text-gray-400 uppercase">Voie</p>
@@ -324,7 +399,6 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                       </div>
                     ))}
 
-                    {/* Observations spéciales du groupe */}
                     {groupe.items[0].observations_speciales && (
                       <div className="bg-white border border-gray-200 rounded-lg p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Observations spéciales</p>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useBilansBiologiques } from '../../../hooks/useBilansBiologiques';
 import type { Patient } from '../../../../core/entities/Patient';
-import type { CreateBilanBiologiqueDTO } from '../../../../core/entities/BilanBiologique';
+import type { BilanBiologique, CreateBilanBiologiqueDTO } from '../../../../core/entities/BilanBiologique';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Beaker, Calendar, Clock, Building2, Download, FileArchive, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Beaker, Calendar, Clock, Building2, Download, FileArchive, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Pencil } from 'lucide-react';
 import AddBilanBiologiqueModal from './AddBilanBiologiqueModal';
+import EditBilanBiologiqueModal from './EditBilanBiologiqueModal';
 import { PermissionGuard } from '../../common/PermissionGuard';
 import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
@@ -15,9 +16,6 @@ interface BilansBiologiquesTabProps {
   patient: Patient;
 }
 
-// ── Plages normales ───────────────────────────────────────────────────────────
-// Source : valeurs de référence adulte standard
-
 interface NormRange {
   min: number;
   max: number;
@@ -26,11 +24,11 @@ interface NormRange {
 }
 
 const NORMES: Record<string, NormRange> = {
-  creatinine: { min: 7,   max: 13,  unit: 'mg/L',  label: 'Créatinine'  },
-  glycemie:   { min: 0.7, max: 1.1, unit: 'g/L',   label: 'Glycémie'    },
-  crp:        { min: 0,   max: 5,   unit: 'mg/L',   label: 'CRP'         },
-  inr:        { min: 0.8, max: 1.2, unit: '',        label: 'INR'         },
-  nfs:        { min: 4,   max: 10,  unit: '×10³/µL', label: 'NFS'        },
+  creatinine: { min: 7,   max: 13,  unit: 'mg/L',   label: 'Créatinine'  },
+  glycemie:   { min: 0.7, max: 1.1, unit: 'g/L',    label: 'Glycémie'    },
+  crp:        { min: 0,   max: 5,   unit: 'mg/L',    label: 'CRP'         },
+  inr:        { min: 0.8, max: 1.2, unit: '',         label: 'INR'         },
+  nfs:        { min: 4,   max: 10,  unit: '×10³/µL', label: 'NFS'         },
 };
 
 type Status = 'normal' | 'high' | 'low';
@@ -46,8 +44,6 @@ function getStatus(value: string | number | undefined, key: string): Status | nu
   return 'normal';
 }
 
-// ── Composant ResultCard — max 3 couleurs ─────────────────────────────────────
-
 interface ResultCardProps {
   valKey: string;
   value:  string | number;
@@ -57,44 +53,11 @@ function ResultCard({ valKey, value }: ResultCardProps) {
   const norme  = NORMES[valKey];
   const status = getStatus(value, valKey);
 
-  // ✅ 3 couleurs seulement :
-  // gris   → neutre (pas de norme connue)
-  // vert   → valeur normale
-  // rouge  → valeur hors norme (haut ou bas)
-
   const styles = {
-    normal: {
-      card:   'bg-green-50 border-green-200',
-      label:  'text-green-700',
-      value:  'text-green-900',
-      norme:  'text-green-600',
-      icon:   <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />,
-      badge:  null,
-    },
-    high: {
-      card:   'bg-red-50 border-red-200',
-      label:  'text-red-700',
-      value:  'text-red-900',
-      norme:  'text-red-500',
-      icon:   <AlertTriangle className="w-3.5 h-3.5 text-red-500" />,
-      badge:  <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">ÉLEVÉ</span>,
-    },
-    low: {
-      card:   'bg-red-50 border-red-200',
-      label:  'text-red-700',
-      value:  'text-red-900',
-      norme:  'text-red-500',
-      icon:   <AlertTriangle className="w-3.5 h-3.5 text-red-500" />,
-      badge:  <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">BAS</span>,
-    },
-    unknown: {
-      card:   'bg-gray-50 border-gray-200',
-      label:  'text-gray-500',
-      value:  'text-gray-800',
-      norme:  'text-gray-400',
-      icon:   null,
-      badge:  null,
-    },
+    normal:  { card: 'bg-green-50 border-green-200', label: 'text-green-700', value: 'text-green-900', norme: 'text-green-600', icon: <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />, badge: null },
+    high:    { card: 'bg-red-50 border-red-200',     label: 'text-red-700',   value: 'text-red-900',   norme: 'text-red-500',   icon: <AlertTriangle className="w-3.5 h-3.5 text-red-500" />,   badge: <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">ÉLEVÉ</span> },
+    low:     { card: 'bg-red-50 border-red-200',     label: 'text-red-700',   value: 'text-red-900',   norme: 'text-red-500',   icon: <AlertTriangle className="w-3.5 h-3.5 text-red-500" />,   badge: <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">BAS</span>   },
+    unknown: { card: 'bg-gray-50 border-gray-200',   label: 'text-gray-500',  value: 'text-gray-800',  norme: 'text-gray-400',  icon: null, badge: null },
   };
 
   const s = styles[status ?? 'unknown'];
@@ -125,11 +88,10 @@ function ResultCard({ valKey, value }: ResultCardProps) {
   );
 }
 
-// ── Composant principal ───────────────────────────────────────────────────────
-
 export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabProps) {
-  const { bilans, loading, error, createBilan } = useBilansBiologiques(patient.id_patient);
+  const { bilans, loading, error, createBilan, updateBilan } = useBilansBiologiques(patient.id_patient);
   const [showAddModal,   setShowAddModal]   = useState(false);
+  const [editingBilan,   setEditingBilan]   = useState<BilanBiologique | null>(null);
   const [downloading,    setDownloading]    = useState<number | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [expandedId,     setExpandedId]     = useState<number | null>(null);
@@ -137,6 +99,16 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
   const handleCreateBilan = async (data: CreateBilanBiologiqueDTO) => {
     await createBilan(data);
     setShowAddModal(false);
+  };
+
+  const handleUpdateBilan = async (id: number, data: Partial<CreateBilanBiologiqueDTO>) => {
+    const ok = await updateBilan(id, data);
+    if (ok) {
+      toast.success('Bilan modifié avec succès !');
+      setEditingBilan(null);
+    } else {
+      throw new Error('Erreur lors de la modification');
+    }
   };
 
   const handleDownloadPDF = async (bilanId: number) => {
@@ -178,7 +150,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
     }
   };
 
-  // Compte les valeurs hors norme d'un bilan
   const countAbnormal = (bilan: typeof bilans[0]): number => {
     const keys: Array<keyof typeof bilan> = ['creatinine', 'glycemie', 'crp', 'inr', 'nfs'];
     return keys.filter(k => {
@@ -186,8 +157,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
       return s === 'high' || s === 'low';
     }).length;
   };
-
-  // ── Chargement ───────────────────────────────────────────────────────────────
 
   if (loading && bilans.length === 0) {
     return (
@@ -206,8 +175,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
       </div>
     );
   }
-
-  // ── Rendu ────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -251,12 +218,20 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modals */}
       {showAddModal && (
         <AddBilanBiologiqueModal
           patient={patient}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateBilan}
+        />
+      )}
+      {editingBilan && (
+        <EditBilanBiologiqueModal
+          patient={patient}
+          bilan={editingBilan}
+          onClose={() => setEditingBilan(null)}
+          onSubmit={handleUpdateBilan}
         />
       )}
 
@@ -281,9 +256,9 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
       ) : (
         <div className="space-y-3 sm:space-y-4">
           {bilans.map((bilan) => {
-            const isExpanded  = expandedId === bilan.id_bilan;
-            const hasDetails  = bilan.resultat || bilan.interpretation || bilan.laboratoire;
-            const nbAbnormal  = countAbnormal(bilan);
+            const isExpanded = expandedId === bilan.id_bilan;
+            const hasDetails = bilan.resultat || bilan.interpretation || bilan.laboratoire;
+            const nbAbnormal = countAbnormal(bilan);
 
             return (
               <div
@@ -292,7 +267,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                   nbAbnormal > 0 ? 'border-l-red-500 border-red-200' : 'border-l-cyan-500 border-gray-200'
                 }`}
               >
-                {/* En-tête */}
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
 
@@ -302,7 +276,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                           <Beaker className="w-3 h-3" />
                           {bilan.type_bilan || 'Bilan biologique'}
                         </span>
-                        {/* ✅ Badge alerte — rouge si valeurs hors norme */}
                         {nbAbnormal > 0 && (
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
@@ -326,13 +299,22 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
                           {bilan.heure_prelevement}
                         </span>
-                        
-                      
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
+                      <PermissionGuard permission="bilans.write">
+                        <button
+                          onClick={() => setEditingBilan(bilan)}
+                          title="Modifier ce bilan"
+                          className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Modifier</span>
+                        </button>
+                      </PermissionGuard>
+
                       <button
                         onClick={() => handleDownloadPDF(bilan.id_bilan)}
                         disabled={downloading === bilan.id_bilan}
@@ -359,7 +341,6 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                     </div>
                   </div>
 
-                  {/* ✅ Résultats — colorés selon la norme (vert / rouge / gris) */}
                   {(bilan.creatinine || bilan.glycemie || bilan.crp || bilan.inr || bilan.nfs) && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mt-4">
                       {bilan.creatinine && <ResultCard valKey="creatinine" value={bilan.creatinine} />}
@@ -369,17 +350,17 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                       {bilan.nfs        && <ResultCard valKey="nfs"        value={bilan.nfs}        />}
                     </div>
                   )}
+
                   {bilan.prescripteur && (
-  <SignatureBadge
-    nom={`Dr. ${bilan.prescripteur}`}
-    date={String(bilan.date_prelevement)}
-    heure={bilan.heure_prelevement}
-    role="medecin"
-  />
-)}
+                    <SignatureBadge
+                      nom={`Dr. ${bilan.prescripteur}`}
+                      date={String(bilan.date_prelevement)}
+                      heure={bilan.heure_prelevement}
+                      role="medecin"
+                    />
+                  )}
                 </div>
 
-                {/* Détails (accordion) */}
                 {isExpanded && hasDetails && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 sm:px-5 py-4 space-y-3">
                     {bilan.resultat && (

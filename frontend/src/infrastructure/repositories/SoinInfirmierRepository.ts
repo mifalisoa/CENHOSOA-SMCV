@@ -1,8 +1,8 @@
-import { httpClient } from '../http/axios.config'; // Correction de l'import
+import { httpClient } from '../http/axios.config';
 import type { SoinInfirmier, CreateSoinInfirmierDTO } from '../../core/entities/SoinInfirmier';
 import type { ISoinInfirmierRepository } from '../../core/repositories/ISoinInfirmierRepository';
+import type { StatutValidation } from '../../shared/types';
 
-// Interface de réponse standardisée
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -10,6 +10,7 @@ interface ApiResponse<T> {
 }
 
 export class SoinInfirmierRepository implements ISoinInfirmierRepository {
+
   async create(data: CreateSoinInfirmierDTO): Promise<SoinInfirmier> {
     const response = await httpClient.post<ApiResponse<SoinInfirmier>>(
       '/soins-infirmiers',
@@ -47,9 +48,18 @@ export class SoinInfirmierRepository implements ISoinInfirmierRepository {
     return response.data.data;
   }
 
+  /** @deprecated utiliser valider() */
   async verify(id: number): Promise<SoinInfirmier> {
     const response = await httpClient.patch<ApiResponse<SoinInfirmier>>(
       `/soins-infirmiers/${id}/verify`
+    );
+    return response.data.data;
+  }
+
+  async valider(id: number, statut: StatutValidation): Promise<SoinInfirmier> {
+    const response = await httpClient.patch<ApiResponse<SoinInfirmier>>(
+      `/soins-infirmiers/${id}/valider`,
+      { statut }
     );
     return response.data.data;
   }

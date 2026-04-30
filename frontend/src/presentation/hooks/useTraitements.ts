@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TraitementRepository } from '../../infrastructure/repositories/TraitementRepository';
 import type { Traitement, CreateTraitementDTO, CreateOrdonnanceDTO } from '../../core/entities/Traitement';
+import type { StatutValidation } from '../../shared/types';
 
 const traitementRepository = new TraitementRepository();
 
@@ -74,6 +75,21 @@ export const useTraitements = (patientId?: number) => {
       setLoading(false);
     }
   };
+  const validerTraitement = async (id: number, statut: StatutValidation): Promise<boolean> => {
+  setLoading(true);
+  setError(null);
+  try {
+    const updated = await traitementRepository.valider(id, statut);
+    setTraitements(prev => prev.map(t => t.id_traitement === id ? updated : t));
+    return true;
+  } catch (err: unknown) {
+    setError(err instanceof Error ? err.message : 'Erreur lors de la validation');
+    console.error('Erreur validerTraitement:', err);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deleteTraitement = async (id: number): Promise<boolean> => {
     setLoading(true);
@@ -103,6 +119,7 @@ export const useTraitements = (patientId?: number) => {
     createTraitement,
     createOrdonnance,   // ✅ nouvelle méthode
     updateTraitement,
+    validerTraitement, 
     deleteTraitement,
   };
 };

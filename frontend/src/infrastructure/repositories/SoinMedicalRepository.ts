@@ -1,6 +1,7 @@
 import { httpClient } from '../http/axios.config';
 import type { SoinMedical, CreateSoinMedicalDTO } from '../../core/entities/SoinMedical';
 import type { ISoinMedicalRepository } from '../../core/repositories/ISoinMedicalRepository';
+import type { StatutValidation } from '../../shared/types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -9,19 +10,13 @@ interface ApiResponse<T> {
 }
 
 export class SoinMedicalRepository implements ISoinMedicalRepository {
+
   async create(data: CreateSoinMedicalDTO): Promise<SoinMedical> {
-    // Convertir date + heure en ISO datetime
     const isoDate = new Date(data.date_soin + 'T' + data.heure_soin + ':00Z').toISOString();
-    
-    const payload = {
+    const response = await httpClient.post<ApiResponse<SoinMedical>>('/soins-medicaux', {
       ...data,
       date_soin: isoDate,
-    };
-
-    const response = await httpClient.post<ApiResponse<SoinMedical>>(
-      '/soins-medicaux',
-      payload
-    );
+    });
     return response.data.data;
   }
 
@@ -47,14 +42,12 @@ export class SoinMedicalRepository implements ISoinMedicalRepository {
   }
 
   async update(id: number, data: Partial<CreateSoinMedicalDTO>): Promise<SoinMedical> {
-    // Si date et heure fournis, convertir en ISO
-    let payload: any = { ...data };
-    
+    let payload: Partial<CreateSoinMedicalDTO> = { ...data };
+
     if (data.date_soin && data.heure_soin) {
-      const isoDate = new Date(data.date_soin + 'T' + data.heure_soin + ':00Z').toISOString();
       payload = {
         ...data,
-        date_soin: isoDate,
+        date_soin: new Date(data.date_soin + 'T' + data.heure_soin + ':00Z').toISOString(),
       };
     }
 
@@ -65,9 +58,18 @@ export class SoinMedicalRepository implements ISoinMedicalRepository {
     return response.data.data;
   }
 
+  /** @deprecated utiliser valider() */
   async verify(id: number): Promise<SoinMedical> {
     const response = await httpClient.patch<ApiResponse<SoinMedical>>(
       `/soins-medicaux/${id}/verify`
+    );
+    return response.data.data;
+  }
+
+  async valider(id: number, statut: StatutValidation): Promise<SoinMedical> {
+    const response = await httpClient.patch<ApiResponse<SoinMedical>>(
+      `/soins-medicaux/${id}/valider`,
+      { statut }
     );
     return response.data.data;
   }

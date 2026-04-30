@@ -52,6 +52,12 @@ router.patch('/:id/verify',
   logAction('update', 'soins_medicaux'),
   soinController.verify
 );
+router.patch('/:id/valider',
+  roleMiddleware(['medecin']),
+  permissionMiddleware('soins-medicaux.write'),
+  logAction('update', 'soins_medicaux'),
+  soinController.valider
+);
 router.delete('/:id',
   roleMiddleware(ECRITURE),
   permissionMiddleware('soins-medicaux.write'),

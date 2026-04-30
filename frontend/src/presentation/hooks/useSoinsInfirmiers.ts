@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SoinInfirmierRepository } from '../../infrastructure/repositories/SoinInfirmierRepository';
 import type { SoinInfirmier, CreateSoinInfirmierDTO } from '../../core/entities/SoinInfirmier';
+import type { StatutValidation } from '../../shared/types';
 
 const soinRepository = new SoinInfirmierRepository();
 
@@ -43,6 +44,23 @@ export const useSoinsInfirmiers = (patientId?: number) => {
     }
   };
 
+  const updateSoin = async (id: number, data: Partial<CreateSoinInfirmierDTO>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await soinRepository.update(id, data);
+      setSoins(prev => prev.map(soin => soin.id_soin_infirmier === id ? updated : soin));
+      return true;
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
+      setError(errorMessage);
+      console.error('Erreur updateSoin:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verifySoin = async (id: number): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -59,6 +77,23 @@ export const useSoinsInfirmiers = (patientId?: number) => {
       setLoading(false);
     }
   };
+
+  const validerSoin = async (id: number, statut: StatutValidation): Promise<boolean> => {
+  setLoading(true);
+  setError(null);
+  try {
+    const updated = await soinRepository.valider(id, statut);
+    setSoins(prev => prev.map(soin => soin.id_soin_infirmier === id ? updated : soin));
+    return true;
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la validation';
+    setError(errorMessage);
+    console.error('Erreur validerSoin:', err);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deleteSoin = async (id: number): Promise<boolean> => {
     setLoading(true);
@@ -87,7 +122,9 @@ export const useSoinsInfirmiers = (patientId?: number) => {
     error,
     refreshSoins: fetchSoins,
     createSoin,
+    updateSoin,
     verifySoin,
+     validerSoin,
     deleteSoin,
   };
 };

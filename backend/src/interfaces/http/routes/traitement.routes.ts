@@ -46,6 +46,12 @@ router.put('/:id',
   logAction('update', 'traitements'),
   traitementController.update
 );
+router.patch('/:id/valider',
+  roleMiddleware(['medecin']),
+  permissionMiddleware('prescriptions.write'),
+  logAction('update', 'traitements'),
+  traitementController.valider
+);
 router.delete('/:id',
   roleMiddleware(ECRITURE),
   permissionMiddleware('prescriptions.write'),
