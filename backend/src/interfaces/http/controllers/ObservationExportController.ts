@@ -2,20 +2,21 @@ import { Request, Response, NextFunction } from 'express';
 import { ObservationPDFService } from '../../../application/services/ObservationPDFService';
 import { PostgresObservationRepository } from '../../../infrastructure/database/postgres/repositories/PostgresObservationRepository';
 import { PostgresPatientRepository } from '../../../infrastructure/database/postgres/repositories/PostgresPatientRepository';
+import { PostgresEvolutionPatientRepository } from '../../../infrastructure/database/postgres/repositories/PostgresEvolutionPatientRepository';
 import { pool } from '../../../config/database';
 import archiver from 'archiver';
 
 const observationRepo = new PostgresObservationRepository(pool);
-const patientRepo = new PostgresPatientRepository(pool);
-const pdfService = new ObservationPDFService();
+const patientRepo     = new PostgresPatientRepository(pool);
+const evolutionRepo   = new PostgresEvolutionPatientRepository(pool);
+const pdfService      = new ObservationPDFService();
 
 export class ObservationExportController {
-  // Télécharger une observation en PDF
+
   async downloadPDF(req: Request, res: Response, next: NextFunction) {
     try {
-      // Correction TS2345: on force la conversion en string avant parseInt
       const id = parseInt(req.params.id as string);
-      
+
       const observation = await observationRepo.findById(id);
       if (!observation) {
         return res.status(404).json({ success: false, message: 'Observation non trouvée' });
@@ -26,7 +27,10 @@ export class ObservationExportController {
         return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       }
 
-      const pdfDoc = pdfService.generatePDF(observation, patient);
+      // ✅ Récupérer les évolutions de cette observation
+      const evolutions = await evolutionRepo.findByObservationId(id);
+
+      const pdfDoc = pdfService.generatePDF(observation, patient, evolutions);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
@@ -42,10 +46,8 @@ export class ObservationExportController {
     }
   }
 
-  // Télécharger toutes les observations d'un patient en ZIP
   async downloadAllZIP(req: Request, res: Response, next: NextFunction) {
     try {
-      // Correction TS2345: cast as string
       const patientId = parseInt(req.params.patientId as string);
 
       const patient = await patientRepo.findById(patientId);
@@ -53,9 +55,7 @@ export class ObservationExportController {
         return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       }
 
-      // Correction TS2551: Utilisation du bon nom de méthode 'findByPatientId'
       const observations = await observationRepo.findByPatientId(patientId);
-      
       if (observations.length === 0) {
         return res.status(404).json({ success: false, message: 'Aucune observation trouvée' });
       }
@@ -71,12 +71,15 @@ export class ObservationExportController {
       archive.pipe(res);
 
       for (const [index, observation] of observations.entries()) {
-        const pdfDoc = pdfService.generatePDF(observation, patient);
+        // ✅ Récupérer les évolutions de chaque observation
+        const evolutions = await evolutionRepo.findByObservationId(observation.id_observation);
+
+        const pdfDoc = pdfService.generatePDF(observation, patient, evolutions);
         const pdfBuffer: Buffer[] = [];
 
         await new Promise<void>((resolve, reject) => {
           pdfDoc.on('data', (chunk) => pdfBuffer.push(chunk));
-          pdfDoc.on('end', () => resolve());
+          pdfDoc.on('end',  () => resolve());
           pdfDoc.on('error', reject);
           pdfDoc.end();
         });

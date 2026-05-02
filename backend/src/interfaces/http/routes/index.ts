@@ -29,6 +29,7 @@ import userPermissionsRoutes from './userPermissions.routes';
 import statsRoutes from './stats.routes';
 import setupRoutes from './setup.routes';
 import searchRoutes from './search.routes';
+import evolutionPatientRoutes from './evolution-patient.routes';
 
 
 
@@ -55,6 +56,7 @@ router.use('/prescriptions', prescriptionRoutes);
 
 router.use('/observations', observationExportRoutes); 
 router.use('/observations', observationRoutes);
+router.use('/evolutions', evolutionPatientRoutes);
 
 router.use('/notifications', notificationRoutes);
 router.use('/bilans-biologiques', bilanBiologiqueRoutes);

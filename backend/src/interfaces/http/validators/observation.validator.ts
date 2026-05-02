@@ -13,8 +13,8 @@ const baseObservationSchema = z.object({
   date_observation: z.coerce.date(),
 
   heure_observation: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  .string()
+  .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/),
 
   histoire_maladie: z.string().optional(),
 
@@ -102,6 +102,7 @@ const baseObservationSchema = z.object({
   resultats_examens_paracliniques: z.string().optional(),
   diagnostic_retenu: z.string().optional(),
   evolution_quotidienne: z.string().optional(),
+  signatures: z.record(z.string(), z.any()).optional(),
 
   medecin: z.string().min(1),
 });
@@ -154,9 +155,9 @@ export const updateObservationSchema = z.object({
   date_observation: z.coerce.date().optional(),
 
   heure_observation: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .optional(),
+  .string()
+  .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/)
+  .optional(),
 
   motif_consultation: z.string().optional(),
   motif_hospitalisation: z.string().optional(),
@@ -183,6 +184,7 @@ export const updateObservationSchema = z.object({
   resultats_examens_paracliniques: z.string().optional(),
   diagnostic_retenu: z.string().optional(),
   evolution_quotidienne: z.string().optional(),
+  signatures: z.record(z.string(), z.any()).optional(),
 
   medecin: z.string().optional(),
 });

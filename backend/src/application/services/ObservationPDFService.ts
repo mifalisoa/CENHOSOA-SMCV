@@ -2,9 +2,10 @@ import PDFDocument from 'pdfkit';
 import path from 'path';
 import type { Observation } from '../../domain/entities/Observation';
 import type { Patient } from '../../domain/entities/Patient';
+import type { EvolutionPatient } from '../../domain/entities/EvolutionPatient';
 
 export class ObservationPDFService {
-  generatePDF(observation: Observation, patient: Patient): PDFKit.PDFDocument {
+  generatePDF(observation: Observation, patient: Patient, evolutions: EvolutionPatient[] = []): PDFKit.PDFDocument {
     const doc = new PDFDocument({ size: 'A4', margins: { top: 30, bottom: 40, left: 50, right: 50 } });
 
     this.addOfficialHeader(doc, observation, patient);
@@ -17,6 +18,11 @@ export class ObservationPDFService {
     this.addSection(doc, 'RESULTAT DES EXAMENS PARACLINIQUES DEMANDES', observation.resultats_examens_paracliniques || '');
     this.addSection(doc, 'DIAGNOSTIC RETENU', observation.diagnostic_retenu || '');
     this.addSection(doc, 'CAT (Conduite a tenir)', observation.cat || '');
+
+    if (evolutions.length > 0) {
+      this.addMisesAJour(doc, evolutions);
+    }
+
     this.addSignature(doc, observation);
     return doc;
   }
@@ -113,6 +119,140 @@ export class ObservationPDFService {
     doc.text(`- Abdomen : ${p.abdomen || '...'} | Masse palpee : ${p.masse_palpee || '...'}`, 70, doc.y, { width: 475 })
        .text(`- Membres inferieurs (OMI) : ${p.membres_inferieurs_omi || '...'}`, 70, doc.y, { width: 475 });
     doc.moveDown(0.8);
+  }
+
+  private addMisesAJour(doc: PDFKit.PDFDocument, evolutions: EvolutionPatient[]) {
+    doc.addPage();
+
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000')
+       .text('MISE A JOUR', 50, doc.y, { width: 495, underline: true, align: 'center' });
+    doc.moveDown(1);
+
+    const sorted = [...evolutions].sort(
+      (a, b) => new Date(a.date_visite).getTime() - new Date(b.date_visite).getTime()
+    );
+
+    for (const evol of sorted) {
+      if (doc.y > 680) doc.addPage();
+
+      // ── En-tête visite ──
+      const dateVisite = new Date(evol.date_visite).toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+
+      const headerY = doc.y;
+      doc.roundedRect(50, headerY, 495, 24, 4).fillColor('#e0f2fe').fill();
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0c4a6e')
+         .text(
+           `Visite du : ${dateVisite}   ${evol.heure_visite}   —   Equipe de Dr ${evol.medecin}`,
+           55, headerY + 6, { width: 485 }
+         );
+      doc.fillColor('#000000');
+      doc.y = headerY + 34;
+
+      // ── Résumé ──
+      if (evol.resume_patient) {
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('RESUME concernant le patient :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(evol.resume_patient, 60, doc.y, { width: 485, align: 'justify' });
+        doc.moveDown(0.5);
+      }
+
+      // ── Paramètres vitaux ──
+      if (evol.parametres && Object.values(evol.parametres).some(Boolean)) {
+        const pv = evol.parametres;
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('Parametres :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(
+             `Etat general : ${pv.etat_general || '...'} | Conscience : ${pv.conscience || '...'}`,
+             60, doc.y, { width: 485 }
+           )
+           .text(
+             `TA G : ${pv.tension_arterielle_gauche || '...'} | TA D : ${pv.tension_arterielle_droite || '...'} | FC : ${pv.frequence_cardiaque || '...'} bpm | T : ${pv.temperature || '...'}°C | FR : ${pv.frequence_respiratoire || '...'} rpm | SaO2 : ${pv.saturation_oxygene || '...'}%`,
+             60, doc.y, { width: 485 }
+           )
+           .text(
+             `Poids : ${pv.poids || '...'} kg | Diurese : ${pv.diurese || '...'} | Tour de taille : ${pv.tour_taille || '...'} cm`,
+             60, doc.y, { width: 485 }
+           );
+        doc.moveDown(0.5);
+      }
+
+      // ── Examen physique central ──
+      if (evol.examen_physique_central && Object.values(evol.examen_physique_central).some(Boolean)) {
+        const ec = evol.examen_physique_central as Record<string, string>;
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('Examen physique - Groupe central :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(`- Choc de pointe : ${ec.choc_pointe || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- BDC : ${ec.bdc || '...'} | Souffles : ${ec.souffles || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Pouls peripheriques : ${ec.pouls_peripheriques || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Veines jugulaires : ${ec.veines_jugulaires || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Appareil respiratoire : ${ec.appareil_respiratoire || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Foie : ${ec.foie || '...'}`, 60, doc.y, { width: 485 });
+        doc.moveDown(0.5);
+      }
+
+      // ── Examen physique périphérique ──
+      if (evol.examen_physique_peripherique && Object.values(evol.examen_physique_peripherique).some(Boolean)) {
+        const ep = evol.examen_physique_peripherique as Record<string, string>;
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('Examen physique - Groupe peripherique :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(`- Conjonctives/muqueuses : ${ep.conjonctives_muqueuses || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Etat bucco-dentaire : ${ep.etat_bucco_dentaire || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Abdomen : ${ep.abdomen || '...'} | Masse palpee : ${ep.masse_palpee || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Membres inferieurs (OMI) : ${ep.membres_inferieurs_omi || '...'}`, 60, doc.y, { width: 485 })
+           .text(`- Mollets : ${ep.mollets || '...'} | Extremites : ${ep.extremites || '...'}`, 60, doc.y, { width: 485 });
+        doc.moveDown(0.5);
+      }
+
+      // ── Traitement ──
+      if (evol.traitement) {
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('Traitement :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(evol.traitement, 60, doc.y, { width: 485, align: 'justify' });
+        doc.moveDown(0.5);
+      }
+
+      // ── Problèmes posés ──
+      if (evol.problemes_poses) {
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('Problemes poses :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(evol.problemes_poses, 60, doc.y, { width: 485 });
+        doc.moveDown(0.5);
+      }
+
+      // ── CAT ──
+      if (evol.cat) {
+        doc.fontSize(10).font('Helvetica-Bold')
+           .text('CAT :', 50, doc.y, { width: 495 });
+        doc.moveDown(0.2);
+        doc.fontSize(9).font('Helvetica')
+           .text(evol.cat, 60, doc.y, { width: 485 });
+        doc.moveDown(0.5);
+      }
+
+      // Séparateur entre visites
+      doc.moveTo(50, doc.y)
+         .lineTo(545, doc.y)
+         .dash(2, { space: 3 })
+         .lineWidth(0.5)
+         .strokeColor('#cbd5e1')
+         .stroke()
+         .undash();
+      doc.moveDown(1);
+    }
   }
 
   private addSignature(doc: PDFKit.PDFDocument, observation: Observation) {
