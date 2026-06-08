@@ -18,6 +18,10 @@ import { toast }             from 'sonner';
 import { httpClient }        from '../../../../infrastructure/http/axios.config';
 import type { StatutValidation } from '../../../../shared/types';
 
+import { Printer } from 'lucide-react';
+import { ordonnanceToHTML, demandeExamenToHTML } from '../../../../shared/utils/printOrdonnance';
+import { printHTML } from '../../../../shared/utils/printUtils';
+
 interface TraitementsTabProps {
   patient: Patient;
 }
@@ -142,6 +146,16 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
       setDownloading(null);
     }
   };
+
+  const handlePrintGroupe = (groupe: typeof groupes[0]) => {
+  if (groupe.type === 'ordonnance') {
+    const html = ordonnanceToHTML(patient, groupe.items);
+    printHTML(html, `Ordonnance — ${patient.nom_patient} ${patient.prenom_patient}`);
+  } else {
+    const html = demandeExamenToHTML(patient, groupe.items[0]);
+    printHTML(html, `Demande examen — ${patient.nom_patient} ${patient.prenom_patient}`);
+  }
+};
 
   const handleDownloadAllZIP = async () => {
     if (traitements.length === 0) { toast.error('Aucun traitement à télécharger'); return; }
@@ -299,6 +313,14 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                         </>
                       )}
 
+                      <button
+                            onClick={() => handlePrintGroupe(groupe)}
+                            title="Imprimer"
+                            className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+                            <Printer className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Imprimer</span>
+                      </button>
+
                       <button onClick={() => handleDownloadPDF(groupe.items[0].id_traitement)}
                         disabled={downloading === groupe.items[0].id_traitement}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
@@ -307,6 +329,8 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                           : <Download className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">PDF</span>
                       </button>
+
+                  
 
                       <button onClick={() => setExpandedKey(isExpanded ? null : groupe.key)}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all text-xs font-medium flex items-center gap-1.5">

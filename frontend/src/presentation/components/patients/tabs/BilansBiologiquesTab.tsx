@@ -11,6 +11,10 @@ import { PermissionGuard } from '../../common/PermissionGuard';
 import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from "../../../../infrastructure/http/axios.config";
+import { Printer } from 'lucide-react';
+import { printHTML } from '../../../../shared/utils/printUtils';
+import { bilanToHTML } from '../../../../shared/utils/printBilan';
+import { patientHeaderHTML, footerHTML } from '../../../../shared/utils/printObservation';
 
 interface BilansBiologiquesTabProps {
   patient: Patient;
@@ -150,6 +154,19 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
     }
   };
 
+  const handlePrintBilan = (bilan: BilanBiologique) => {
+  const html = patientHeaderHTML(patient) + bilanToHTML(bilan) + footerHTML();
+  printHTML(html, `Bilan biologique — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
+
+const handlePrintAllBilans = () => {
+  if (bilans.length === 0) return;
+  const html = patientHeaderHTML(patient)
+    + bilans.map(b => bilanToHTML(b)).join('<hr class="obs-separator" />')
+    + footerHTML();
+  printHTML(html, `Bilans biologiques — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
+
   const countAbnormal = (bilan: typeof bilans[0]): number => {
     const keys: Array<keyof typeof bilan> = ['creatinine', 'glycemie', 'crp', 'inr', 'nfs'];
     return keys.filter(k => {
@@ -204,6 +221,15 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
               }
             </button>
           )}
+
+          {bilans.length > 0 && (
+  <button onClick={handlePrintAllBilans}
+    title="Imprimer tous les bilans"
+    className="flex-1 sm:flex-none px-3 py-2 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center justify-center gap-2 text-sm">
+    <Printer className="w-4 h-4" />
+    <span className="hidden sm:inline">Imprimer</span>
+  </button>
+)}
 
           <PermissionGuard permission="bilans.write">
             <button
@@ -308,7 +334,7 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                         <button
                           onClick={() => setEditingBilan(bilan)}
                           title="Modifier ce bilan"
-                          className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs"
+                        className="px-3 py-1.5 bg-cyan-50 text-cyan-600 border border-cyan-200 rounded-lg hover:bg-cyan-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">Modifier</span>
@@ -327,6 +353,14 @@ export default function BilansBiologiquesTab({ patient }: BilansBiologiquesTabPr
                         }
                         <span className="hidden sm:inline">PDF</span>
                       </button>
+
+                      <button
+  onClick={() => handlePrintBilan(bilan)}
+  title="Imprimer ce bilan"
+  className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+  <Printer className="w-3.5 h-3.5" />
+  <span className="hidden sm:inline">Imprimer</span>
+</button>
 
                       {hasDetails && (
                         <button

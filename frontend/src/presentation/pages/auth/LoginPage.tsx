@@ -274,26 +274,114 @@ export default function LoginPage() {
           className="w-full max-w-5xl bg-white rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden">
           <div className="flex flex-col md:flex-row">
 
-            {/* Left Panel */}
-            <div className="w-full md:w-5/12 bg-gradient-to-br from-cyan-500 to-cyan-700 flex flex-col items-center justify-center text-white relative overflow-hidden py-10 md:py-0 md:min-h-[640px]">
-              <div className="absolute top-0 left-0 w-80 h-80 bg-white/10 rounded-full -translate-x-40 -translate-y-40" />
-              <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full translate-x-40 translate-y-40" />
-              <div className="relative z-10 flex flex-col items-center gap-4 px-8">
-                <motion.img src="/logo.png" alt="CENHOSOA"
-                  className="w-60 h-60 md:w-80 md:h-80 object-contain drop-shadow-xl"
-                  initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
-                />
-                <div className="text-center hidden md:block">
-                  <div className="mt-4 h-px bg-white/20 w-24 mx-auto" />
-                  <p className="text-cyan-200 text-xs mt-3 leading-relaxed">
-                    Plateforme numérique de gestion<br />des dossiers patients
-                  </p>
-                </div>
-              </div>
-            </div>
+{/* Left Panel */}
+<div className="w-full md:w-5/12 bg-gradient-to-br from-cyan-600 via-cyan-500 to-teal-500 flex flex-col items-center justify-center text-white relative overflow-hidden py-6 md:py-0 md:min-h-[640px]">
+  
+  <div className="absolute top-0 left-0 w-80 h-80 bg-white/10 rounded-full -translate-x-40 -translate-y-40" />
+  <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full translate-x-40 translate-y-40" />
+  <div className="absolute top-1/2 left-0 w-40 h-40 bg-teal-400/20 rounded-full -translate-x-20 -translate-y-20" />
 
-            {/* Right Panel */}
+  <div className="relative z-10 flex flex-col items-center gap-2 px-6 w-full">
+
+    {/* Titre hôpital — visible partout */}
+    <div className="text-center">
+      <p className="text-white/90 text-xs md:text-sm font-black tracking-[0.15em] uppercase leading-relaxed drop-shadow-lg">
+        CENTRE HOSPITALIER<br />DE SOAVINANDRIANA<br />ANTANANARIVO
+      </p>
+    </div>
+
+    {/* Logo — plus petit sur mobile */}
+    <motion.img
+      src="/logo1.png"
+      alt="CENHOSOA"
+      className="w-40 md:w-80 object-contain drop-shadow-2xl"
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
+    />
+
+    {/* Séparateur */}
+    <div className="flex items-center gap-3 w-full px-4">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/50" />
+      <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
+      <div className="w-2 h-2 rounded-full bg-white" />
+      <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
+      <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/50" />
+    </div>
+
+    {/* Infos service — visible partout */}
+    <div className="text-center w-full">
+      <p className="text-white text-sm md:text-lg font-black tracking-wide drop-shadow-lg leading-snug">
+        Services des Maladies Cardiovasculaires
+      </p>
+
+      <div className="mt-1 flex items-center justify-center gap-2">
+        <div className="h-px bg-white/30 w-8" />
+        <p className="text-cyan-100 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.25em]">
+          Chef de service
+        </p>
+        <div className="h-px bg-white/30 w-8" />
+      </div>
+
+      <p className="text-white text-xs md:text-sm font-black mt-0.5 drop-shadow-lg tracking-wide">
+        Médecin Colonel RAVAOAVY Hariniaina
+      </p>
+    </div>
+
+    {/* Séparateur */}
+    <div className="flex items-center gap-3 w-full px-4">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/50" />
+      <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
+      <div className="w-2 h-2 rounded-full bg-white" />
+      <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
+      <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/50" />
+    </div>
+
+    {/* SMCV Digital animé — visible partout */}
+    <div className="text-center">
+      <div className="flex items-center gap-2 justify-center mb-1">
+        <div className="w-4 h-px bg-white/60" />
+        <span className="text-[8px] md:text-[9px] text-cyan-200 font-semibold tracking-[0.3em] uppercase">
+          Système de gestion médicale
+        </span>
+        <div className="w-4 h-px bg-white/60" />
+      </div>
+
+      <div className="relative inline-flex items-center justify-center">
+        <motion.div
+          className="absolute inset-0 rounded-xl bg-white/10 blur-md"
+          animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.95, 1.05, 0.95] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.p
+          className="relative text-2xl md:text-3xl font-black tracking-tight text-white drop-shadow-lg px-4 py-1"
+          animate={{ textShadow: [
+            '0 0 8px rgba(255,255,255,0.3)',
+            '0 0 20px rgba(255,255,255,0.8)',
+            '0 0 8px rgba(255,255,255,0.3)',
+          ]}}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          SMCV <span className="text-cyan-200 font-light italic">Digital</span>
+        </motion.p>
+      </div>
+
+      <div className="flex gap-1.5 justify-center mt-1">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <motion.div
+            key={i}
+            className={`rounded-full bg-white ${i === 2 ? 'w-4 h-1.5' : 'w-1.5 h-1.5'}`}
+            animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+          />
+        ))}
+      </div>
+    </div>
+
+  </div>
+</div>
+       {/* Right Panel */}
+     
             <div className="w-full md:w-7/12 p-6 sm:p-8 md:p-10 flex flex-col justify-center">
               <div className="max-w-sm mx-auto w-full">
                 <div className="mb-7">

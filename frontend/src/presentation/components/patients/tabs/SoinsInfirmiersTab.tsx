@@ -8,8 +8,7 @@ import { fr } from 'date-fns/locale';
 import {
   Plus, Syringe, Calendar, Clock, CheckCircle, Activity,
   Download, FileArchive, ChevronDown, ChevronUp, Pencil,
-  Clock3, XCircle, ShieldCheck,
-} from 'lucide-react';
+  Clock3, XCircle, ShieldCheck,  Printer,} from 'lucide-react';
 import AddSoinInfirmierModal  from './AddSoinInfirmierModal';
 import EditSoinInfirmierModal from './EditSoinInfirmierModal';
 import { PermissionGuard }   from '../../common/PermissionGuard';
@@ -17,6 +16,9 @@ import { SignatureBadge }    from '../../common/SignatureBadge';
 import { toast }             from 'sonner';
 import { httpClient }        from '../../../../infrastructure/http/axios.config';
 import type { StatutValidation } from '../../../../shared/types';
+
+import { soinInfirmierToHTML } from '../../../../shared/utils/printSoinInfirmier';
+import { printHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printUtils';
 
 interface SoinsInfirmiersTabProps {
   patient: Patient;
@@ -138,6 +140,11 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
       setDownloading(null);
     }
   };
+
+  const handlePrintSoin = (soin: SoinInfirmier) => {
+  const html = patientHeaderHTML(patient) + soinInfirmierToHTML(soin) + footerHTML();
+  printHTML(html, `Soin infirmier — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
 
   const handleDownloadAllZIP = async () => {
     if (soins.length === 0) { toast.error('Aucun soin à télécharger'); return; }
@@ -307,6 +314,15 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                           : <Download className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">PDF</span>
                       </button>
+
+                      <button
+  onClick={() => handlePrintSoin(soin)}
+  title="Imprimer ce soin"
+  className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs"
+>
+  <Printer className="w-3.5 h-3.5" />
+  <span className="hidden sm:inline">Imprimer</span>
+</button>
 
                       {hasDetails && (
                         <button onClick={() => setExpandedId(isExpanded ? null : soin.id_soin_infirmier)}

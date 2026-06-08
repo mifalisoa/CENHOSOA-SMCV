@@ -48,7 +48,7 @@ const ROLE_DISPLAY_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> =
 function SetupGuard({ children }: { children: React.ReactNode }) {
   const [setupDone, setSetupDone] = useState<boolean | null>(null);
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/setup/status`)
+    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/setup/status`)
       .then(res => setSetupDone(res.data.data.setup_done))
       .catch(() => setSetupDone(true));
   }, []);

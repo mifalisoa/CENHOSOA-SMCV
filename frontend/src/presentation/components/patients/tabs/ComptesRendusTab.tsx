@@ -11,6 +11,10 @@ import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from '../../../../infrastructure/http/axios.config';
 
+import { Printer } from 'lucide-react';
+import { compteRenduToHTML } from '../../../../shared/utils/printCompteRendu';
+import { printHTML } from '../../../../shared/utils/printUtils';
+
 interface ComptesRendusTabProps {
   patient: Patient;
 }
@@ -65,6 +69,11 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
     };
     return badges[modalite as keyof typeof badges] ?? badges.ameliore;
   };
+
+  const handlePrintCR = (cr: typeof comptesRendus[0]) => {
+  const html = compteRenduToHTML(patient, cr);
+  printHTML(html, `Compte rendu — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
 
   // ── Chargement / erreur ───────────────────────────────────────────────────────
 
@@ -191,6 +200,14 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                         </span>
                       </div>
                     </div>
+
+                    <button
+  onClick={() => handlePrintCR(cr)}
+  title="Imprimer"
+  className="px-3 py-1.5 bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-lg hover:bg-cyan-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs shrink-0">
+  <Printer className="w-3.5 h-3.5" />
+  <span className="hidden sm:inline">Imprimer</span>
+</button>
 
                     {/* Bouton PDF */}
                     <button

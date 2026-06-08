@@ -8,8 +8,10 @@ import { fr } from 'date-fns/locale';
 import {
   Plus, Heart, Calendar, Clock, CheckCircle, FileText,
   Download, FileArchive, ChevronDown, ChevronUp, Pencil,
-  Clock3, XCircle, ShieldCheck,
+  Clock3, XCircle, ShieldCheck, Printer,
 } from 'lucide-react';
+import { soinMedicalToHTML } from '../../../../shared/utils/printSoinMedical';
+import { printHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printUtils';
 import AddSoinMedicalModal    from './AddSoinMedicalModal';
 import EditSoinMedicalModal   from './EditSoinMedicalModal';
 import { PermissionGuard }    from '../../common/PermissionGuard';
@@ -116,6 +118,11 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
       setDownloading(null);
     }
   };
+
+  const handlePrintSoin = (soin: SoinMedical) => {
+  const html = patientHeaderHTML(patient) + soinMedicalToHTML(soin) + footerHTML();
+  printHTML(html, `Soin médical — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
 
   const handleDownloadAllZIP = async () => {
     if (soins.length === 0) { toast.error('Aucun soin à télécharger'); return; }
@@ -284,6 +291,14 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                           <span className="hidden sm:inline">Modifier</span>
                         </button>
                       </PermissionGuard>
+
+                      <button
+  onClick={() => handlePrintSoin(soin)}
+  title="Imprimer"
+  className="px-3 py-1.5 bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-lg hover:bg-cyan-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+  <Printer className="w-3.5 h-3.5" />
+  <span className="hidden sm:inline">Imprimer</span>
+</button>
 
                       <button onClick={() => handleDownloadPDF(soin.id_soin_medical)}
                         disabled={downloading === soin.id_soin_medical}

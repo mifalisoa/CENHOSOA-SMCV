@@ -17,6 +17,9 @@ import { PermissionGuard } from '../../common/PermissionGuard';
 import { SignatureBadge } from '../../common/SignatureBadge';
 import { toast } from 'sonner';
 import { httpClient } from '../../../../infrastructure/http/axios.config';
+import { Printer } from 'lucide-react';
+import { printHTML } from '../../../../shared/utils/printUtils';
+import { observationToHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printObservation';
 
 interface ObservationsTabProps {
   patient: Patient;
@@ -204,6 +207,25 @@ export default function ObservationsTab({ patient }: ObservationsTabProps) {
     }
   };
 
+  // Dans le composant ObservationsTab, après les states existants :
+const handlePrintObservation = (obs: Observation) => {
+  const obsEvolutions = evolutionsByObs.get(obs.id_observation) ?? [];
+  const html = patientHeaderHTML(patient)
+    + observationToHTML(obs, obsEvolutions)
+    + footerHTML();
+  printHTML(html, `Observation — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
+
+const handlePrintAllObservations = () => {
+  if (observations.length === 0) return;
+  const obsHTML = observations.map(obs => {
+    const obsEvolutions = evolutionsByObs.get(obs.id_observation) ?? [];
+    return observationToHTML(obs, obsEvolutions);
+  }).join('<hr class="obs-separator" />');
+  const html = patientHeaderHTML(patient) + obsHTML + footerHTML();
+  printHTML(html, `Observations — ${patient.nom_patient} ${patient.prenom_patient}`);
+};
+
   if (loading && observations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -246,6 +268,14 @@ export default function ObservationsTab({ patient }: ObservationsTabProps) {
                 : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
+          {observations.length > 0 && (
+  <button onClick={handlePrintAllObservations}
+    title="Imprimer toutes les observations"
+    className="flex-1 sm:flex-none px-3 py-2 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center justify-center gap-2 text-sm">
+    <Printer className="w-4 h-4" />
+    <span className="hidden sm:inline">Imprimer</span>
+  </button>
+)}
           <PermissionGuard permission="observations.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -352,6 +382,14 @@ export default function ObservationsTab({ patient }: ObservationsTabProps) {
                         : <Download className="w-3.5 h-3.5" />}
                       <span className="hidden sm:inline">PDF</span>
                     </button>
+
+                    <button
+  onClick={() => handlePrintObservation(obs)}
+  title="Imprimer cette observation"
+  className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+  <Printer className="w-3.5 h-3.5" />
+  <span className="hidden sm:inline">Imprimer</span>
+</button>
                   </div>
                 </div>
 
