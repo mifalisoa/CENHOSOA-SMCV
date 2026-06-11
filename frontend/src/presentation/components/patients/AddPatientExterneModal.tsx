@@ -15,7 +15,6 @@ interface AddPatientExterneModalProps {
   onSubmit: (data: CreatePatientDTO) => Promise<{ id_patient: number; nom_patient: string; prenom_patient: string }>;
 }
 
-// ← Type pour les médecins chargés depuis l'API
 interface Medecin {
   id_user: number;
   nom: string;
@@ -30,16 +29,15 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     statut_patient: 'externe',
   });
 
-  // ← États médecins
   const [medecins, setMedecins] = useState<Medecin[]>([]);
   const [loadingMedecins, setLoadingMedecins] = useState(false);
+  const [telError, setTelError] = useState('');
 
   const [step, setStep] = useState<'form' | 'confirm'>('form');
   const [newPatientId, setNewPatientId] = useState<number | null>(null);
   const [newPatientName, setNewPatientName] = useState('');
   const [showRdvModal, setShowRdvModal] = useState(false);
 
-  // ← Charger les médecins à l'ouverture du modal
   useEffect(() => {
     if (isOpen) loadMedecins();
   }, [isOpen]);
@@ -61,7 +59,6 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
         : [];
       setMedecins(mapped);
     } catch {
-      // Si l'API échoue, le champ restera vide — pas bloquant
       setMedecins([]);
     } finally {
       setLoadingMedecins(false);
@@ -72,12 +69,42 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // ── Nom : tout en majuscules ──
+  const handleNomChange = (value: string) => {
+    handleChange('nom_patient', value.toUpperCase());
+  };
+
+  // ── Prénom : première lettre de chaque mot en majuscule ──
+  const handlePrenomChange = (value: string) => {
+    const capitalized = value
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    handleChange('prenom_patient', capitalized);
+  };
+
+  // ── Téléphone : chiffres uniquement, exactement 10 ──
+  const handleTelChange = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    handleChange('tel_patient', digits);
+    if (digits.length > 0 && digits.length !== 10) {
+      setTelError('Le numéro doit contenir exactement 10 chiffres (ex: 0321715517)');
+    } else {
+      setTelError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.nom_patient || !formData.prenom_patient || !formData.date_naissance ||
         !formData.adresse_patient || !formData.medecin_traitant) {
       toast.error('Veuillez remplir tous les champs obligatoires (*)');
+      return;
+    }
+
+    if (formData.tel_patient && formData.tel_patient.toString().replace(/\D/g, '').length !== 10) {
+      toast.error('Le numéro de téléphone doit contenir exactement 10 chiffres');
       return;
     }
 
@@ -100,11 +127,11 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
     setNewPatientId(null);
     setNewPatientName('');
     setShowRdvModal(false);
+    setTelError('');
     setFormData({ sexe_patient: 'M', statut_patient: 'externe' });
     onClose();
   };
 
-  // Backdrop bloqué en étape confirm pour éviter fermeture accidentelle
   const handleBackdropClick = () => {
     if (step === 'confirm') return;
     handleClose();
@@ -112,9 +139,10 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
 
   const assurances = [
     { value: '', label: 'Aucun' },
-    { value: 'PAS', label: 'PAS' },
-    { value: 'FMILIF', label: 'FMILIF' },
-    { value: 'OCONV', label: 'OCONV' },
+    { value: 'PASF', label: 'PASF' },
+    { value: 'MILI', label: 'MILI' },
+    { value: 'FO', label: 'FO' },
+    { value: 'CONV', label: 'CONV' },
     { value: 'PERS', label: 'PERS' },
   ];
 
@@ -164,11 +192,21 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Nom <span className="text-red-500">*</span></label>
-                            <Input value={formData.nom_patient || ''} onChange={(e) => handleChange('nom_patient', e.target.value)} placeholder="Nom du patient" required />
+                            <Input
+                              value={formData.nom_patient || ''}
+                              onChange={(e) => handleNomChange(e.target.value)}
+                              placeholder="NOM DU PATIENT"
+                              required
+                            />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Prénom <span className="text-red-500">*</span></label>
-                            <Input value={formData.prenom_patient || ''} onChange={(e) => handleChange('prenom_patient', e.target.value)} placeholder="Prénom du patient" required />
+                            <Input
+                              value={formData.prenom_patient || ''}
+                              onChange={(e) => handlePrenomChange(e.target.value)}
+                              placeholder="Prénom du patient"
+                              required
+                            />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Date de naissance <span className="text-red-500">*</span></label>
@@ -203,12 +241,24 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700">Téléphone</label>
-                            <Input type="tel" value={formData.tel_patient || ''} onChange={(e) => handleChange('tel_patient', e.target.value)} placeholder="034 00 000 00" />
+                            <Input
+                              type="tel"
+                              value={formData.tel_patient || ''}
+                              onChange={(e) => handleTelChange(e.target.value)}
+                              placeholder="0321715517"
+                              maxLength={10}
+                              className={telError ? 'border-red-400 focus:ring-red-400' : ''}
+                            />
+                            {telError && (
+                              <p className="text-xs text-red-500 flex items-center gap-1">
+                                <span>⚠</span> {telError}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* ── Médecin traitant — select dynamique ── */}
+                      {/* ── Médecin traitant ── */}
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                           <Stethoscope className="w-5 h-5 text-cyan-600" />Suivi médical
@@ -237,7 +287,6 @@ export function AddPatientExterneModal({ isOpen, onClose, onSubmit }: AddPatient
                               ))}
                             </select>
                           ) : (
-                            // Fallback saisie libre si aucun médecin chargé
                             <Input
                               value={formData.medecin_traitant || ''}
                               onChange={(e) => handleChange('medecin_traitant', e.target.value)}

@@ -8,7 +8,8 @@ import { fr } from 'date-fns/locale';
 import {
   Plus, Syringe, Calendar, Clock, CheckCircle, Activity,
   Download, FileArchive, ChevronDown, ChevronUp, Pencil,
-  Clock3, XCircle, ShieldCheck,  Printer,} from 'lucide-react';
+  Clock3, XCircle, ShieldCheck, Printer,
+} from 'lucide-react';
 import AddSoinInfirmierModal  from './AddSoinInfirmierModal';
 import EditSoinInfirmierModal from './EditSoinInfirmierModal';
 import { PermissionGuard }   from '../../common/PermissionGuard';
@@ -16,7 +17,6 @@ import { SignatureBadge }    from '../../common/SignatureBadge';
 import { toast }             from 'sonner';
 import { httpClient }        from '../../../../infrastructure/http/axios.config';
 import type { StatutValidation } from '../../../../shared/types';
-
 import { soinInfirmierToHTML } from '../../../../shared/utils/printSoinInfirmier';
 import { printHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printUtils';
 
@@ -142,9 +142,9 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
   };
 
   const handlePrintSoin = (soin: SoinInfirmier) => {
-  const html = patientHeaderHTML(patient) + soinInfirmierToHTML(soin) + footerHTML();
-  printHTML(html, `Soin infirmier — ${patient.nom_patient} ${patient.prenom_patient}`);
-};
+    const html = patientHeaderHTML(patient) + soinInfirmierToHTML(soin) + footerHTML();
+    printHTML(html, `Soin infirmier — ${patient.nom_patient} ${patient.prenom_patient}`);
+  };
 
   const handleDownloadAllZIP = async () => {
     if (soins.length === 0) { toast.error('Aucun soin à télécharger'); return; }
@@ -306,6 +306,13 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                         </button>
                       </PermissionGuard>
 
+                      <button onClick={() => handlePrintSoin(soin)}
+                        title="Imprimer ce soin"
+                        className="px-3 py-1.5 bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-lg hover:bg-cyan-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs">
+                        <Printer className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Imprimer</span>
+                      </button>
+
                       <button onClick={() => handleDownloadPDF(soin.id_soin_infirmier)}
                         disabled={downloading === soin.id_soin_infirmier}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
@@ -314,15 +321,6 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                           : <Download className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">PDF</span>
                       </button>
-
-                      <button
-  onClick={() => handlePrintSoin(soin)}
-  title="Imprimer ce soin"
-  className="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs"
->
-  <Printer className="w-3.5 h-3.5" />
-  <span className="hidden sm:inline">Imprimer</span>
-</button>
 
                       {hasDetails && (
                         <button onClick={() => setExpandedId(isExpanded ? null : soin.id_soin_infirmier)}
@@ -355,29 +353,47 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
 
                 {isExpanded && hasDetails && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 sm:px-5 py-4 space-y-3">
-                    {[
-                      { value: soin.ecg,          label: 'ECG',                           icon: <Activity className="w-4 h-4 text-gray-500" /> },
-                      { value: soin.ecg_dii_long, label: 'ECG DII Long',                  icon: <Activity className="w-4 h-4 text-gray-500" /> },
-                      { value: soin.injection_iv, label: 'Injection intraveineuse (IV)',   icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
-                      { value: soin.injection_im, label: 'Injection intramusculaire (IM)', icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
-                      { value: soin.pse,          label: 'PSE — Pousse-Seringue',         icon: <Activity className="w-4 h-4 text-gray-500" /> },
-                      { value: soin.pansement,    label: 'Pansement',                     icon: <span className="text-sm">🩹</span>             },
-                      { value: soin.autre_soins,  label: 'Autres soins',                  icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
-                    ]
-                      .filter(({ value }) => !!value)
-                      .map(({ value, label, icon }) => (
-                        <div key={label} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
-                          <div className="flex items-start gap-2">
-                            <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                              {icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
-                              <p className="text-sm text-gray-800 whitespace-pre-line break-words leading-relaxed">{value}</p>
-                            </div>
-                          </div>
+
+                    {statut === 'en_attente' && user?.role === 'infirmier' ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Clock3 className="w-6 h-6 text-amber-600" />
                         </div>
-                      ))}
+                        <h4 className="text-sm font-semibold text-amber-800 mb-1">
+                          En attente de validation médecin
+                        </h4>
+                        <p className="text-xs text-amber-600">
+                          Cet acte doit être validé par un médecin avant d'être exécuté.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {[
+                          { value: soin.ecg,          label: 'ECG',                           icon: <Activity className="w-4 h-4 text-gray-500" /> },
+                          { value: soin.ecg_dii_long, label: 'ECG DII Long',                  icon: <Activity className="w-4 h-4 text-gray-500" /> },
+                          { value: soin.injection_iv, label: 'Injection intraveineuse (IV)',   icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
+                          { value: soin.injection_im, label: 'Injection intramusculaire (IM)', icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
+                          { value: soin.pse,          label: 'PSE — Pousse-Seringue',         icon: <Activity className="w-4 h-4 text-gray-500" /> },
+                          { value: soin.pansement,    label: 'Pansement',                     icon: <span className="text-sm">🩹</span>             },
+                          { value: soin.autre_soins,  label: 'Autres soins',                  icon: <Syringe  className="w-4 h-4 text-gray-500" /> },
+                        ]
+                          .filter(({ value }) => !!value)
+                          .map(({ value, label, icon }) => (
+                            <div key={label} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                              <div className="flex items-start gap-2">
+                                <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                                  {icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+                                  <p className="text-sm text-gray-800 whitespace-pre-line break-words leading-relaxed">{value}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </>
+                    )}
+
                   </div>
                 )}
               </div>

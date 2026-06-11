@@ -199,11 +199,13 @@ export function patientHeaderHTML(patient: {
   const formatDate = (d?: Date | string) =>
     d ? new Date(d).toLocaleDateString('fr-FR') : '—';
 
+  // ── Mapping des nouvelles valeurs d'assurance ──
   const assuranceLabel: Record<string, string> = {
-    PAS:    'Sans assurance',
-    FMILIF: 'FMILIF',
-    OCONV:  'OCONV',
-    PERS:   'Personnel',
+    PASF: 'PASF',
+    MILI: 'MILI',
+    FO:   'FO',
+    CONV: 'CONV',
+    PERS: 'Personnel',
   };
 
   return `

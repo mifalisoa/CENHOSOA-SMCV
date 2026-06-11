@@ -7,37 +7,38 @@ export class PostgresSoinInfirmierRepository implements ISoinInfirmierRepository
   constructor(private pool: Pool) {}
 
   async create(soin: Omit<SoinInfirmier, 'id_soin_infirmier' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>): Promise<SoinInfirmier> {
-    const query = `
-      INSERT INTO soins_infirmiers (
-        id_patient, id_admission, date_soin, heure_soin,
-        ecg, ecg_dii_long, injection_iv, injection_im, pse, pansement, autre_soins,
-        realise_par, cree_par_id,
-        verifie, statut, mode_garde
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, false, 'en_attente', false
-      ) RETURNING *
-    `;
+  const query = `
+    INSERT INTO soins_infirmiers (
+      id_patient, id_admission, date_soin, heure_soin,
+      ecg, ecg_dii_long, injection_iv, injection_im, pse, pansement, autre_soins,
+      realise_par, cree_par_id,
+      verifie, statut, mode_garde
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false
+    ) RETURNING *
+  `;
 
-    const values = [
-      soin.id_patient,
-      soin.id_admission  || null,
-      soin.date_soin,
-      soin.heure_soin,
-      soin.ecg           || null,
-      soin.ecg_dii_long  || null,
-      soin.injection_iv  || null,
-      soin.injection_im  || null,
-      soin.pse           || null,
-      soin.pansement     || null,
-      soin.autre_soins   || null,
-      soin.realise_par,
-      soin.cree_par_id   || null,
-    ];
+  const values = [
+    soin.id_patient,
+    soin.id_admission  || null,
+    soin.date_soin,
+    soin.heure_soin,
+    soin.ecg           || null,
+    soin.ecg_dii_long  || null,
+    soin.injection_iv  || null,
+    soin.injection_im  || null,
+    soin.pse           || null,
+    soin.pansement     || null,
+    soin.autre_soins   || null,
+    soin.realise_par,
+    soin.cree_par_id   || null,
+    soin.verifie,                          // ← utilise la valeur passée
+    soin.verifie ? 'valide' : 'en_attente', // ← statut cohérent avec verifie
+  ];
 
-    const result = await this.pool.query(query, values);
-    return this.mapRowToSoin(result.rows[0]);
-  }
-
+  const result = await this.pool.query(query, values);
+  return this.mapRowToSoin(result.rows[0]);
+}
   async findById(id: number): Promise<SoinInfirmier | null> {
     const query = `
       SELECT si.*,

@@ -1,7 +1,7 @@
 // src/shared/utils/printSoinMedical.ts
 import type { SoinMedical } from '../../core/entities/SoinMedical';
 import type { Patient }     from '../../core/entities/Patient';
-import { printHTML }        from './printUtils';
+import { printHTML, patientHeaderHTML, footerHTML } from './printUtils';
 
 function formatDate(date: string | Date): string {
   return new Date(date).toLocaleDateString('fr-FR', {
@@ -50,7 +50,7 @@ function soinFieldsHTML(soin: SoinMedical): string {
 }
 
 export function soinMedicalToHTML(soin: SoinMedical): string {
-  const date      = formatDate(soin.date_soin);
+  const date       = formatDate(soin.date_soin);
   const statutInfo = getStatutInfo(soin);
 
   return `
@@ -84,7 +84,6 @@ export function soinMedicalToHTML(soin: SoinMedical): string {
 }
 
 export function printSoinMedical(patient: Patient, soin: SoinMedical): void {
-  const { patientHeaderHTML, footerHTML } = require('./printUtils');
   const html = patientHeaderHTML(patient) + soinMedicalToHTML(soin) + footerHTML();
   printHTML(html, `Soin médical — ${patient.nom_patient} ${patient.prenom_patient}`);
 }
