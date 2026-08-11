@@ -197,36 +197,23 @@ export default function LoginPage() {
   }, [email, touched.email]);
 
   useEffect(() => {
-    if (!touched.password) return;
-    if (!password) setErrors(p => ({ ...p, password: 'Mot de passe requis' }));
-    else if (password.length < 6) setErrors(p => ({ ...p, password: 'Minimum 6 caractères' }));
-    else setErrors(p => ({ ...p, password: '' }));
-  }, [password, touched.password]);
+  if (!touched.password) return;
+  if (!password) setErrors(p => ({ ...p, password: 'Mot de passe requis' }));
+  else setErrors(p => ({ ...p, password: '' }));
+}, [password, touched.password]);
 
-  const isFormValid = !!(email && password.length >= 6 && /\S+@\S+\.\S+/.test(email) && !errors.email && !errors.password);
+  const isFormValid = !!(email && password && /\S+@\S+\.\S+/.test(email) && !errors.email && !errors.password);
 
-  const getStrength = () => {
-    if (!password) return null;
-    let s = 0;
-    if (password.length >= 6)          s++;
-    if (password.length >= 10)         s++;
-    if (/[A-Z]/.test(password))        s++;
-    if (/[0-9]/.test(password))        s++;
-    if (/[^A-Za-z0-9]/.test(password)) s++;
-    if (s <= 2) return { label: 'Faible', color: 'bg-red-400',   w: 'w-1/3' };
-    if (s <= 3) return { label: 'Moyen',  color: 'bg-amber-400', w: 'w-2/3' };
-    return           { label: 'Fort',    color: 'bg-green-500', w: 'w-full' };
-  };
-  const strength = getStrength();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked) return;
     setTouched({ email: true, password: true });
-    if (!email || !password || password.length < 6 || !/\S+@\S+\.\S+/.test(email)) return;
+    if (!email || !password || !/\S+@\S+\.\S+/.test(email)) return;
     setSubmitting(true);
     try {
-      // ✅ Récupère premier_connexion et redirige en conséquence
+      //  Récupère premier_connexion et redirige en conséquence
       const { premier_connexion } = await login(email, password);
       localStorage.removeItem(ATTEMPTS_KEY);
       localStorage.removeItem(LOCKOUT_KEY);
@@ -342,7 +329,7 @@ export default function LoginPage() {
       <div className="flex items-center gap-2 justify-center mb-1">
         <div className="w-4 h-px bg-white/60" />
         <span className="text-[8px] md:text-[9px] text-cyan-200 font-semibold tracking-[0.3em] uppercase">
-          Système de gestion médicale
+          Système de gestion dossier
         </span>
         <div className="w-4 h-px bg-white/60" />
       </div>
@@ -486,35 +473,7 @@ export default function LoginPage() {
                         </motion.p>
                       )}
                     </AnimatePresence>
-                    <AnimatePresence>
-                      {password && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full ${strength?.color} ${strength?.w} transition-all duration-500 rounded-full`} />
-                            </div>
-                            <span className={`text-xs font-medium ${strength?.label === 'Faible' ? 'text-red-500' : strength?.label === 'Moyen' ? 'text-amber-500' : 'text-green-600'}`}>
-                              {strength?.label}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            {[
-                              { ok: password.length >= 6,          label: '6 caractères min.' },
-                              { ok: /[A-Z]/.test(password),        label: 'Une majuscule' },
-                              { ok: /[0-9]/.test(password),        label: 'Un chiffre' },
-                              { ok: /[^A-Za-z0-9]/.test(password), label: 'Caractère spécial' },
-                            ].map((r, i) => (
-                              <div key={i} className="flex items-center gap-1.5">
-                                <div className={`w-3 h-3 rounded-full flex items-center justify-center transition-colors ${r.ok ? 'bg-green-500' : 'bg-gray-200'}`}>
-                                  {r.ok && <svg className="w-1.5 h-1.5 text-white" fill="none" viewBox="0 0 6 6"><path d="M1 3l1.5 1.5L5 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </div>
-                                <span className={`text-xs ${r.ok ? 'text-green-700' : 'text-gray-400'}`}>{r.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    
                   </div>
 
                   <div className="flex items-center justify-between">
