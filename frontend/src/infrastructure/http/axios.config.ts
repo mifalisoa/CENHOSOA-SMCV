@@ -26,7 +26,7 @@ class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // ✅ CORRECTION : Supprimer Content-Type pour FormData
+        //  CORRECTION : Supprimer Content-Type pour FormData
         if (config.data instanceof FormData) {
           delete config.headers['Content-Type'];
         }
@@ -64,7 +64,8 @@ class HttpClient {
           message: error.message,
         });
         
-        if (error.response?.status === 401) {
+        const isLoginRequest = error.config?.url?.includes('/auth/login');
+        if (error.response?.status === 401 && !isLoginRequest) {
           TokenStorage.clear();
           window.location.href = '/login';
         }
