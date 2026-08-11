@@ -243,7 +243,7 @@ export const exportStatsToPDF = (stats: StatsExportData) => {
     );
   }
 
-  const filename = `CENHOSOA_Statistiques_${stats.periode}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = ` CENHOSOA-SMCV_Statistiques_${stats.periode}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 };
 
@@ -323,6 +323,6 @@ export const exportStatsToExcel = (stats: StatsExportData) => {
   const wsRdvType = XLSX.utils.aoa_to_sheet(rdvTypeData);
   XLSX.utils.book_append_sheet(wb, wsRdvType, 'RDV par Type');
 
-  const filename = `CENHOSOA_Statistiques_${stats.periode}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const filename = ` CENHOSOA-SMCV_Statistiques_${stats.periode}_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, filename);
 };
