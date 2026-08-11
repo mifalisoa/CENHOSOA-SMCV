@@ -33,7 +33,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []);
 
-  // ✅ Login — retourne { premier_connexion } pour que LoginPage redirige
+  //  Login — retourne { premier_connexion } pour que LoginPage redirige
   const login = async (email: string, password: string): Promise<{ premier_connexion: boolean }> => {
     setIsLoading(true);
     try {

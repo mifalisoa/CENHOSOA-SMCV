@@ -19,7 +19,7 @@ export class AuthRepository implements IAuthRepository {
       const response = await httpClient.post<ApiResponse<{
         token:             string;
         user:              User;
-        premier_connexion?: boolean; // ✅ ajouté
+        premier_connexion?: boolean; //  ajouté
       }>>(
         '/auth/login',
         { email: credentials.email, mot_de_passe: credentials.password }
@@ -35,14 +35,14 @@ export class AuthRepository implements IAuthRepository {
 
         this.saveToken(token);
 
-        // ✅ Sauvegarde premier_connexion dans l'objet user pour le contexte
+        //  Sauvegarde premier_connexion dans l'objet user pour le contexte
         const userAvecFlag: User = { ...user, premier_connexion: premier_connexion ?? false };
         TokenStorage.saveUser(userAvecFlag);
 
         const persistedToken = TokenStorage.getToken();
         console.log('💾 [AuthRepository] Token persisté:', persistedToken?.substring(0, 20) + '...');
 
-        // ✅ Retourne premier_connexion pour que AuthContext puisse rediriger
+        //  Retourne premier_connexion pour que AuthContext puisse rediriger
         return { user: userAvecFlag, token, premier_connexion };
       }
 
