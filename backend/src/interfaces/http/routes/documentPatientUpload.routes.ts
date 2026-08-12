@@ -1,11 +1,15 @@
 // backend/src/interfaces/http/routes/documentPatientUploadRoutes.ts
 
+import { authMiddleware } from '../middlewares/auth.middleware';
+
 import { Router, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 const router = Router();
+
+router.use(authMiddleware); 
 
 /**
  * Configuration du stockage disque
