@@ -32,6 +32,8 @@ import setupRoutes from './setup.routes';
 import searchRoutes from './search.routes';
 import evolutionPatientRoutes from './evolution-patient.routes';
 
+import pieceJointeRoutes from './piece-jointe.routes';
+
 
 
 const router = Router();
@@ -88,6 +90,8 @@ router.use('/stats', statsRoutes);
 router.use('/setup', setupRoutes);
 
 router.use('/search', searchRoutes);
+
+router.use('/pieces-jointes', pieceJointeRoutes);
 
 
 export default router;
