@@ -5,9 +5,10 @@ import patientRoutes from './patient.routes';
 import rendezVousRoutes from './rendez-vous.routes';
 import admissionRoutes from './admission.routes';
 import litRoutes from './lit.routes';
+import litTransferRoutes from './litTransfer.routes';
 import prescriptionRoutes from './prescription.routes';
 import observationRoutes from './observation.routes';
-import observationExportRoutes from './observationExport.Routes'; 
+import observationExportRoutes from './observationExport.routes'; 
 import notificationRoutes from './notification.routes';
 import bilanBiologiqueRoutes from './bilan-biologique.routes';
 import soinMedicalRoutes from './soin-medical.routes';
@@ -15,14 +16,14 @@ import soinInfirmierRoutes from './soin-infirmier.routes';
 import traitementRoutes from './traitement.routes';
 import documentPatientRoutes from './document-patient.routes';
 import compteRenduRoutes from './compte-rendu.routes';
-import bilanBiologiqueExportRoutes from './bilanBiologiqueExport.Routes';
-import soinMedicalExportRoutes from './soinMedicalExport.Routes';
-import soinInfirmierExportRoutes from './soinInfirmierExport.Routes';
-import traitementExportRoutes from './traitementExport.Routes';
-import documentPatientUploadRoutes from './documentPatientUpload.Routes';
-import documentPatientExportRoutes from './documentPatientExport.Routes';
-import patientDossierExportRoutes from './patientDossierExport.Routes';
-import patientTransferRoutes from './patientTransfer.Routes';
+import bilanBiologiqueExportRoutes from './bilanBiologiqueExport.routes';
+import soinMedicalExportRoutes from './soinMedicalExport.routes';
+import soinInfirmierExportRoutes from './soinInfirmierExport.routes';
+import traitementExportRoutes from './traitementExport.routes';
+import documentPatientUploadRoutes from './documentPatientUpload.routes';
+import documentPatientExportRoutes from './documentPatientExport.routes';
+import patientDossierExportRoutes from './patientDossierExport.routes';
+import patientTransferRoutes from './patientTransfer.routes';
 import securiteRoutes from './securite.routes';
 import dashboardRoutes from './dashboard.routes';
 import userPermissionsRoutes from './userPermissions.routes';
@@ -73,6 +74,8 @@ router.use('/soins-medicaux', soinMedicalExportRoutes);
 router.use('/soins-infirmiers', soinInfirmierExportRoutes);
 router.use('/traitements', traitementExportRoutes);
 
+
+router.use('/lits', litTransferRoutes);
 router.use('/lits', litRoutes);
 
 
