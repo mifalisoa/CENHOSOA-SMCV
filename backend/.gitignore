@@ -42,3 +42,6 @@ coverage/
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Fichiers uploadés par les utilisateurs (documents patients, photos)
+uploads/
