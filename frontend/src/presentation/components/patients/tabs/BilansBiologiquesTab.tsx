@@ -18,6 +18,8 @@ import { patientHeaderHTML, footerHTML } from '../../../../shared/utils/printObs
 
 import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
 
+import QuickBilanAttachmentButton from './QuickBilanAttachmentButton';
+
 interface BilansBiologiquesTabProps {
   patient: Patient;
 }
@@ -232,8 +234,10 @@ const handlePrintAllBilans = () => {
     <span className="hidden sm:inline">Imprimer</span>
   </button>
 )}
-
+            
           <PermissionGuard permission="bilans.write">
+<QuickBilanAttachmentButton patientId={patient.id_patient} createBilan={createBilan} />
+            
             <button
               onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm"
