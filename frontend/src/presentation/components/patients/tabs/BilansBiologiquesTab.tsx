@@ -16,6 +16,8 @@ import { printHTML } from '../../../../shared/utils/printUtils';
 import { bilanToHTML } from '../../../../shared/utils/printBilan';
 import { patientHeaderHTML, footerHTML } from '../../../../shared/utils/printObservation';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+
 interface BilansBiologiquesTabProps {
   patient: Patient;
 }
@@ -393,6 +395,14 @@ const handlePrintAllBilans = () => {
                       role="medecin"
                     />
                   )}
+
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+  <AjouterPieceJointeButton
+    entiteType="bilan_biologique"
+    entiteId={bilan.id_bilan}
+    patientId={patient.id_patient}
+  />
+</div>
                 </div>
 
                 {isExpanded && hasDetails && (
