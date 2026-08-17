@@ -21,6 +21,9 @@ import { Printer } from 'lucide-react';
 import { printHTML } from '../../../../shared/utils/printUtils';
 import { observationToHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printObservation';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+
+import QuickObservationAttachmentButton from './QuickObservationAttachmentButton';
 interface ObservationsTabProps {
   patient: Patient;
 }
@@ -275,7 +278,14 @@ const handlePrintAllObservations = () => {
     <Printer className="w-4 h-4" />
     <span className="hidden sm:inline">Imprimer</span>
   </button>
-)}
+)} 
+            
+          <QuickObservationAttachmentButton
+  patientId={patient.id_patient}
+  isHospitalise={isHospitalise}
+  createObservation={createObservation}
+/>
+
           <PermissionGuard permission="observations.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -417,6 +427,14 @@ const handlePrintAllObservations = () => {
                   date={String(obs.date_observation)}
                   heure={obs.heure_observation}
                 />
+
+                <div className="mt-3 pt-3 border-t border-gray-100">
+  <AjouterPieceJointeButton
+    entiteType="observation"
+    entiteId={obs.id_observation}
+    patientId={patient.id_patient}
+  />
+</div>
 
                 {/* Détails (accordion) */}
                 {isExpanded && (

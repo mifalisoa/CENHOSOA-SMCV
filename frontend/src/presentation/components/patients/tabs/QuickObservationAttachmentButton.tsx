@@ -1,0 +1,92 @@
+// frontend/src/presentation/components/patients/tabs/QuickObservationAttachmentButton.tsx
+
+import { useRef, useState } from 'react';
+import { Camera, Paperclip, Loader2 } from 'lucide-react';
+import { httpClient } from '../../../../infrastructure/http/axios.config';
+import { usePiecesJointes } from '../../../hooks/usePiecesJointes';
+import { useAuth } from '../../../hooks/useAuth';
+import type { CreateObservationDTO, Observation } from '../../../../core/entities/Observation';
+import type { TypePieceJointe } from '../../../../core/entities/PieceJointe';
+import { toast } from 'sonner';
+
+interface QuickObservationAttachmentButtonProps {
+  patientId:         number;
+  isHospitalise:      boolean;
+  createObservation:  (data: CreateObservationDTO) => Promise<Observation | null>;
+}
+
+export default function QuickObservationAttachmentButton({ patientId, isHospitalise, createObservation }: QuickObservationAttachmentButtonProps) {
+  const { user } = useAuth();
+  const [processing, setProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { createPieceJointe } = usePiecesJointes('observation', undefined);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setProcessing(true);
+    try {
+      const now = new Date();
+      const medecin = `${user?.prenom ?? ''} ${user?.nom ?? ''}`.trim() || 'Utilisateur inconnu';
+
+      const nouvelleObservation = await createObservation({
+        id_patient:        patientId,
+        type_observation:  isHospitalise ? 'hospitalise' : 'externe',
+        date_observation:  now.toISOString().split('T')[0],
+        heure_observation: now.toTimeString().slice(0, 5),
+        motif_consultation: isHospitalise ? undefined : 'Pièce jointe rapide',
+        motif_hospitalisation: isHospitalise ? 'Pièce jointe rapide' : undefined,
+        medecin,
+      });
+
+      if (!nouvelleObservation) {
+        toast.error("Erreur lors de la création de l'observation");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('id_patient', patientId.toString());
+      formData.append('file', file);
+
+      const uploadResponse = await httpClient.post('/documents-patients/upload', formData);
+      const { url_fichier, nom_fichier, taille_fichier } = uploadResponse.data.data;
+
+      let typeFichier: TypePieceJointe = 'pdf';
+      if (file.type.startsWith('image/')) typeFichier = 'image';
+      else if (file.type.startsWith('video/')) typeFichier = 'video';
+
+      await createPieceJointe({
+        entite_type:    'observation',
+        entite_id:       nouvelleObservation.id_observation,
+        url_fichier,
+        nom_fichier,
+        type_fichier:    typeFichier,
+        taille_fichier,
+      });
+
+      toast.success('Observation créée avec pièce jointe !');
+    } catch (err) {
+      console.error('Erreur ajout rapide:', err);
+      toast.error("Erreur lors de l'ajout rapide");
+    } finally {
+      setProcessing(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <>
+      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx"
+        onChange={handleFileChange} className="hidden" />
+      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={processing}
+        title="Créer une observation avec une pièce jointe en un clic"
+        className="flex-1 sm:flex-none px-4 py-2 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-700 rounded-lg transition-all shadow-sm font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50">
+        {processing
+          ? <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">Ajout en cours...</span></>
+          : <><Camera className="w-4 h-4" /><Paperclip className="w-4 h-4" /><span className="hidden sm:inline">Ajout rapide</span></>}
+      </button>
+    </>
+  );
+}
