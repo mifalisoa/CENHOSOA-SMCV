@@ -20,6 +20,10 @@ import type { StatutValidation } from '../../../../shared/types';
 import { soinInfirmierToHTML } from '../../../../shared/utils/printSoinInfirmier';
 import { printHTML, patientHeaderHTML, footerHTML } from '../../../../shared/utils/printUtils';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+
+import QuickSoinInfirmierAttachmentButton from './QuickSoinInfirmierAttachmentButton';
+
 interface SoinsInfirmiersTabProps {
   patient: Patient;
 }
@@ -205,6 +209,8 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                 : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
+
+          <QuickSoinInfirmierAttachmentButton patientId={patient.id_patient} createSoin={createSoin} />
           <PermissionGuard permission="soins-infirmiers.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -349,6 +355,13 @@ export default function SoinsInfirmiersTab({ patient }: SoinsInfirmiersTabProps)
                     verifie={soin.verifie}
                     role="infirmier"
                   />
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+  <AjouterPieceJointeButton
+    entiteType="soin_infirmier"
+    entiteId={soin.id_soin_infirmier}
+    patientId={patient.id_patient}
+  />
+</div>
                 </div>
 
                 {isExpanded && hasDetails && (
