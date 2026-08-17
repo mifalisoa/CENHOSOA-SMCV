@@ -19,6 +19,10 @@ import { SignatureBadge }     from '../../common/SignatureBadge';
 import { toast }              from 'sonner';
 import { httpClient }         from '../../../../infrastructure/http/axios.config';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+
+import QuickSoinMedicalAttachmentButton from './QuickSoinMedicalAttachmentButton';
+
 interface SoinsMedicauxTabProps {
   patient: Patient;
 }
@@ -184,6 +188,8 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                 : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
+
+          <QuickSoinMedicalAttachmentButton patientId={patient.id_patient} createSoin={createSoin} />
           <PermissionGuard permission="soins-medicaux.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -334,6 +340,14 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                     verifie={soin.verifie}
                     role="medecin"
                   />
+
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <AjouterPieceJointeButton 
+                    entiteType="soin_medical"
+                    entiteId={soin.id_soin_medical}
+                    patientId={patient.id_patient}
+                    />
+                    </div>
                 </div>
 
                 {isExpanded && hasDetails && (

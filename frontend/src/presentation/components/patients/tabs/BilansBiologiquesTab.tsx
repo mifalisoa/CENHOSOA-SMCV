@@ -393,7 +393,7 @@ const handlePrintAllBilans = () => {
 
                   {bilan.prescripteur && (
                     <SignatureBadge
-                      nom={`Dr. ${bilan.prescripteur}`}
+                      nom={bilan.prescripteur}
                       date={String(bilan.date_prelevement)}
                       heure={bilan.heure_prelevement}
                       role="medecin"

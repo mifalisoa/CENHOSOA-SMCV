@@ -8,12 +8,15 @@ import type { CreateBilanBiologiqueDTO, BilanBiologique } from '../../../../core
 import type { TypePieceJointe } from '../../../../core/entities/PieceJointe';
 import { toast } from 'sonner';
 
+import { useAuth } from '../../../hooks/useAuth';
+
 interface QuickBilanAttachmentButtonProps {
   patientId:  number;
   createBilan: (data: CreateBilanBiologiqueDTO) => Promise<BilanBiologique | null>;
 }
 
 export default function QuickBilanAttachmentButton({ patientId, createBilan }: QuickBilanAttachmentButtonProps) {
+  const { user } = useAuth();
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -28,11 +31,14 @@ export default function QuickBilanAttachmentButton({ patientId, createBilan }: Q
     try {
       // Étape 1 — créer un bilan minimal
       const now = new Date();
+      const prescripteur = `${user?.prenom ?? ''} ${user?.nom ?? ''}`.trim() || 'Utilisateur inconnu';
+
       const nouveauBilan = await createBilan({
         id_patient:        patientId,
         date_prelevement:  now.toISOString().split('T')[0],
         heure_prelevement: now.toTimeString().slice(0, 5),
         type_bilan:        'Pièce jointe rapide',
+        prescripteur,
       });
 
       if (!nouveauBilan) {
