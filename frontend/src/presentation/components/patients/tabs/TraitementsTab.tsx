@@ -22,6 +22,9 @@ import { Printer } from 'lucide-react';
 import { ordonnanceToHTML, demandeExamenToHTML } from '../../../../shared/utils/printOrdonnance';
 import { printHTML } from '../../../../shared/utils/printUtils';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+import QuickTraitementAttachmentButton from './QuickTraitementAttachmentButton';
+
 interface TraitementsTabProps {
   patient: Patient;
 }
@@ -63,7 +66,7 @@ function borderColor(statut: string) {
 }
 
 export default function TraitementsTab({ patient }: TraitementsTabProps) {
-  const { traitements, loading, error, createOrdonnance, updateTraitement, validerTraitement, refreshTraitements } = useTraitements(patient.id_patient);
+  const { traitements, loading, error, createTraitement, createOrdonnance, updateTraitement, validerTraitement, refreshTraitements } = useTraitements(patient.id_patient);
   const { user } = useAuth();
   const isMedecin = user?.role === 'medecin';
 
@@ -102,6 +105,7 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
     setShowAddModal(false);
   };
 
+  
   const handleUpdateTraitement = async (id: number, data: Partial<CreateTraitementDTO>) => {
     const ok = await updateTraitement(id, data);
     if (ok) {
@@ -176,6 +180,8 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
     }
   };
 
+  
+
   if (loading && traitements.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -216,6 +222,9 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                 : <><FileArchive className="w-4 h-4" /><span className="hidden sm:inline">Tout (ZIP)</span><span className="sm:hidden">ZIP</span></>}
             </button>
           )}
+ 
+ <QuickTraitementAttachmentButton patientId={patient.id_patient} createTraitement={createTraitement} />
+
           <PermissionGuard permission="prescriptions.write">
             <button onClick={() => setShowAddModal(true)}
               className="flex-1 sm:flex-none px-4 py-2 bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white rounded-lg transition-all shadow-md font-medium flex items-center justify-center gap-2 text-sm">
@@ -355,6 +364,14 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                       role="medecin"
                     />
                   )}
+
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+  <AjouterPieceJointeButton
+    entiteType="traitement"
+    entiteId={groupe.items[0].id_traitement}
+    patientId={patient.id_patient}
+  />
+</div>
 
                   {!isExpanded && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
