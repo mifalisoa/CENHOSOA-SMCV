@@ -16,10 +16,10 @@ export class PostgresObservationRepository implements IObservationRepository {
         examen_general, examen_physique_central, examen_physique_peripherique,
         resume_syndromique, hypotheses_diagnostiques, cat,
         resultats_examens_paracliniques, diagnostic_retenu, evolution_quotidienne,
-        medecin, signatures
-      ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
-      ) RETURNING *
+       medecin, signatures, cree_par_id
+) VALUES (
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+) RETURNING *
     `;
     const values = [
       observation.id_patient,
@@ -49,6 +49,7 @@ export class PostgresObservationRepository implements IObservationRepository {
       observation.evolution_quotidienne             || null,
       observation.medecin,
       JSON.stringify(observation.signatures || {}),
+      observation.cree_par_id                       || null,
     ];
     const result = await this.pool.query(query, values);
     return this.mapRowToObservation(result.rows[0]);
@@ -151,6 +152,8 @@ export class PostgresObservationRepository implements IObservationRepository {
       evolution_quotidienne:           row.evolution_quotidienne,
       signatures:                      row.signatures as Observation['signatures'] ?? {},
       medecin:                         row.medecin,
+      cree_par_id:                     row.cree_par_id,      //  ajouté
+      modifie_par_id:                  row.modifie_par_id,   //  ajouté
       created_at:                      row.created_at,
       updated_at:                      row.updated_at,
     };

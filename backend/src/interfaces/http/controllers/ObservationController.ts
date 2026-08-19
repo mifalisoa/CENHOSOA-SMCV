@@ -18,10 +18,19 @@ export class ObservationController {
     try {
       const validatedData = createObservationSchema.parse(req.body);
       const data = validatedData as any;
+      
+      //  Jamais confié au frontend — toujours dérivé de l'utilisateur authentifié
+      const medecin = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`.trim();
+
+      
+
 
       const createObservation = new CreateObservation(this.observationRepository);
       const observation = await createObservation.execute({
         ...data,
+        medecin,                    //  écrase toute valeur envoyée dans le body
+        cree_par_id: req.user?.id_user,   //  FK réelle, comme pour Traitement
+
         date_observation: new Date(data.date_observation),
         date_entree:   data.date_entree   ? new Date(data.date_entree)   : undefined,
         date_transeat: data.date_transeat ? new Date(data.date_transeat) : undefined,
@@ -97,14 +106,18 @@ export class ObservationController {
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
+  update = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID observation invalide' }); return; }
       const existingObservation = await this.observationRepository.findById(id);
       if (!existingObservation) throw new NotFoundError('Observation non trouvée');
       const validatedData = updateObservationSchema.parse(req.body);
-      const updateData: any = { ...validatedData };
+      const updateData: any = { ...validatedData,
+          modifie_par_id: req.user?.id_user,   //  qui a modifié
+          updated_at: new Date(),               //  quand 
+
+      };
       if (updateData.date_observation) updateData.date_observation = new Date(updateData.date_observation);
       if (updateData.date_entree)      updateData.date_entree      = new Date(updateData.date_entree);
       if (updateData.date_transeat)    updateData.date_transeat    = new Date(updateData.date_transeat);

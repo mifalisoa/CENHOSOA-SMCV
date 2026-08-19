@@ -27,6 +27,8 @@ export interface Observation {
   date_observation: Date;
   heure_observation: string;
 
+  
+
   // I. Motif
   motif_consultation?:   string;
   motif_hospitalisation?: string;
@@ -111,6 +113,9 @@ export interface Observation {
 
   // Signatures par section — qui a rempli quoi et quand
   signatures?: ObservationSignatures;
+
+   cree_par_id?:   number;  //  nouveau — FK utilisateur, qui a créé
+  modifie_par_id?: number; //  nouveau — FK utilisateur, qui a modifié en dernier
 
   // Médecin principal (créateur de l'observation)
   medecin:    string;
