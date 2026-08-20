@@ -21,10 +21,12 @@ export class SoinInfirmierController {
     try {
       const validatedData = createSoinInfirmierSchema.parse(req.body);
       const createSoin = new CreateSoinInfirmier(this.soinRepository);
+      const realisePar = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`.trim() || 'Utilisateur inconnu';
 
       const soin = await createSoin.execute({
         ...validatedData,
         date_soin:     new Date(validatedData.date_soin),
+        realise_par:   realisePar, 
         cree_par_id:   req.user?.id_user,
         role_createur: req.user?.role as RoleType,
       });
@@ -95,7 +97,7 @@ export class SoinInfirmierController {
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
+  update = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID soin invalide' }); return; }
@@ -104,6 +106,7 @@ export class SoinInfirmierController {
       const validatedData = updateSoinInfirmierSchema.parse(req.body);
       const updateData: any = { ...validatedData };
       if (validatedData.date_soin) updateData.date_soin = new Date(validatedData.date_soin);
+      updateData.modifie_par_id = req.user?.id_user;
       const soin = await this.soinRepository.update(id, updateData);
       res.status(200).json({ success: true, message: 'Soin infirmier mis à jour avec succès', data: soin });
     } catch (error) {

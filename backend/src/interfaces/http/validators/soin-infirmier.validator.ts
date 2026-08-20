@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// ✅ Format date accepté : YYYY-MM-DD (input HTML) OU ISO complet OU objet Date
+//  Format date accepté : YYYY-MM-DD (input HTML) OU ISO complet OU objet Date
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format attendu : YYYY-MM-DD')
   .or(z.string().datetime())
   .or(z.date());
@@ -21,7 +21,7 @@ export const createSoinInfirmierSchema = z.object({
   pansement:    z.string().optional(),
   autre_soins:  z.string().optional(),
 
-  realise_par: z.string().min(1, "L'infirmier réalisateur est requis"),
+  realise_par: z.string().optional(),
   verifie:     z.boolean().optional().default(false),
 }).refine(
   data => data.ecg || data.ecg_dii_long || data.injection_iv || data.injection_im ||

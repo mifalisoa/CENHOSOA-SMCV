@@ -20,6 +20,8 @@ export interface SoinInfirmier extends ValidateurInfo {
   // Métadonnées
   realise_par:  string;  // Infirmier/interne qui a réalisé le soin
   cree_par_id?: number;  // FK → utilisateurs — détermine si validation requise
+  modifie_par_id?: number;
+
   /** @deprecated Utiliser statut */
   verifie: boolean;
   statut:  StatutValidation;
