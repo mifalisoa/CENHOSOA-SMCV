@@ -15,11 +15,14 @@ import { Printer } from 'lucide-react';
 import { compteRenduToHTML } from '../../../../shared/utils/printCompteRendu';
 import { printHTML } from '../../../../shared/utils/printUtils';
 
+import AjouterPieceJointeButton from '../../common/AjouterPieceJointeButton';
+
 interface ComptesRendusTabProps {
   patient: Patient;
+  idAdmission?: number;
 }
 
-export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
+export default function ComptesRendusTab({ patient, idAdmission }: ComptesRendusTabProps) {
   const { comptesRendus, loading, error, createCompteRendu } = useComptesRendus(patient.id_patient);
   const [showAddModal, setShowAddModal] = useState(false);
   const [downloading,  setDownloading]  = useState<number | null>(null);
@@ -140,6 +143,7 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
       {showAddModal && (
         <AddCompteRenduModal
           patient={patient}
+          idAdmission={idAdmission}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateCompteRendu}
         />
@@ -231,6 +235,14 @@ export default function ComptesRendusTab({ patient }: ComptesRendusTabProps) {
                     role="medecin"
                   />
                 </div>
+
+                <div className="mt-3">
+  <AjouterPieceJointeButton
+    entiteType="compte_rendu"
+    entiteId={cr.id_compte_rendu}
+    patientId={patient.id_patient}
+  />
+</div>
 
                 {/* ── Corps ── */}
                 <div className="p-5 sm:p-6 space-y-4">

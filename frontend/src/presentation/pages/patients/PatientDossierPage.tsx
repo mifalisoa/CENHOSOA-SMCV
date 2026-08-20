@@ -365,14 +365,16 @@ export default function PatientDossierPage() {
         </div>
 
         <div className="p-3 sm:p-4 md:p-6">
-          {activeTab === 'observation-medicale' && <ObservationsTab      patient={patient} />}
-          {activeTab === 'biologie'             && <BilansBiologiquesTab patient={patient} />}
-          {activeTab === 'soins-medicaux'       && <SoinsMedicauxTab     patient={patient} />}
-          {activeTab === 'soins-infirmiers'     && <SoinsInfirmiersTab   patient={patient} />}
-          {activeTab === 'traitement'           && <TraitementsTab        patient={patient} />}
-          {activeTab === 'document'             && <DocumentsTab          patient={patient} />}
-          {activeTab === 'compte-rendu'         && <ComptesRendusTab      patient={patient} />}
-        </div>
+  {activeTab === 'observation-medicale' && <ObservationsTab      patient={patient} />}
+  {activeTab === 'biologie'             && <BilansBiologiquesTab patient={patient} />}
+  {activeTab === 'soins-medicaux'       && <SoinsMedicauxTab     patient={patient} />}
+  {activeTab === 'soins-infirmiers'     && <SoinsInfirmiersTab   patient={patient} />}
+  {activeTab === 'traitement'           && <TraitementsTab        patient={patient} />}
+  {activeTab === 'document'             && <DocumentsTab          patient={patient} />}
+  {activeTab === 'compte-rendu' && (
+    <ComptesRendusTab patient={patient} idAdmission={litActuel?.id_admission} />
+  )}
+</div>
       </div>
 
       {/* Modals */}

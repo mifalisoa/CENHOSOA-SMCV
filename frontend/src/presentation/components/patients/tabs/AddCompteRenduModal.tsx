@@ -5,6 +5,7 @@ import type { Patient } from '../../../../core/entities/Patient';
 
 interface AddCompteRenduModalProps {
   patient:  Patient;
+  idAdmission?: number;
   onClose:  () => void;
   onSubmit: (data: CreateCompteRenduDTO) => Promise<void>;
 }
@@ -14,13 +15,14 @@ type ModaliteSortie = 'gueri' | 'ameliore' | 'transfert' | 'deces';
 // ── Champs obligatoires ───────────────────────────────────────────────────────
 const REQUIRED = ['medecin', 'resume_observation', 'diagnostic_sortie', 'traitement_sortie'] as const;
 
-export default function AddCompteRenduModal({ patient, onClose, onSubmit }: AddCompteRenduModalProps) {
+export default function AddCompteRenduModal({ patient, idAdmission, onClose, onSubmit }: AddCompteRenduModalProps) {
   const [loading,     setLoading]     = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [touched,     setTouched]     = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState<Partial<CreateCompteRenduDTO>>({
     id_patient:      patient.id_patient,
+    id_admission:    idAdmission,
     date_admission:  new Date().toISOString().split('T')[0],
     date_sortie:     new Date().toISOString().split('T')[0],
     modalite_sortie: 'ameliore',
@@ -99,25 +101,37 @@ export default function AddCompteRenduModal({ patient, onClose, onSubmit }: AddC
   };
 
   // ── Soumission ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Marque tous les champs obligatoires + dates + lieu transfert si applicable
-    const fields = [...REQUIRED, 'date_sortie'];
-    if (formData.modalite_sortie === 'transfert') fields.push('lieu_transfert');
-    setTouched(Object.fromEntries(fields.map(f => [f, true])));
-    if (!isFormValid) return;
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    setLoading(true);
-    setSubmitError(null);
-    try {
-      await onSubmit(formData as CreateCompteRenduDTO);
-      onClose();
-    } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Erreur lors de la création');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!idAdmission) {
+    setSubmitError("Impossible de créer un compte rendu : aucune admission active trouvée pour ce patient.");
+    return;
+  }
+
+  // Marque tous les champs obligatoires + dates + lieu transfert si applicable
+  const fields = [...REQUIRED, 'date_sortie'];
+  if (formData.modalite_sortie === 'transfert') fields.push('lieu_transfert');
+  setTouched(Object.fromEntries(fields.map(f => [f, true])));
+  if (!isFormValid) return;
+
+  setLoading(true);
+  setSubmitError(null);
+  try {
+    // Le backend attend des dates ISO complètes (avec heure), pas juste YYYY-MM-DD
+    const payload = {
+      ...formData,
+      date_admission: new Date(formData.date_admission + 'T00:00:00').toISOString(),
+      date_sortie:    new Date(formData.date_sortie + 'T00:00:00').toISOString(),
+    };
+    await onSubmit(payload as CreateCompteRenduDTO);
+    onClose();
+  } catch (err: unknown) {
+    setSubmitError(err instanceof Error ? err.message : 'Erreur lors de la création');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const inputBase = 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-cyan-400 focus:ring-cyan-100';
 
