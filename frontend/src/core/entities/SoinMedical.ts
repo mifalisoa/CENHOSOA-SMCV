@@ -12,8 +12,9 @@ export interface SoinMedical {
   eto?:   string;
   autre?: string;
 
-  realise_par:  string;
-  cree_par_id?: number;
+  realise_par:     string;
+  cree_par_id?:    number;
+  modifie_par_id?: number;   //  nouveau — cohérent avec le backend
   /** @deprecated utiliser statut */
   verifie:      boolean;
   statut:       StatutValidation;
@@ -35,5 +36,6 @@ export interface CreateSoinMedicalDTO {
   ett?:          string;
   eto?:          string;
   autre?:        string;
-  realise_par:   string;
+  realise_par?:  string;   //  optionnel — toujours dérivé du backend, jamais saisi par l'utilisateur
+  verifie?:      boolean;  //  ajouté — manquait, utilisé par le modal
 }
