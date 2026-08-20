@@ -12,7 +12,7 @@ export const createSoinMedicalSchema = z.object({
   eto: z.string().optional(),
   autre: z.string().optional(),
   
-  realise_par: z.string().min(1, "Le médecin réalisateur est requis"),
+  realise_par: z.string().optional(),   
   verifie: z.boolean().optional().default(false),
 }).refine(
   data => data.ett || data.eto || data.autre,

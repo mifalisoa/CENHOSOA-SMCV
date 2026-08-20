@@ -22,9 +22,12 @@ export class SoinMedicalController {
       const validatedData = createSoinMedicalSchema.parse(req.body);
       const createSoin = new CreateSoinMedical(this.soinRepository);
 
+      const realisePar = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`.trim() || 'Utilisateur inconnu'; 
+
       const soin = await createSoin.execute({
         ...validatedData,
         date_soin:     new Date(validatedData.date_soin),
+        realise_par:   realisePar,
         cree_par_id:   req.user?.id_user,
         role_createur: req.user?.role as RoleType,
       });
@@ -95,24 +98,25 @@ export class SoinMedicalController {
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const id = parseInt(req.params.id as string, 10);
-      if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID soin invalide' }); return; }
-      const existingSoin = await this.soinRepository.findById(id);
-      if (!existingSoin) throw new NotFoundError('Soin médical non trouvé');
-      const validatedData = updateSoinMedicalSchema.parse(req.body);
-      const updateData: any = { ...validatedData };
-      if (validatedData.date_soin) updateData.date_soin = new Date(validatedData.date_soin);
-      const soin = await this.soinRepository.update(id, updateData);
-      res.status(200).json({ success: true, message: 'Soin médical mis à jour avec succès', data: soin });
-    } catch (error) {
-      if (error instanceof ZodError)      { res.status(400).json({ success: false, message: 'Erreur de validation', errors: error.issues }); return; }
-      if (error instanceof NotFoundError) { res.status(404).json({ success: false, message: error.message }); return; }
-      console.error('Erreur mise à jour soin médical:', error);
-      res.status(500).json({ success: false, message: 'Erreur serveur' });
-    }
-  };
+update = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID soin invalide' }); return; }
+    const existingSoin = await this.soinRepository.findById(id);
+    if (!existingSoin) throw new NotFoundError('Soin médical non trouvé');
+    const validatedData = updateSoinMedicalSchema.parse(req.body);
+    const updateData: any = { ...validatedData };
+    if (validatedData.date_soin) updateData.date_soin = new Date(validatedData.date_soin);
+    updateData.modifie_par_id = req.user?.id_user;
+    const soin = await this.soinRepository.update(id, updateData);
+    res.status(200).json({ success: true, message: 'Soin médical mis à jour avec succès', data: soin });
+  } catch (error) {
+    if (error instanceof ZodError)      { res.status(400).json({ success: false, message: 'Erreur de validation', errors: error.issues }); return; }
+    if (error instanceof NotFoundError) { res.status(404).json({ success: false, message: error.message }); return; }
+    console.error('Erreur mise à jour soin médical:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
 
   verify = async (req: Request, res: Response): Promise<void> => {
     try {

@@ -176,6 +176,7 @@ export class PostgresSoinMedicalRepository implements ISoinMedicalRepository {
       autre:            row.autre            as string | undefined,
       realise_par:      row.realise_par      as string,
       cree_par_id:      row.cree_par_id      as number | undefined,
+      modifie_par_id:   row.modifie_par_id   as number | undefined,
       verifie:          row.verifie          as boolean,
       statut:           (row.statut          as StatutValidation) ?? 'en_attente',
       valide_par:       row.valide_par       as number | undefined,
