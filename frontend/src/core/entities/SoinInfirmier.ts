@@ -43,5 +43,6 @@ export interface CreateSoinInfirmierDTO {
   pse?:          string;
   pansement?:    string;
   autre_soins?:  string;
-  realise_par:   string;
+  realise_par?:  string;
+  verifie?:      boolean;
 }
