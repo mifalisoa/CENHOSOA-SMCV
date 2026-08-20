@@ -9,12 +9,10 @@ interface AddSoinInfirmierModalProps {
   onSubmit: (data: CreateSoinInfirmierDTO) => Promise<void>;
 }
 
-const REQUIRED = ['realise_par'] as const;
-
 export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: AddSoinInfirmierModalProps) {
   const [loading,     setLoading]     = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [touched,     setTouched]     = useState<Record<string, boolean>>({});
+  const [submitted,   setSubmitted]   = useState(false);
 
   const [formData, setFormData] = useState<Partial<CreateSoinInfirmierDTO>>({
     id_patient: patient.id_patient,
@@ -23,66 +21,13 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
     verifie:    false,
   });
 
-  // ── Validation ────────────────────────────────────────────────────────────────
-  const getError = (field: string): string | null => {
-    if (!touched[field]) return null;
-    if (REQUIRED.includes(field as typeof REQUIRED[number])) {
-      const val = formData[field as keyof typeof formData];
-      if (!val || String(val).trim() === '') return 'Champ obligatoire';
-    }
-    return null;
-  };
-
   const hasAtLeastOneSoin = !!(
     formData.ecg || formData.ecg_dii_long || formData.injection_iv ||
     formData.injection_im || formData.pse || formData.pansement || formData.autre_soins
   );
 
-  const isFormValid =
-    REQUIRED.every(f => {
-      const val = formData[f as keyof typeof formData];
-      return val && String(val).trim() !== '';
-    }) && hasAtLeastOneSoin;
+  const isFormValid = hasAtLeastOneSoin;
 
-  const mark = (field: string) => setTouched(p => ({ ...p, [field]: true }));
-
-  // ── Classes input ─────────────────────────────────────────────────────────────
-  const cx = (field: string) => {
-    const err = getError(field);
-    const val = formData[field as keyof typeof formData];
-    const ok  = touched[field] && !err && val && String(val).trim();
-    return `w-full px-4 py-2.5 border rounded-lg text-sm transition-all focus:outline-none focus:ring-2 ${
-      err ? 'border-red-300 bg-red-50 focus:ring-red-100'
-      : ok ? 'border-green-300 bg-green-50 focus:ring-green-100'
-      : 'border-gray-200 focus:border-cyan-400 focus:ring-cyan-100'
-    }`;
-  };
-
-  // ── Label avec icône ✓ / ⚠️ ──────────────────────────────────────────────────
-  const Lbl = ({ field, children, req, htmlFor }: {
-    field: string; children: React.ReactNode; req?: boolean; htmlFor?: string;
-  }) => {
-    const err = getError(field);
-    const val = formData[field as keyof typeof formData];
-    const ok  = touched[field] && !err && val && String(val).trim();
-    return (
-      <label htmlFor={htmlFor ?? field}
-        className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1.5">
-        <span>{children}{req && <span className="text-red-500 ml-0.5">*</span>}</span>
-        {ok  && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />}
-        {err && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
-      </label>
-    );
-  };
-
-  const FieldErr = ({ field }: { field: string }) => {
-    const e = getError(field);
-    return e
-      ? <p className="mt-1 text-xs text-red-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{e}</p>
-      : null;
-  };
-
-  // ── Champ soin avec indicateur ✓ dès qu'il est rempli ────────────────────────
   const SoinField = ({
     id, label, emoji, value, onChange, placeholder, rows = 2, hint,
   }: {
@@ -116,10 +61,9 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
     );
   };
 
-  // ── Soumission ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched(Object.fromEntries(REQUIRED.map(f => [f, true])));
+    setSubmitted(true);
     if (!isFormValid) return;
 
     setLoading(true);
@@ -136,12 +80,10 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
 
   const inputBase = 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-cyan-400 focus:ring-cyan-100';
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
-        {/* ── Header — cyan uniforme ── */}
         <div className="bg-cyan-600 px-5 py-4 sm:px-6 sm:py-5 text-white flex justify-between items-start shrink-0">
           <div>
             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
@@ -158,7 +100,6 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
           </button>
         </div>
 
-        {/* Erreur globale */}
         {submitError && (
           <div className="mx-5 mt-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -166,10 +107,8 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
           </div>
         )}
 
-        {/* ── Formulaire ── */}
         <form id="soin-infirmier-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
 
-          {/* Section 1 — Date et heure */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5" />
@@ -198,15 +137,13 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
             </div>
           </div>
 
-          {/* Section 2 — Soins infirmiers */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5" />
                 Soins réalisés
               </h3>
-              {/* ✅ Alerte si aucun soin rempli */}
-              {!hasAtLeastOneSoin && Object.keys(touched).length > 0 && (
+              {!hasAtLeastOneSoin && submitted && (
                 <span className="text-xs text-red-600 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
                   Au moins un soin requis
@@ -266,26 +203,12 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
               hint="Tout autre soin ou acte infirmier réalisé" />
           </div>
 
-          {/* Section 3 — Réalisation */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <User className="w-3.5 h-3.5" />
-              Réalisation et vérification
+              Vérification
             </h3>
 
-            <div>
-              <Lbl field="realise_par" htmlFor="realise-par" req>Réalisé par</Lbl>
-              <input id="realise-par" type="text" required
-                title="Nom de l'infirmier(ère)"
-                value={formData.realise_par || ''}
-                placeholder="Nom de l'infirmier(ère)"
-                onChange={e => setFormData({ ...formData, realise_par: e.target.value })}
-                onBlur={() => mark('realise_par')}
-                className={cx('realise_par')} />
-              <FieldErr field="realise_par" />
-            </div>
-
-            {/* Checkbox cliquable sur toute la ligne */}
             <div
               className={`flex items-center gap-3 p-3 bg-white rounded-xl border-2 transition-all cursor-pointer ${
                 formData.verifie ? 'border-green-300' : 'border-gray-200 hover:border-gray-300'
@@ -310,13 +233,11 @@ export default function AddSoinInfirmierModal({ patient, onClose, onSubmit }: Ad
           <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Champs obligatoires</p>
         </form>
 
-        {/* ── Footer ── */}
         <div className="border-t bg-gray-50 px-5 py-4 flex justify-end items-center gap-3 shrink-0">
           <button type="button" onClick={onClose}
             className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium">
             Annuler
           </button>
-          {/* ✅ type="submit" lié au form — bouton grisé si invalide */}
           <button type="submit" form="soin-infirmier-form" disabled={loading}
             className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
               isFormValid && !loading
