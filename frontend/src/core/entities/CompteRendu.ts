@@ -15,6 +15,8 @@ export interface CompteRendu {
   lieu_transfert?: string;
   
   medecin: string;
+  cree_par_id?: number;      //  nouveau — aligné avec le backend
+  modifie_par_id?: number;   //  nouveau — aligné avec le backend
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -30,5 +32,5 @@ export interface CreateCompteRenduDTO {
   prochain_rdv?: string;
   modalite_sortie: 'gueri' | 'ameliore' | 'transfert' | 'deces';
   lieu_transfert?: string;
-  medecin: string;
+  medecin?: string;   //  optionnel — toujours dérivé du backend, jamais saisi par l'utilisateur
 }

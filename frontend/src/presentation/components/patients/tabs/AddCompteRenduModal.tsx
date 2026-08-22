@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, User, FileText, Pill, MapPin, CheckCircle2, TrendingUp, ArrowRight, Skull, AlertTriangle } from 'lucide-react';
+import { X, Calendar, FileText, Pill, MapPin, CheckCircle2, TrendingUp, ArrowRight, Skull, AlertTriangle } from 'lucide-react';
 import type { CreateCompteRenduDTO } from '../../../../core/entities/CompteRendu';
 import type { Patient } from '../../../../core/entities/Patient';
 
@@ -13,7 +13,8 @@ interface AddCompteRenduModalProps {
 type ModaliteSortie = 'gueri' | 'ameliore' | 'transfert' | 'deces';
 
 // ── Champs obligatoires ───────────────────────────────────────────────────────
-const REQUIRED = ['medecin', 'resume_observation', 'diagnostic_sortie', 'traitement_sortie'] as const;
+const REQUIRED = ['resume_observation', 'diagnostic_sortie', 'traitement_sortie'] as const;
+
 
 export default function AddCompteRenduModal({ patient, idAdmission, onClose, onSubmit }: AddCompteRenduModalProps) {
   const [loading,     setLoading]     = useState(false);
@@ -205,24 +206,7 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
             </div>
           </div>
 
-          {/* ── Section 2 : Médecin ── */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
-              <User className="w-3.5 h-3.5" />
-              Médecin responsable
-            </h3>
-            <div>
-              <Lbl field="medecin" htmlFor="medecin_responsable" req>Nom du médecin</Lbl>
-              <input id="medecin_responsable" type="text" required
-                title="Nom du médecin responsable"
-                value={formData.medecin || ''}
-                placeholder="Dr. Nom Prénom"
-                onChange={e => setFormData({ ...formData, medecin: e.target.value })}
-                onBlur={() => mark('medecin')}
-                className={cx('medecin')} />
-              <FieldErr field="medecin" />
-            </div>
-          </div>
+          
 
           {/* ── Section 3 : Résumé ── */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
