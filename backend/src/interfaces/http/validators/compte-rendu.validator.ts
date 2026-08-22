@@ -14,7 +14,7 @@ const baseCompteRenduSchema = z.object({
   
   modalite_sortie: z.enum(['gueri', 'ameliore', 'transfert', 'deces']),
   
-  medecin: z.string().min(1, "Le médecin est requis"),
+  medecin: z.string().optional(),   //  optionnel — toujours écrasé par req.user côté contrôleur
 });
 
 // Schéma pour sortie standard (guéri, amélioré, décès)
@@ -36,7 +36,7 @@ export const createCompteRenduSchema = z.discriminatedUnion('modalite_sortie', [
   compteRenduTransfertSchema,
 ]);
 
-// ✅ CORRECTION : Schéma pour la mise à jour (sans discriminatedUnion)
+//  CORRECTION : Schéma pour la mise à jour (sans discriminatedUnion)
 export const updateCompteRenduSchema = z.object({
   date_admission: z.string().datetime().or(z.date()).optional(),
   date_sortie: z.string().datetime().or(z.date()).optional(),
