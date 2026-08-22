@@ -20,7 +20,10 @@ export class BilanBiologiqueController {
       const createBilan = new CreateBilanBiologique(this.bilanRepository);
       const bilan = await createBilan.execute({
         ...validatedData,
+       
         date_prelevement: new Date(validatedData.date_prelevement),
+          // cree_par_id derive de l'utilisateur authentifie, jamais du body
+      cree_par_id: req.user?.id_user,
       });
 
       const auteur      = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
@@ -89,14 +92,17 @@ export class BilanBiologiqueController {
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
+  update = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID bilan invalide' }); return; }
       const existingBilan = await this.bilanRepository.findById(id);
       if (!existingBilan) throw new NotFoundError('Bilan biologique non trouvé');
       const validatedData = updateBilanBiologiqueSchema.parse(req.body);
-      const updateData: any = { ...validatedData };
+      const updateData: any = { ...validatedData,
+         // qui a modifie la fiche en dernier
+      modifie_par_id: req.user?.id_user,
+       };
       if (validatedData.date_prelevement) updateData.date_prelevement = new Date(validatedData.date_prelevement);
       const bilan = await this.bilanRepository.update(id, updateData);
       res.status(200).json({ success: true, message: 'Bilan biologique mis à jour avec succès', data: bilan });

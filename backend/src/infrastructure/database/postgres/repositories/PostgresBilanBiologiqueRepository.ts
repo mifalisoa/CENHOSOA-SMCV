@@ -5,38 +5,39 @@ import { IBilanBiologiqueRepository } from '../../../../domain/repositories/IBil
 export class PostgresBilanBiologiqueRepository implements IBilanBiologiqueRepository {
   constructor(private pool: Pool) {}
 
-  async create(bilan: Omit<BilanBiologique, 'id_bilan' | 'created_at' | 'updated_at'>): Promise<BilanBiologique> {
-    const query = `
-      INSERT INTO bilans_biologiques (
-        id_patient, id_admission, date_prelevement, heure_prelevement,
-        creatinine, glycemie, crp, inr, nfs,
-        type_bilan, resultat, interpretation,
-        prescripteur, laboratoire
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-      ) RETURNING *
-    `;
+ async create(bilan: Omit<BilanBiologique, 'id_bilan' | 'created_at' | 'updated_at'>): Promise<BilanBiologique> {
+  const query = `
+    INSERT INTO bilans_biologiques (
+      id_patient, id_admission, date_prelevement, heure_prelevement,
+      creatinine, glycemie, crp, inr, nfs,
+      type_bilan, resultat, interpretation,
+      prescripteur, laboratoire, cree_par_id
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+    ) RETURNING *
+  `;
 
-    const values = [
-      bilan.id_patient,
-      bilan.id_admission || null,
-      bilan.date_prelevement,
-      bilan.heure_prelevement,
-      bilan.creatinine || null,
-      bilan.glycemie || null,
-      bilan.crp || null,
-      bilan.inr || null,
-      bilan.nfs || null,
-      bilan.type_bilan || null,
-      bilan.resultat || null,
-      bilan.interpretation || null,
-      bilan.prescripteur || null,
-      bilan.laboratoire || null,
-    ];
+  const values = [
+    bilan.id_patient,
+    bilan.id_admission || null,
+    bilan.date_prelevement,
+    bilan.heure_prelevement,
+    bilan.creatinine || null,
+    bilan.glycemie || null,
+    bilan.crp || null,
+    bilan.inr || null,
+    bilan.nfs || null,
+    bilan.type_bilan || null,
+    bilan.resultat || null,
+    bilan.interpretation || null,
+    bilan.prescripteur || null,
+    bilan.laboratoire || null,
+    bilan.cree_par_id || null,
+  ];
 
-    const result = await this.pool.query(query, values);
-    return this.mapRowToBilan(result.rows[0]);
-  }
+  const result = await this.pool.query(query, values);
+  return this.mapRowToBilan(result.rows[0]);
+}
 
   async findById(id: number): Promise<BilanBiologique | null> {
     const query = 'SELECT * FROM bilans_biologiques WHERE id_bilan = $1';
@@ -103,27 +104,28 @@ export class PostgresBilanBiologiqueRepository implements IBilanBiologiqueReposi
   }
 
   private mapRowToBilan(row: any): BilanBiologique {
-    return {
-      id_bilan: row.id_bilan,
-      id_patient: row.id_patient,
-      id_admission: row.id_admission,
-      date_prelevement: row.date_prelevement,
-      heure_prelevement: row.heure_prelevement,
-      creatinine: row.creatinine,
-      glycemie: row.glycemie,
-      crp: row.crp,
-      inr: row.inr,
-      nfs: row.nfs,
-      type_bilan: row.type_bilan,
-      resultat: row.resultat,
-      interpretation: row.interpretation,
-      prescripteur: row.prescripteur,
-      laboratoire: row.laboratoire,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    };
-  }
-
+  return {
+    id_bilan: row.id_bilan,
+    id_patient: row.id_patient,
+    id_admission: row.id_admission,
+    date_prelevement: row.date_prelevement,
+    heure_prelevement: row.heure_prelevement,
+    creatinine: row.creatinine,
+    glycemie: row.glycemie,
+    crp: row.crp,
+    inr: row.inr,
+    nfs: row.nfs,
+    type_bilan: row.type_bilan,
+    resultat: row.resultat,
+    interpretation: row.interpretation,
+    prescripteur: row.prescripteur,
+    laboratoire: row.laboratoire,
+    cree_par_id: row.cree_par_id,
+    modifie_par_id: row.modifie_par_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
   private camelToSnake(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
   }
