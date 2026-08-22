@@ -10,9 +10,9 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
       INSERT INTO comptes_rendus (
         id_patient, id_admission, date_admission, date_sortie,
         resume_observation, diagnostic_sortie, traitement_sortie, prochain_rdv,
-        modalite_sortie, lieu_transfert, medecin
+        modalite_sortie, lieu_transfert, medecin, cree_par_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
       ) RETURNING *
     `;
 
@@ -28,6 +28,7 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
       compteRendu.modalite_sortie,
       compteRendu.lieu_transfert || null,
       compteRendu.medecin,
+      compteRendu.cree_par_id || null,
     ];
 
     const result = await this.pool.query(query, values);
@@ -108,6 +109,8 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
       modalite_sortie: row.modalite_sortie,
       lieu_transfert: row.lieu_transfert,
       medecin: row.medecin,
+      cree_par_id: row.cree_par_id,
+      modifie_par_id: row.modifie_par_id,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };

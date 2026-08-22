@@ -20,8 +20,13 @@ export class CompteRenduController {
     try {
       const validatedData = createCompteRenduSchema.parse(req.body);
       const createCompteRendu = new CreateCompteRendu(this.compteRenduRepository);
+
+      const medecin = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`.trim();
+
       const compteRendu = await createCompteRendu.execute({
         ...validatedData,
+        medecin,
+        cree_par_id: req.user?.id_user,
         date_admission: new Date(validatedData.date_admission),
         date_sortie:    new Date(validatedData.date_sortie),
       } as any);
@@ -93,14 +98,17 @@ export class CompteRenduController {
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
+  update = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID compte rendu invalide' }); return; }
       const existingCompteRendu = await this.compteRenduRepository.findById(id);
       if (!existingCompteRendu) throw new NotFoundError('Compte rendu non trouvé');
       const validatedData = updateCompteRenduSchema.parse(req.body);
-      const updateData: any = { ...validatedData };
+      const updateData: any = {
+        ...validatedData,
+        modifie_par_id: req.user?.id_user,
+      };
       if (validatedData.date_admission) updateData.date_admission = new Date(validatedData.date_admission);
       if (validatedData.date_sortie)    updateData.date_sortie    = new Date(validatedData.date_sortie);
       const compteRendu = await this.compteRenduRepository.update(id, updateData);

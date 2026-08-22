@@ -18,6 +18,8 @@ export interface CompteRendu {
   
   // Métadonnées
   medecin: string;                    // Médecin qui a rédigé le compte rendu
+  cree_par_id?: number;               //  nouveau — FK utilisateur, qui a créé
+  modifie_par_id?: number;            //  nouveau — FK utilisateur, qui a modifié en dernier
   created_at: Date;
   updated_at: Date;
 }
