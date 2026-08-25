@@ -14,4 +14,11 @@ export const API_ENDPOINTS = {
   PATIENTS_SEARCH: '/patients/search',
   PATIENTS_STATS: '/patients/stats',
   PATIENT_BY_ID: (id: number) => `/patients/${id}`,
+
+    // Admissions
+  ADMISSIONS: '/admissions',
+  ADMISSIONS_EN_COURS: '/admissions/en-cours',
+  ADMISSION_BY_ID: (id: number) => `/admissions/${id}`,
+  ADMISSION_ASSIGN_LIT: (id: number) => `/admissions/${id}/assign-lit`,
+  ADMISSION_CLOTURER: (id: number) => `/admissions/${id}/cloturer`,
 };
