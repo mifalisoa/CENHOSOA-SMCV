@@ -1,12 +1,10 @@
 import { Traitement } from '../entities/Traitement';
 import { StatutValidation } from '../../shared/types';
 
-type TraitementCreate = Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>;
+type TraitementCreate = Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>;
 
 export interface ITraitementRepository {
-  // Crée un seul traitement (usage interne / rétrocompatibilité)
   create(traitement: TraitementCreate): Promise<Traitement>;
-  // Crée plusieurs médicaments d'une même ordonnance en une transaction atomique
   createMany(traitements: TraitementCreate[]): Promise<Traitement[]>;
   findById(id: number): Promise<Traitement | null>;
   findByPatientId(patientId: number): Promise<Traitement[]>;
