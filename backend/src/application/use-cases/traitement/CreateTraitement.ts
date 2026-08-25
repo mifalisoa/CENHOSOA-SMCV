@@ -27,7 +27,7 @@ export class CreateTraitement {
   constructor(private traitementRepository: ITraitementRepository) {}
 
   async execute(input: CreateTraitementInput): Promise<Traitement> {
-    // ── Validation métier ────────────────────────────────────────────────────
+    // Validation metier
     if (!input.medicament) {
       throw new Error('Le médicament est requis');
     }
@@ -40,10 +40,12 @@ export class CreateTraitement {
       throw new Error('Le prescripteur est requis pour une ordonnance');
     }
 
-    // ── Règle métier : statut selon le rôle du créateur ─────────────────────
+    // Regle metier : statut selon le role du createur
     const necessiteValidation =
       input.role_createur !== undefined &&
       ROLES_NECESSITANT_VALIDATION.includes(input.role_createur);
+
+    const statutInitial = necessiteValidation ? 'en_attente' : 'valide';
 
     return await this.traitementRepository.create({
       id_patient:             input.id_patient,
@@ -63,7 +65,7 @@ export class CreateTraitement {
       instructions:           input.instructions,
       observations_speciales: input.observations_speciales,
       cree_par_id:            input.cree_par_id,
-
+      statut:                 statutInitial,
     });
   }
 }

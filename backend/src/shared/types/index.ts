@@ -37,7 +37,7 @@ export type RoleType =
   | 'secretaire';
 
 // Rôles autorisés à valider les actes des internes/stagiaires
-export const ROLES_VALIDATEURS: RoleType[] = ['medecin'];
+export const ROLES_VALIDATEURS: RoleType[] = ['medecin', 'admin'];
 
 // Rôles dont les actes nécessitent une validation
 export const ROLES_NECESSITANT_VALIDATION: RoleType[] = ['interne', 'stagiaire'];

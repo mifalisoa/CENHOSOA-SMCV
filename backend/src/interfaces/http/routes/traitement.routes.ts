@@ -6,6 +6,7 @@ import { permissionMiddleware }          from '../middlewares/permission.middlew
 import { logAction }                     from '../middlewares/action-logger.middleware';
 import { pool }                          from '../../../config/database';
 import { PostgresTraitementRepository } from '../../../infrastructure/database/postgres/repositories/PostgresTraitementRepository';
+import { ROLES_VALIDATEURS }             from '../../../shared/types';
 
 const router = Router();
 const traitementRepository = new PostgresTraitementRepository(pool);
@@ -33,7 +34,7 @@ router.get('/:id',
   traitementController.getById
 );
 
-// Écriture — loggée
+// Ecriture — loggee
 router.post('/',
   roleMiddleware(ECRITURE),
   permissionMiddleware('prescriptions.write'),
@@ -47,7 +48,7 @@ router.put('/:id',
   traitementController.update
 );
 router.patch('/:id/valider',
-  roleMiddleware(['medecin']),
+  roleMiddleware(ROLES_VALIDATEURS),
   permissionMiddleware('prescriptions.write'),
   logAction('update', 'traitements'),
   traitementController.valider

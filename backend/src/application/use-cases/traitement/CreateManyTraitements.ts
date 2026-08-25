@@ -2,7 +2,7 @@ import { ITraitementRepository } from '../../../domain/repositories/ITraitementR
 import { Traitement, CreateOrdonnanceDTO } from '../../../domain/entities/Traitement';
 import { ROLES_NECESSITANT_VALIDATION, RoleType } from '../../../shared/types';
 
-// Étend le DTO existant avec les infos de traçabilité
+// Etend le DTO existant avec les infos de tracabilite
 export interface CreateOrdonnanceDTOWithRole extends CreateOrdonnanceDTO {
   role_createur?: RoleType;
 }
@@ -11,7 +11,7 @@ export class CreateManyTraitements {
   constructor(private traitementRepository: ITraitementRepository) {}
 
   async execute(data: CreateOrdonnanceDTOWithRole): Promise<Traitement[]> {
-    // ── Validation métier ────────────────────────────────────────────────────
+    // Validation metier
     if (!data.medicaments || data.medicaments.length === 0) {
       throw new Error('Au moins un médicament est requis');
     }
@@ -26,14 +26,15 @@ export class CreateManyTraitements {
       if (!med.duree?.trim())               throw new Error(`Médicament #${num} : la durée est requise`);
     }
 
-    // ── Règle métier : statut selon le rôle du créateur ─────────────────────
+    // Regle metier : statut selon le role du createur
+    // Medecin/admin cree une ordonnance deja validee, interne/stagiaire en attente
     const necessiteValidation =
       data.role_createur !== undefined &&
       ROLES_NECESSITANT_VALIDATION.includes(data.role_createur);
 
-    // ── Construction des objets à insérer ────────────────────────────────────
-    // Les infos communes sont dupliquées sur chaque ligne — cohérent avec le schéma
-    type TraitementCreate = Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>;
+    const statutInitial = necessiteValidation ? 'en_attente' : 'valide';
+
+    type TraitementCreate = Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>;
 
     const traitements: TraitementCreate[] = data.medicaments.map(med => ({
       id_patient:             data.id_patient,
@@ -46,7 +47,7 @@ export class CreateManyTraitements {
       lieu_prescription:      data.lieu_prescription,
       observations_speciales: data.observations_speciales,
       cree_par_id:            data.cree_par_id,
-      verifie:                !necessiteValidation,
+      statut:                 statutInitial,
       medicament:             med.medicament,
       dosage:                 med.dosage,
       voie_administration:    med.voie_administration,

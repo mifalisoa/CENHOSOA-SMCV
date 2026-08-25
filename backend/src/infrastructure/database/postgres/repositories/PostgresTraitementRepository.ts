@@ -16,8 +16,8 @@ export class PostgresTraitementRepository implements ITraitementRepository {
     LEFT JOIN utilisateurs u ON u.id_user = t.valide_par
   `;
 
-  // ── Création unique (rétrocompatibilité) ──────────────────────────────────────
-  async create(traitement: Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>): Promise<Traitement> {
+  // ── Creation unique ─────────────────────────────────────────────────────────────
+  async create(traitement: Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>): Promise<Traitement> {
     const query = `
       INSERT INTO traitements (
         id_patient, id_admission, id_ordonnance,
@@ -29,7 +29,7 @@ export class PostgresTraitementRepository implements ITraitementRepository {
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16,
-        $17, 'en_attente', false
+        $17, $18, false
       ) RETURNING *
     `;
 
@@ -51,14 +51,15 @@ export class PostgresTraitementRepository implements ITraitementRepository {
       traitement.instructions      || null,
       traitement.observations_speciales || null,
       traitement.cree_par_id       || null,
+      traitement.statut            || 'en_attente',
     ];
 
     const result = await this.pool.query(query, values);
     return this.mapRowToTraitement(result.rows[0]);
   }
 
-  // ── Création multiple — transaction atomique ──────────────────────────────────
-  async createMany(traitements: Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>[]): Promise<Traitement[]> {
+  // ── Creation multiple — transaction atomique ──────────────────────────────────
+  async createMany(traitements: Omit<Traitement, 'id_traitement' | 'created_at' | 'updated_at' | 'valide_par' | 'valide_le' | 'valideur_nom' | 'valideur_prenom' | 'mode_garde'>[]): Promise<Traitement[]> {
     if (traitements.length === 0) throw new Error('Au moins un médicament est requis');
 
     const id_ordonnance = randomUUID();
@@ -80,7 +81,7 @@ export class PostgresTraitementRepository implements ITraitementRepository {
           ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9,
             $10, $11, $12, $13, $14, $15, $16,
-            $17, 'en_attente', false
+            $17, $18, false
           ) RETURNING *
         `;
 
@@ -102,6 +103,7 @@ export class PostgresTraitementRepository implements ITraitementRepository {
           traitement.instructions      || null,
           traitement.observations_speciales || null,
           traitement.cree_par_id       || null,
+          traitement.statut            || 'en_attente',
         ];
 
         const result = await client.query(query, values);
@@ -168,7 +170,7 @@ export class PostgresTraitementRepository implements ITraitementRepository {
     return result.rows.map(row => this.mapRowToTraitement(row));
   }
 
-  // ── Mise à jour ───────────────────────────────────────────────────────────────
+  // ── Mise a jour ───────────────────────────────────────────────────────────────
 
   async update(id: number, traitement: Partial<Traitement>): Promise<Traitement> {
     const fields: string[] = [];
@@ -265,8 +267,8 @@ export class PostgresTraitementRepository implements ITraitementRepository {
       valideur_nom:           row.valideur_nom           as string | undefined,
       valideur_prenom:        row.valideur_prenom        as string | undefined,
       mode_garde:             (row.mode_garde            as boolean) ?? false,
-      created_at:             row.created_at             as Date,
-      updated_at:             row.updated_at             as Date,
+      created_at:              row.created_at             as Date,
+      updated_at:              row.updated_at             as Date,
     };
   }
 
