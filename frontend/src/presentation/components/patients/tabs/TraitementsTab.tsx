@@ -68,7 +68,7 @@ function borderColor(statut: string) {
 export default function TraitementsTab({ patient }: TraitementsTabProps) {
   const { traitements, loading, error, createTraitement, createOrdonnance, updateTraitement, validerTraitement, refreshTraitements } = useTraitements(patient.id_patient);
   const { user } = useAuth();
-  const isMedecin = user?.role === 'medecin';
+  const isMedecin = user?.role === 'medecin' || user?.role === 'admin';
 
   const [showAddModal,      setShowAddModal]      = useState(false);
   const [editingTraitement, setEditingTraitement] = useState<Traitement | null>(null);
