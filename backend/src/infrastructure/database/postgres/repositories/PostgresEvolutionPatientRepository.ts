@@ -7,38 +7,39 @@ export class PostgresEvolutionPatientRepository implements IEvolutionPatientRepo
   constructor(private pool: Pool) {}
 
   async create(data: Omit<EvolutionPatient, 'id_evolution' | 'created_at' | 'updated_at'>): Promise<EvolutionPatient> {
-    const query = `
-      INSERT INTO evolution_patient (
-        id_observation, id_patient,
-        date_visite, heure_visite, medecin,
-        resume_patient,
-        parametres,
-        examen_physique_central,
-        examen_physique_peripherique,
-        resultats_examens_paracliniques,
-        traitement, problemes_poses, cat
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-      ) RETURNING *
-    `;
-    const values = [
-      data.id_observation,
-      data.id_patient,
-      data.date_visite,
-      data.heure_visite,
-      data.medecin,
-      data.resume_patient                      || null,
-      JSON.stringify(data.parametres           || null),
-      JSON.stringify(data.examen_physique_central      || null),
-      JSON.stringify(data.examen_physique_peripherique || null),
-      data.resultats_examens_paracliniques     || null,
-      data.traitement                          || null,
-      data.problemes_poses                     || null,
-      data.cat                                 || null,
-    ];
-    const result = await this.pool.query(query, values);
-    return this.mapRow(result.rows[0]);
-  }
+  const query = `
+    INSERT INTO evolution_patient (
+      id_observation, id_patient,
+      date_visite, heure_visite, medecin,
+      resume_patient,
+      parametres,
+      examen_physique_central,
+      examen_physique_peripherique,
+      resultats_examens_paracliniques,
+      traitement, problemes_poses, cat, cree_par_id
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+    ) RETURNING *
+  `;
+  const values = [
+    data.id_observation,
+    data.id_patient,
+    data.date_visite,
+    data.heure_visite,
+    data.medecin,
+    data.resume_patient                      || null,
+    JSON.stringify(data.parametres           || null),
+    JSON.stringify(data.examen_physique_central      || null),
+    JSON.stringify(data.examen_physique_peripherique || null),
+    data.resultats_examens_paracliniques     || null,
+    data.traitement                          || null,
+    data.problemes_poses                     || null,
+    data.cat                                 || null,
+    data.cree_par_id                         || null,
+  ];
+  const result = await this.pool.query(query, values);
+  return this.mapRow(result.rows[0]);
+}
 
   async findById(id: number): Promise<EvolutionPatient | null> {
     const result = await this.pool.query(
@@ -111,26 +112,27 @@ export class PostgresEvolutionPatientRepository implements IEvolutionPatientRepo
   }
 
   private mapRow(row: Record<string, unknown>): EvolutionPatient {
-    return {
-      id_evolution:                    row.id_evolution                    as number,
-      id_observation:                  row.id_observation                  as number,
-      id_patient:                      row.id_patient                      as number,
-      date_visite:                     row.date_visite                     as Date,
-      heure_visite:                    row.heure_visite                    as string,
-      medecin:                         row.medecin                         as string,
-      resume_patient:                  row.resume_patient                  as string | undefined,
-      parametres:                      row.parametres                      as EvolutionPatient['parametres'],
-      examen_physique_central:         row.examen_physique_central         as EvolutionPatient['examen_physique_central'],
-      examen_physique_peripherique:    row.examen_physique_peripherique    as EvolutionPatient['examen_physique_peripherique'],
-      resultats_examens_paracliniques: row.resultats_examens_paracliniques as string | undefined,
-      traitement:                      row.traitement                      as string | undefined,
-      problemes_poses:                 row.problemes_poses                 as string | undefined,
-      cat:                             row.cat                             as string | undefined,
-      created_at:                      row.created_at                      as Date,
-      updated_at:                      row.updated_at                      as Date,
-    };
-  }
-
+  return {
+    id_evolution:                    row.id_evolution                    as number,
+    id_observation:                  row.id_observation                  as number,
+    id_patient:                      row.id_patient                      as number,
+    date_visite:                     row.date_visite                     as Date,
+    heure_visite:                    row.heure_visite                    as string,
+    medecin:                         row.medecin                         as string,
+    resume_patient:                  row.resume_patient                  as string | undefined,
+    parametres:                      row.parametres                      as EvolutionPatient['parametres'],
+    examen_physique_central:         row.examen_physique_central         as EvolutionPatient['examen_physique_central'],
+    examen_physique_peripherique:    row.examen_physique_peripherique    as EvolutionPatient['examen_physique_peripherique'],
+    resultats_examens_paracliniques: row.resultats_examens_paracliniques as string | undefined,
+    traitement:                      row.traitement                      as string | undefined,
+    problemes_poses:                 row.problemes_poses                 as string | undefined,
+    cat:                             row.cat                             as string | undefined,
+    cree_par_id:                     row.cree_par_id                     as number | undefined,
+    modifie_par_id:                  row.modifie_par_id                  as number | undefined,
+    created_at:                      row.created_at                      as Date,
+    updated_at:                      row.updated_at                      as Date,
+  };
+}
   private camelToSnake(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
   }

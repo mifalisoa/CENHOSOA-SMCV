@@ -11,13 +11,13 @@ import { NotFoundError }               from '../../../shared/errors/NotFoundErro
 import { AuthRequest }                 from '../middlewares/auth.middleware';
 import { notifyMedecinTraitant }       from '../../../shared/utils/notificationHelpers';
 
-// ── Validator Zod ─────────────────────────────────────────────────────────────
+// Validator Zod
 const createEvolutionSchema = z.object({
   id_observation:  z.number().int().positive(),
   id_patient:      z.number().int().positive(),
   date_visite:     z.string().min(1),
   heure_visite:    z.string().min(1),
-  medecin:         z.string().min(1),
+  medecin:         z.string().optional(),
   resume_patient:  z.string().optional(),
   parametres:                      z.record(z.string(), z.unknown()).optional(),
   examen_physique_central:         z.record(z.string(), z.unknown()).optional(),
@@ -26,6 +26,7 @@ const createEvolutionSchema = z.object({
   traitement:      z.string().optional(),
   problemes_poses: z.string().optional(),
   cat:             z.string().optional(),
+  
 });
 
 const updateEvolutionSchema = createEvolutionSchema.partial().omit({
@@ -42,12 +43,18 @@ export class EvolutionPatientController {
   create = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const data = createEvolutionSchema.parse(req.body);
+
+      // medecin et cree_par_id derives de l'utilisateur authentifie, jamais du body
+      const medecin = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`.trim();
+
       const createEvolution = new CreateEvolution(
         this.evolutionRepository,
         this.observationRepository,
       );
       const evolution = await createEvolution.execute({
         ...data,
+        medecin,
+        cree_par_id: req.user?.id_user,
         parametres:                   data.parametres                   as never,
         examen_physique_central:      data.examen_physique_central      as never,
         examen_physique_peripherique: data.examen_physique_peripherique as never,
@@ -56,7 +63,7 @@ export class EvolutionPatientController {
       const role = req.user?.role ?? '';
       notifyMedecinTraitant(data.id_patient, role, {
         titre:   'Nouvelle mise à jour — Fiche évolution',
-        message: `Dr. ${data.medecin} a ajouté une mise à jour pour le patient #${data.id_patient}`,
+        message: `Dr. ${medecin} a ajouté une mise à jour pour le patient #${data.id_patient}`,
         type: 'info', priorite: 'normale',
         lien: `/doctor/patients/${data.id_patient}/dossier`,
       }).catch(console.error);
@@ -73,8 +80,7 @@ export class EvolutionPatientController {
 
   getByPatientId = async (req: Request, res: Response): Promise<void> => {
     try {
-      
-const patientId     = parseInt(String(req.params.patientId), 10);
+      const patientId = parseInt(String(req.params.patientId), 10);
       if (isNaN(patientId)) { res.status(400).json({ success: false, message: 'ID patient invalide' }); return; }
       const evolutions = await new GetEvolutionsByPatient(this.evolutionRepository).execute(patientId);
       res.status(200).json({ success: true, data: evolutions, count: evolutions.length });
@@ -98,7 +104,7 @@ const patientId     = parseInt(String(req.params.patientId), 10);
 
   getById = async (req: Request, res: Response): Promise<void> => {
     try {
-      const id            = parseInt(String(req.params.id), 10);
+      const id = parseInt(String(req.params.id), 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID invalide' }); return; }
       const evolution = await this.evolutionRepository.findById(id);
       if (!evolution) throw new NotFoundError('Évolution non trouvée');
@@ -110,12 +116,16 @@ const patientId     = parseInt(String(req.params.patientId), 10);
     }
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
+  update = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const id            = parseInt(String(req.params.id), 10);
+      const id = parseInt(String(req.params.id), 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID invalide' }); return; }
       const data = updateEvolutionSchema.parse(req.body);
-      const evolution = await new UpdateEvolution(this.evolutionRepository).execute(id, data as never);
+      const updateData = {
+        ...data,
+        modifie_par_id: req.user?.id_user,
+      };
+      const evolution = await new UpdateEvolution(this.evolutionRepository).execute(id, updateData as never);
       res.status(200).json({ success: true, message: 'Évolution mise à jour avec succès', data: evolution });
     } catch (error) {
       if (error instanceof ZodError)      { res.status(400).json({ success: false, message: 'Erreur de validation', errors: error.issues }); return; }
@@ -127,7 +137,7 @@ const patientId     = parseInt(String(req.params.patientId), 10);
 
   delete = async (req: Request, res: Response): Promise<void> => {
     try {
-      const id            = parseInt(String(req.params.id), 10);
+      const id = parseInt(String(req.params.id), 10);
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID invalide' }); return; }
       const existing = await this.evolutionRepository.findById(id);
       if (!existing) throw new NotFoundError('Évolution non trouvée');

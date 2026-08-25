@@ -9,13 +9,13 @@ export class CreateEvolution {
   ) {}
 
   async execute(data: CreateEvolutionPatientDTO): Promise<EvolutionPatient> {
-    // Vérification : l'observation parente existe
+    // Verification : l'observation parente existe
     const observation = await this.observationRepository.findById(data.id_observation);
     if (!observation) {
       throw new Error('Observation parente non trouvée');
     }
 
-    // Vérification : l'observation appartient bien au patient
+    // Verification : l'observation appartient bien au patient
     if (observation.id_patient !== data.id_patient) {
       throw new Error('Cette observation n\'appartient pas à ce patient');
     }
@@ -42,6 +42,7 @@ export class CreateEvolution {
       traitement:                      data.traitement,
       problemes_poses:                 data.problemes_poses,
       cat:                             data.cat,
+      cree_par_id:                     data.cree_par_id,
     });
   }
 }
