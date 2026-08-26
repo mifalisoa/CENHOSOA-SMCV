@@ -1,4 +1,15 @@
 // frontend/src/presentation/components/lits/LitManagement.tsx
+//
+// CHANGEMENTS PAR RAPPORT A LA VERSION PRECEDENTE :
+// 1. httpClient retire : le composant utilise maintenant useLits() (repository + hook
+//    crees pour l'item #6 du backlog), au lieu d'appeler l'API directement.
+// 2. Les interfaces locales Lit / Patient sont retirees, on utilise LitWithOccupation
+//    depuis core/entities/Lit.ts pour avoir un seul type de verite dans tout le projet.
+// 3. Champs batiment et etage (en string) retires : ils n'etaient jamais rendus dans
+//    le JSX (code mort), et etage existe deja dans l'entite avec le bon type (number).
+// 4. Bug corrige : le message "20 lits CENHOSOA initialises" etait code en dur et
+//    faux (le backend en cree reellement 24). On affiche maintenant le message
+//    renvoye par le backend lui-meme, source unique de verite.
 
 import { useState, useEffect } from 'react';
 import { motion }              from 'motion/react';
@@ -10,37 +21,16 @@ import { Card, CardContent } from '../common/Card';
 import { Button }            from '../common/Button';
 import { Badge }             from '../common/Badge';
 import { toast }             from 'sonner';
-import { httpClient }        from '../../../infrastructure/http/axios.config';
+import { useLits }           from '../../hooks/useLits';
+import type { LitWithOccupation } from '../../../core/entities/Lit';
 
 interface LitManagementProps { onBackToDashboard: () => void; }
-
-interface Patient {
-  id_patient:               number;
-  nom_patient:              string;
-  prenom_patient:           string;
-  age:                      number;
-  sexe_patient:             string;
-  diagnostic:               string;
-  date_admission:           Date;
-  duree_occupation_heures:  number;
-}
-
-interface Lit {
-  id_lit:          number;
-  numero_lit:      string;
-  categorie:       string;
-  statut:          string;
-  etage?:          string;
-  batiment?:       string;
-  patient_actuel?: Patient;
-}
 
 interface Chambre {
   nom:       string;
   categorie: string;
   capacite:  number;
-  lits:      Lit[];
-  etage?:    string;
+  lits:      LitWithOccupation[];
 }
 
 interface CategorieStats {
@@ -50,13 +40,18 @@ interface CategorieStats {
   disponibles:  number;
 }
 
+// Intervalle de rafraichissement automatique de la liste des lits.
+// Reste dans le composant (pas dans le hook) : c'est un besoin d'affichage
+// specifique a cet ecran, pas un comportement que tout consommateur de useLits doit avoir.
+const AUTO_REFRESH_MS = 30000;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getCategorieLabel       = (c: string) => ({ '1': 'Catégorie 1', '2': 'Catégorie 2', '3': 'Catégorie 3', 'USIC': 'USIC' }[c] ?? c);
 const getCategorieDescription = (c: string) => ({ '1': 'Chambres Individuelles', '2': 'Chambres Doubles', '3': 'Chambre Quadruple', 'USIC': 'Soins Intensifs' }[c] ?? '');
 const getTypeLit              = (c: string) => ({ '1': 'VIP', '2': 'Standard', '3': 'Standard', 'USIC': 'Soins Intensifs' }[c] ?? 'Standard');
 
-const getLitLabel  = (lit: Lit) => `Lit N°${lit.numero_lit.split('-')[1]}`;
+const getLitLabel  = (lit: LitWithOccupation) => `Lit N°${lit.numero_lit.split('-')[1]}`;
 const formatDuration = (hours: number) => {
   const days = Math.floor(hours / 24);
   const h    = hours % 24;
@@ -66,39 +61,40 @@ const formatDuration = (hours: number) => {
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export function LitManagement({ onBackToDashboard }: LitManagementProps) {
-  const [lits,               setLits]               = useState<Lit[]>([]);
-  const [loading,            setLoading]            = useState(true);
+  const { lits, loading, error, refetch, initialiserLits } = useLits();
+
   const [initializing,       setInitializing]       = useState(false);
   const [selectedCategorie,  setSelectedCategorie]  = useState<string | null>(null);
   const [selectedStatut,     setSelectedStatut]     = useState<string | null>(null);
   const [searchPatient,      setSearchPatient]      = useState('');
   const [showFilters,        setShowFilters]        = useState(false);
 
-  const loadLits = async () => {
-    try {
-      setLoading(true);
-      const response = await httpClient.get('/lits');
-      setLits(response.data);
-    } catch {
-      toast.error('Erreur lors du chargement des lits');
-    } finally { setLoading(false); }
-  };
+  // Le hook expose deja un etat d'erreur ; on le traduit en toast ici,
+  // au lieu de dupliquer un try/catch autour de fetchLits comme avant.
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const handleInitializeLits = async () => {
     try {
       setInitializing(true);
-      await httpClient.post('/lits/initialiser');
-      toast.success('20 lits CENHOSOA initialisés avec succès');
-      await loadLits();
-    } catch { toast.error("Erreur lors de l'initialisation des lits"); }
-    finally { setInitializing(false); }
+      const result = await initialiserLits();
+      // Message affiche = celui renvoye par le backend (24 lits, pas un chiffre en dur).
+      toast.success(result.message);
+    } catch {
+      toast.error("Erreur lors de l'initialisation des lits");
+    } finally {
+      setInitializing(false);
+    }
   };
 
+  // Rafraichissement automatique periodique, en plus du refetch declenche
+  // par le hook au montage. refetch est stable (useCallback dans le hook),
+  // donc pas de re-creation d'intervalle a chaque rendu.
   useEffect(() => {
-    loadLits();
-    const interval = setInterval(loadLits, 30000);
+    const interval = setInterval(refetch, AUTO_REFRESH_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [refetch]);
 
   const litsFiltres = lits.filter(lit => {
     if (selectedCategorie && lit.categorie !== selectedCategorie) return false;
@@ -111,11 +107,11 @@ export function LitManagement({ onBackToDashboard }: LitManagementProps) {
     return true;
   });
 
-  const grouperParChambre = (litsAGrouper: Lit[]): Chambre[] => {
+  const grouperParChambre = (litsAGrouper: LitWithOccupation[]): Chambre[] => {
     const map = new Map<string, Chambre>();
     litsAGrouper.forEach(lit => {
       const nom = lit.numero_lit.startsWith('USIC') ? 'USIC' : lit.numero_lit.split('-')[0];
-      if (!map.has(nom)) map.set(nom, { nom, categorie: lit.categorie, capacite: 0, lits: [], etage: lit.etage });
+      if (!map.has(nom)) map.set(nom, { nom, categorie: lit.categorie, capacite: 0, lits: [] });
       const chambre = map.get(nom)!;
       chambre.lits.push(lit);
       chambre.capacite = chambre.lits.length;
@@ -164,7 +160,7 @@ export function LitManagement({ onBackToDashboard }: LitManagementProps) {
                   <span className="hidden sm:inline">{initializing ? 'Init...' : 'Initialiser'}</span>
                 </Button>
               )}
-              <Button variant="outline" onClick={loadLits} disabled={loading}
+              <Button variant="outline" onClick={refetch} disabled={loading}
                 className="flex items-center gap-1.5 bg-white text-[#08C5D1] hover:bg-gray-100 border-0 text-sm px-3 py-2">
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Actualiser</span>
@@ -276,7 +272,7 @@ export function LitManagement({ onBackToDashboard }: LitManagementProps) {
           <div className="text-center py-20">
             <BedDouble className="w-20 h-20 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun lit configuré</h3>
-            <p className="text-gray-500 mb-6">Cliquez sur "Initialiser les lits" pour créer les 20 lits de CENHOSOA</p>
+            <p className="text-gray-500 mb-6">Cliquez sur "Initialiser" pour créer les lits de CENHOSOA</p>
           </div>
         ) : litsFiltres.length === 0 ? (
           <div className="text-center py-20">

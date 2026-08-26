@@ -21,4 +21,11 @@ export const API_ENDPOINTS = {
   ADMISSION_BY_ID: (id: number) => `/admissions/${id}`,
   ADMISSION_ASSIGN_LIT: (id: number) => `/admissions/${id}/assign-lit`,
   ADMISSION_CLOTURER: (id: number) => `/admissions/${id}/cloturer`,
+
+    // Lits
+  LITS: '/lits',
+  LITS_STATISTIQUES: '/lits/statistiques',
+  LITS_INITIALISER: '/lits/initialiser',
+  LIT_BY_ID: (id: number) => `/lits/${id}`,
+  LIT_LIBERER: (id: number) => `/lits/${id}/liberer`,
 };
