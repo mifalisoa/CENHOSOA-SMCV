@@ -1,14 +1,23 @@
 // frontend/src/presentation/context/NotificationsContext.tsx
-// ✅ N'exporte QUE un composant → Fast Refresh OK
+//
+// CHANGEMENTS PAR RAPPORT A LA VERSION PRECEDENTE :
+// 1. Les 5 appels HTTP (fetch, markAsRead, markAllAsRead, delete, deleteAllRead)
+//    passent maintenant par notificationRepository au lieu de httpClient en dur.
+// 2. fetchNotifications (dans le useEffect) et refetch etaient un copier-coller
+//    exact l'un de l'autre : consolides en une seule fonction refetch, appelee
+//    aussi au montage. Comportement inchangé, plus de duplication.
+// 3. AUCUN changement sur la partie Socket.io (connexion, reconnexion, event
+//    'notification', son via useNotificationSound) : c'est la partie a risque
+//    de ce module, on n'y touche pas dans ce refactor.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth }    from '../hooks/useAuth';
-import { httpClient } from '../../infrastructure/http/axios.config';
 import { io, Socket } from 'socket.io-client';
 import { NotificationsContext } from './NotificationsTypes';
 import type { Notification }    from './NotificationsTypes';
 import { useNotificationSound } from '../hooks/useNotificationSound';
+import { notificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
@@ -21,23 +30,25 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [loading,       setLoading]       = useState(false);
 
+  // Chargement (initial ET manuel) : une seule version, plus de duplication
+  // avec l'ancien fetchNotifications qui faisait exactement la meme chose.
+  const refetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await notificationRepository.getAll({ limit: 30 });
+      setNotifications(result.data);
+      setUnreadCount(result.unreadCount);
+    } catch (err) {
+      console.error('Erreur chargement notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user?.id_user) return;
 
     const token = localStorage.getItem('token') ?? sessionStorage.getItem('token') ?? '';
-
-    const fetchNotifications = async () => {
-      try {
-        setLoading(true);
-        const res = await httpClient.get('/notifications?limit=30');
-        setNotifications(res.data.data);
-        setUnreadCount(res.data.unreadCount);
-      } catch (err) {
-        console.error('Erreur chargement notifications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     const socket = io(SOCKET_URL, {
       auth:              { token },
@@ -49,7 +60,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('🔌 [Notifications] Connecté à Socket.io');
+      console.log('Notifications : connecte a Socket.io');
       socket.emit('join', user.id_user);
     });
 
@@ -61,38 +72,25 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       });
       setUnreadCount(prev => prev + 1);
 
-      // ✅ Son à chaque nouvelle notification temps réel
+      // Son a chaque nouvelle notification temps reel
       play();
     });
 
     socket.on('disconnect', () => {
-      console.log('🔌 [Notifications] Déconnecté');
+      console.log('Notifications : deconnecte');
     });
 
-    fetchNotifications();
+    refetch();
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?.id_user, play]);
-
-  const refetch = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await httpClient.get('/notifications?limit=30');
-      setNotifications(res.data.data);
-      setUnreadCount(res.data.unreadCount);
-    } catch (err) {
-      console.error('Erreur refetch:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [user?.id_user, play, refetch]);
 
   const markAsRead = useCallback(async (id: number) => {
     try {
-      await httpClient.patch(`/notifications/${id}/lire`);
+      await notificationRepository.markAsRead(id);
       setNotifications(prev =>
         prev.map(n => n.id_notification === id ? { ...n, lue: true } : n)
       );
@@ -104,7 +102,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      await httpClient.patch('/notifications/lire-tout');
+      await notificationRepository.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, lue: true })));
       setUnreadCount(0);
     } catch (err) {
@@ -114,7 +112,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const deleteNotification = useCallback(async (id: number) => {
     try {
-      await httpClient.delete(`/notifications/${id}`);
+      await notificationRepository.delete(id);
       setNotifications(prev => {
         const notif = prev.find(n => n.id_notification === id);
         if (notif && !notif.lue) setUnreadCount(c => Math.max(0, c - 1));
@@ -127,7 +125,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const deleteAllRead = useCallback(async () => {
     try {
-      await httpClient.delete('/notifications/lues');
+      await notificationRepository.deleteAllRead();
       setNotifications(prev => prev.filter(n => !n.lue));
     } catch (err) {
       console.error('Erreur deleteAllRead:', err);

@@ -28,4 +28,12 @@ export const API_ENDPOINTS = {
   LITS_INITIALISER: '/lits/initialiser',
   LIT_BY_ID: (id: number) => `/lits/${id}`,
   LIT_LIBERER: (id: number) => `/lits/${id}/liberer`,
+
+  // Notifications
+  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS_COUNT: '/notifications/count',
+  NOTIFICATIONS_MARK_ALL_READ: '/notifications/lire-tout',
+  NOTIFICATIONS_DELETE_ALL_READ: '/notifications/lues',
+  NOTIFICATION_MARK_READ: (id: number) => `/notifications/${id}/lire`,
+  NOTIFICATION_BY_ID: (id: number) => `/notifications/${id}`,
 };
