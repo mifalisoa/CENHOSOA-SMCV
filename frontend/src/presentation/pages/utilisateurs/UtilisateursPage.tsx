@@ -108,6 +108,12 @@ const getStatutColor = (statut: string) => ({
   inactif:  'bg-gray-100  text-gray-700',
   suspendu: 'bg-red-100   text-red-700',
 } as Record<string, string>)[statut] ?? 'bg-gray-100 text-gray-700';
+// Libelle metier affiche a l'utilisateur, distinct de la valeur statut stockee en base
+const getStatutLabel = (statut: string) => ({
+  actif:    'Actif',
+  inactif:  'Archive',
+  suspendu: 'Suspendu',
+} as Record<string, string>)[statut] ?? statut;
 
 const getRoleLabel = (role: string) => ({
   admin: 'Admin', medecin: 'Médecin', interne: 'Interne',
@@ -160,16 +166,16 @@ function ActionsMenu({ user, isSelf, onEdit, onPermissions, onChangeStatut, onDe
             <KeyRound className="w-4 h-4 text-amber-500" />Réinitialiser mot de passe
           </button>
           <div className="my-1 border-t border-gray-100" />
-          {!isSelf && (
+                   {!isSelf && (
             user.statut === 'actif' ? (
               <button onClick={() => { setOpen(false); onChangeStatut('inactif'); }}
                 className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
-                <Lock className="w-4 h-4 text-gray-400" />Désactiver
+                <Lock className="w-4 h-4 text-gray-400" />Archiver
               </button>
             ) : (
               <button onClick={() => { setOpen(false); onChangeStatut('actif'); }}
                 className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-2.5 text-sm text-gray-700">
-                <Unlock className="w-4 h-4 text-gray-400" />Activer
+                <Unlock className="w-4 h-4 text-gray-400" />Reactiver
               </button>
             )
           )}
@@ -201,7 +207,7 @@ export default function UtilisateursPage() {
   const [loading,              setLoading]              = useState(true);
   const [searchQuery,          setSearchQuery]          = useState('');
   const [filterRole,           setFilterRole]           = useState<RoleType | 'all'>('all');
-  const [filterStatut,         setFilterStatut]         = useState<StatutType | 'all'>('all');
+  const [filterStatut,         setFilterStatut]         = useState<StatutType | 'all'>('actif');
   const [showFormModal,        setShowFormModal]        = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [modalMode,            setModalMode]            = useState<'create' | 'edit'>('create');
@@ -292,7 +298,7 @@ export default function UtilisateursPage() {
   const handleChangeStatut = async (user: Utilisateur, newStatut: StatutType) => {
     try {
       await httpClient.patch(`/utilisateurs/${user.id_user}/statut`, { statut: newStatut });
-      toast.success(`Utilisateur ${newStatut === 'actif' ? 'activé' : 'désactivé'}`);
+            toast.success(`Utilisateur ${newStatut === 'actif' ? 'reactive' : 'archive'}`);
       loadUtilisateurs();
     } catch (error: unknown) {
       const message = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
@@ -398,7 +404,7 @@ export default function UtilisateursPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 outline-none text-sm">
               <option value="all">Tous les statuts</option>
               <option value="actif">Actif</option>
-              <option value="inactif">Inactif</option>
+              <option value="inactif">Archive</option>
               <option value="suspendu">Suspendu</option>
             </select>
           </div>
@@ -442,8 +448,8 @@ export default function UtilisateursPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatutColor(user.statut)}`}>
-                        {user.statut}
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatutColor(user.statut)}`}>
+                        {getStatutLabel(user.statut)}
                       </span>
                       <ActionsMenu
                         user={user}
@@ -522,11 +528,11 @@ export default function UtilisateursPage() {
         <UtilisateurPermissionsModal utilisateur={selectedUser} onClose={() => setShowPermissionsModal(false)} />
       )}
 
-      {confirmDelete && (
-        <ConfirmDialog titre="Supprimer cet utilisateur ?"
+            {confirmDelete && (
+        <ConfirmDialog titre="Supprimer definitivement cet utilisateur ?"
           message={`${confirmDelete.prenom} ${confirmDelete.nom}`}
-          detail={`${confirmDelete.email} · ${getRoleLabel(confirmDelete.role)}`}
-          confirmLabel="Supprimer" confirmColor="red"
+          detail={`Action irreversible : l'historique lie a ce compte sera perdu. Preferez "Archiver" si vous voulez seulement le retirer des listes actives.`}
+          confirmLabel="Supprimer definitivement" confirmColor="red"
           icon={<Trash2 className="w-7 h-7 text-red-600" />}
           onConfirm={handleDelete} onCancel={() => setConfirmDelete(null)} loading={actionLoading} />
       )}
