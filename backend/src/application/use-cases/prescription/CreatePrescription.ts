@@ -6,6 +6,11 @@ import { IUtilisateurRepository } from '../../../domain/repositories/IUtilisateu
 import { CreatePrescriptionDTO, Prescription } from '../../../domain/entities/Prescription';
 import { NotFoundError } from '../../../shared/errors/NotFoundError';
 import { ValidationError } from '../../../shared/errors/ValidationError';
+import { ROLES_NECESSITANT_VALIDATION, RoleType } from '../../../shared/types';
+
+export interface CreatePrescriptionInput extends CreatePrescriptionDTO {
+    role_createur?: RoleType;
+}
 
 export class CreatePrescription {
     constructor(
@@ -14,7 +19,7 @@ export class CreatePrescription {
         private utilisateurRepository: IUtilisateurRepository
     ) {}
 
-    async execute(data: CreatePrescriptionDTO): Promise<Prescription> {
+    async execute(data: CreatePrescriptionInput): Promise<Prescription> {
         const admission = await this.admissionRepository.findById(data.id_admission);
         if (!admission) {
             throw new NotFoundError('Admission');
@@ -23,11 +28,22 @@ export class CreatePrescription {
             throw new ValidationError('Impossible de prescrire pour une admission clôturée');
         }
 
+        // Le docteur reference peut etre un medecin ou un admin (qui agit aussi comme medecin)
         const docteur = await this.utilisateurRepository.findById(data.id_docteur);
-        if (!docteur || docteur.role !== 'medecin' || docteur.statut !== 'actif') {
+        const roleDocteurValide = docteur?.role === 'medecin' || docteur?.role === 'admin';
+        if (!docteur || !roleDocteurValide || docteur.statut !== 'actif') {
             throw new ValidationError('Médecin invalide ou inactif');
         }
 
-        return await this.prescriptionRepository.create(data);
+        // Statut initial selon le role de la personne qui SAISIT (pas forcement le docteur reference)
+        const necessiteValidation =
+            data.role_createur !== undefined &&
+            ROLES_NECESSITANT_VALIDATION.includes(data.role_createur);
+        const statutInitial = necessiteValidation ? 'en_attente' : 'valide';
+
+        return await this.prescriptionRepository.create({
+    ...data,
+    statut: statutInitial,
+});
     }
 }

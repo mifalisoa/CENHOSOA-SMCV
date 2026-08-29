@@ -2,19 +2,22 @@
 
 import { Pool } from 'pg';
 import { IPrescriptionRepository } from '../../../../domain/repositories/IPrescriptionRepository';
-import { Prescription, CreatePrescriptionDTO, UpdatePrescriptionDTO } from '../../../../domain/entities/Prescription';
+import { Prescription, CreatePrescriptionDTO, UpdatePrescriptionDTO, StatutPrescription } from '../../../../domain/entities/Prescription';
 
 export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     constructor(private pool: Pool) {}
 
-    async create(data: CreatePrescriptionDTO): Promise<Prescription> {
+    async create(data: CreatePrescriptionDTO & { statut: StatutPrescription }): Promise<Prescription> {
+
+    
         const query = `
             INSERT INTO prescription (
                 id_admission, id_docteur, type_prescription, nom_medicament, dosage,
                 voie_administration, frequence, duree_traitement, nom_bilan,
-                indication_bilan, instructions, modifications_traitement
+                indication_bilan, instructions, modifications_traitement,
+                cree_par_id, statut
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `;
 
@@ -31,6 +34,8 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
             data.indication_bilan       || null,
             data.instructions           || null,
             data.modifications_traitement || null,
+            data.cree_par_id            || null,
+            data.statut                 || 'en_attente',
         ];
 
         const result = await this.pool.query(query, values);
@@ -41,9 +46,11 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
         const query = `
             SELECT p.*,
                    u.nom   AS nom_docteur, u.prenom AS prenom_docteur,
+                   v.nom   AS valideur_nom, v.prenom AS valideur_prenom,
                    a.num_admission
             FROM prescription p
             JOIN utilisateurs u ON p.id_docteur   = u.id_user
+            LEFT JOIN utilisateurs v ON p.valide_par = v.id_user
             JOIN admission    a ON p.id_admission = a.id_admission
             WHERE p.id_prescription = $1
         `;
@@ -54,9 +61,11 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     async findByAdmission(idAdmission: number): Promise<Prescription[]> {
         const query = `
             SELECT p.*,
-                   u.nom AS nom_docteur, u.prenom AS prenom_docteur
+                   u.nom AS nom_docteur, u.prenom AS prenom_docteur,
+                   v.nom AS valideur_nom, v.prenom AS valideur_prenom
             FROM prescription p
             JOIN utilisateurs u ON p.id_docteur = u.id_user
+            LEFT JOIN utilisateurs v ON p.valide_par = v.id_user
             WHERE p.id_admission = $1
             ORDER BY p.date_prescription DESC
         `;
@@ -67,9 +76,11 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
     async findByType(idAdmission: number, type: string): Promise<Prescription[]> {
         const query = `
             SELECT p.*,
-                   u.nom AS nom_docteur, u.prenom AS prenom_docteur
+                   u.nom AS nom_docteur, u.prenom AS prenom_docteur,
+                   v.nom AS valideur_nom, v.prenom AS valideur_prenom
             FROM prescription p
             JOIN utilisateurs u ON p.id_docteur = u.id_user
+            LEFT JOIN utilisateurs v ON p.valide_par = v.id_user
             WHERE p.id_admission = $1 AND p.type_prescription = $2
             ORDER BY p.date_prescription DESC
         `;
@@ -94,7 +105,7 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
         values.push(id);
         const query = `
             UPDATE prescription
-            SET ${fields.join(', ')}
+            SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
             WHERE id_prescription = $${paramCounter}
             RETURNING *
         `;
@@ -110,4 +121,22 @@ export class PostgresPrescriptionRepository implements IPrescriptionRepository {
         );
         return (result.rowCount ?? 0) > 0;
     }
+
+    async valider(id: number, statut: StatutPrescription, validateurId: number, modeGarde: boolean): Promise<Prescription | null> {
+        const query = `
+            UPDATE prescription
+            SET statut      = $1,
+                valide_par  = $2,
+                valide_le   = CURRENT_TIMESTAMP,
+                mode_garde  = $3,
+                updated_at  = CURRENT_TIMESTAMP
+            WHERE id_prescription = $4
+            RETURNING *
+        `;
+        const values = [statut, validateurId || null, modeGarde, id];
+        const result = await this.pool.query(query, values);
+        return result.rows[0] || null;
+    }
+
+    
 }

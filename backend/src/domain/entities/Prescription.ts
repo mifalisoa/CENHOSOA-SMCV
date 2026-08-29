@@ -1,3 +1,5 @@
+export type StatutPrescription = 'en_attente' | 'valide' | 'refuse';
+
 export interface Prescription {
     id_prescription: number;
     id_admission: number;
@@ -13,8 +15,23 @@ export interface Prescription {
     indication_bilan?: string | null;
     instructions?: string | null;
     modifications_traitement?: string | null;
+    cree_par_id?: number | null;
+    statut: StatutPrescription;
+    valide_par?: number | null;
+    valide_le?: string | null;
+    mode_garde: boolean;
+    nom_docteur?: string;
+    prenom_docteur?: string;
+    valideur_nom?: string;
+    valideur_prenom?: string;
+    created_at: Date;
+    updated_at: Date;
 }
 
-export type CreatePrescriptionDTO = Omit<Prescription, 'id_prescription' | 'date_prescription'>;
+type PrescriptionExclusCreate = 'id_prescription' | 'date_prescription' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'mode_garde' | 'nom_docteur' | 'prenom_docteur' | 'valideur_nom' | 'valideur_prenom';
 
-export type UpdatePrescriptionDTO = Partial<Omit<Prescription, 'id_prescription' | 'id_admission' | 'id_docteur' | 'date_prescription'>>;
+export type CreatePrescriptionDTO = Omit<Prescription, PrescriptionExclusCreate>;
+
+type PrescriptionExclusUpdate = 'id_prescription' | 'id_admission' | 'id_docteur' | 'date_prescription' | 'created_at' | 'updated_at' | 'statut' | 'valide_par' | 'valide_le' | 'mode_garde' | 'nom_docteur' | 'prenom_docteur' | 'valideur_nom' | 'valideur_prenom';
+
+export type UpdatePrescriptionDTO = Partial<Omit<Prescription, PrescriptionExclusUpdate>>;

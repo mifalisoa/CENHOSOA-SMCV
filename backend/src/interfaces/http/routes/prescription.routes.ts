@@ -12,7 +12,7 @@ import { createPrescriptionSchema, updatePrescriptionSchema } from '../validator
 import { authMiddleware }                    from '../middlewares/auth.middleware';
 import { roleMiddleware }                    from '../middlewares/role.middleware';
 import { logAction }                         from '../middlewares/action-logger.middleware';
-import { ROLES }                             from '../../../config/constants';
+import { ROLES_VALIDATEURS }                 from '../../../shared/types';
 
 const prescriptionRepository  = new PostgresPrescriptionRepository(pool);
 const admissionRepository     = new PostgresAdmissionRepository(pool);
@@ -25,28 +25,35 @@ const updatePrescription          = new UpdatePrescription(prescriptionRepositor
 const prescriptionController = new PrescriptionController(
   createPrescription,
   getPrescriptionsByAdmission,
-  updatePrescription
+  updatePrescription,
+  prescriptionRepository
 );
 
 const router = Router();
 router.use(authMiddleware);
 
-// Lecture — pas de log
+const ECRITURE = ['admin', 'medecin', 'interne'];
+
 router.get('/admission/:idAdmission', prescriptionController.getByAdmission);
 
-// Écriture — loggée
 router.post('/',
-  roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR]),
+  roleMiddleware(ECRITURE),
   validateRequest(createPrescriptionSchema),
   logAction('create', 'prescriptions'),
   prescriptionController.create
 );
 
 router.patch('/:id',
-  roleMiddleware([ROLES.ADMIN, ROLES.DOCTEUR]),
+  roleMiddleware(ECRITURE),
   validateRequest(updatePrescriptionSchema),
   logAction('update', 'prescriptions'),
   prescriptionController.update
+);
+
+router.patch('/:id/valider',
+  roleMiddleware(ROLES_VALIDATEURS),
+  logAction('update', 'prescriptions'),
+  prescriptionController.valider
 );
 
 export default router;
