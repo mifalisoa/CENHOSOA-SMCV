@@ -1,8 +1,11 @@
 // backend/src/interfaces/http/controllers/AuthController.ts
+//
+// CHANGEMENT : la methode register() et la dependance a RegisterUser sont
+// retirees. Raison detaillee dans auth.routes.ts. Le reste du fichier est
+// identique a la version precedente.
 
 import { Request, Response, NextFunction } from 'express';
 import { LoginUser }           from '../../../application/use-cases/auth/LoginUser';
-import { RegisterUser }        from '../../../application/use-cases/auth/RegisterUser';
 import { successResponse }     from '../../../shared/utils/response.utils';
 import { HTTP_STATUS }         from '../../../config/constants';
 import { AuthRequest }         from '../middlewares/auth.middleware';
@@ -33,8 +36,7 @@ function getIP(req: Request): string {
 
 export class AuthController {
   constructor(
-    private loginUser:    LoginUser,
-    private registerUser: RegisterUser
+    private loginUser: LoginUser
   ) {}
 
   login = async (req: Request, res: Response, next: NextFunction) => {
@@ -61,7 +63,6 @@ export class AuthController {
         }).catch(console.error);
       }
 
-      // ✅ Inclut premier_connexion pour que le frontend redirige
       res.status(HTTP_STATUS.OK).json(successResponse({
         ...result,
         premier_connexion: result.user.premier_connexion ?? false,
@@ -72,19 +73,6 @@ export class AuthController {
     }
   };
 
-  register = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await this.registerUser.execute({
-        ...req.body,
-        password: req.body.password || req.body.mot_de_passe,
-      });
-      res.status(HTTP_STATUS.CREATED).json(successResponse(result, 'Utilisateur créé avec succès'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  // ✅ POST /auth/changer-mot-de-passe
   changerMotDePasse = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
@@ -111,7 +99,6 @@ export class AuthController {
 
       const user = userResult.rows[0];
 
-      // Si pas première connexion → vérifie l'ancien mot de passe
       if (!user.premier_connexion) {
         if (!ancien_mot_de_passe) {
           res.status(400).json({ success: false, message: "L'ancien mot de passe est requis" });
@@ -133,14 +120,12 @@ export class AuthController {
         [hashedPassword, userId]
       );
 
-      // Email de confirmation
       try {
         await sendMotDePasseChangé({ to: user.email, prenom: user.prenom, nom: user.nom });
       } catch (emailError) {
-        console.error('⚠️ [Auth] Email confirmation non envoyé:', emailError);
+        console.error('Email confirmation non envoyé:', emailError);
       }
 
-      // Log
       await pool.query(
         `INSERT INTO logs_action (id_utilisateur, action, module, ip_address, statut)
          VALUES ($1, 'update', 'auth', $2, 'success')`,

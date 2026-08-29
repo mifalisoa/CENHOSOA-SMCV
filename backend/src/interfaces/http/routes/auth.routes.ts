@@ -1,27 +1,30 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
 import { LoginUser } from '../../../application/use-cases/auth/LoginUser';
-import { RegisterUser } from '../../../application/use-cases/auth/RegisterUser';
 import { PostgresUtilisateurRepository } from '../../../infrastructure/database/postgres/repositories/PostgresUtilisateurRepository';
 import { pool } from '../../../config/database';
 import { validateRequest } from '../middlewares/validation.middleware';
-import { loginSchema, registerSchema } from '../validators/auth.validator';
+import { loginSchema } from '../validators/auth.validator';
 import { authMiddleware } from '../middlewares/auth.middleware';
+// NOUVEAU : rate limiter sur le login. Le fichier existait deja
+// (rateLimiter.middleware.ts) mais n'etait importe nulle part.
+import { loginRateLimiter } from '../middlewares/rateLimiter.middleware';
 
 // Dependency Injection
 const utilisateurRepository = new PostgresUtilisateurRepository(pool);
-const loginUser    = new LoginUser(utilisateurRepository);
-const registerUser = new RegisterUser(utilisateurRepository);
-const authController = new AuthController(loginUser, registerUser);
+const loginUser = new LoginUser(utilisateurRepository);
+const authController = new AuthController(loginUser);
 
 const router = Router();
 
-router.post('/login',    validateRequest(loginSchema),    authController.login);
-router.post('/register', validateRequest(registerSchema), authController.register);
-router.get( '/me',       authMiddleware,                  authController.me);
+// loginRateLimiter avant validateRequest : on veut bloquer les tentatives
+// en trop AVANT de perdre du temps a valider le format du body.
+router.post('/login', loginRateLimiter, validateRequest(loginSchema), authController.login);
 
-// ✅ Logout — supprime la session active et log la déconnexion
-router.post('/logout',   authMiddleware,                  authController.logout);
+router.get('/me', authMiddleware, authController.me);
+
+// Logout — supprime la session active et log la déconnexion
+router.post('/logout', authMiddleware, authController.logout);
 
 router.post('/changer-mot-de-passe', authMiddleware, authController.changerMotDePasse);
 

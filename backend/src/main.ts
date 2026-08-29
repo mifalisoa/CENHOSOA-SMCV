@@ -1,4 +1,11 @@
 // backend/src/main.ts
+//
+// CHANGEMENT : apiRateLimiter branche sur toutes les routes /api.
+// Le fichier existait deja (rateLimiter.middleware.ts) mais n'etait
+// importe nulle part, donc totalement inactif.
+// loginRateLimiter (plus strict, 5/15min) reste sur /auth/login specifiquement
+// (voir auth.routes.ts) : les deux se cumulent sans probleme, apiRateLimiter
+// couvre le reste de l'API que loginRateLimiter ne voit pas.
 
 import express        from 'express';
 import cors           from 'cors';
@@ -9,6 +16,7 @@ import { testConnection } from './config/database';
 import { initSocketIO }   from './config/socket';
 import routes         from './interfaces/http/routes';
 import { errorMiddleware } from './interfaces/http/middlewares/error.middleware';
+import { apiRateLimiter, uploadsReadRateLimiter } from './interfaces/http/middlewares/rateLimiter.middleware';
 import path           from 'path';
 
 const app = express();
@@ -35,10 +43,16 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// MITIGATION PARTIELLE (pas une vraie protection) : ces fichiers restent
+// accessibles sans authentification -- voir l'audit securite pour le
+// chantier complet, volontairement reporte apres la livraison de septembre
+// vu son impact sur le frontend (affichage des documents/images).
+// En attendant, ce rate limiter ralentit au moins le scraping automatise
+// en masse d'URLs de fichiers.
+app.use('/uploads', uploadsReadRateLimiter, express.static(path.join(__dirname, '../uploads')));
 
 app.use((req, _res, next) => {
-  console.log(`📨 [${req.method}] ${req.url}`);
+  console.log(`[${req.method}] ${req.url}`);
   next();
 });
 
@@ -54,7 +68,7 @@ app.get('/', (_req, res) => {
 
 // ── Routes API ────────────────────────────────────────────────────────────────
 
-app.use('/api', routes);
+app.use('/api', apiRateLimiter, routes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 
@@ -72,22 +86,19 @@ const start = async () => {
   try {
     await testConnection();
 
-    // LEÇON : On crée un serveur HTTP explicite pour pouvoir y attacher Socket.io.
-    // Avant : app.listen() créait un serveur HTTP implicitement.
-    // Après : createServer(app) + initSocketIO(httpServer) partagent le même port.
     const httpServer = createServer(app);
     initSocketIO(httpServer);
 
     httpServer.listen(env.PORT, () => {
-      console.log('╔════════════════════════════════════════════════╗');
-      console.log('║        🏥  CENHOSOA-SMCV Backend API  🏥       ║');
-      console.log('╚════════════════════════════════════════════════╝');
-      console.log(`🚀 Serveur démarré sur http://localhost:${env.PORT}`);
-      console.log(`🔌 Socket.io activé sur ws://localhost:${env.PORT}`);
-      console.log(`📊 Environnement: ${env.NODE_ENV}`);
+      console.log('================================================');
+      console.log('        CENHOSOA-SMCV Backend API');
+      console.log('================================================');
+      console.log(`Serveur démarré sur http://localhost:${env.PORT}`);
+      console.log(`Socket.io activé sur ws://localhost:${env.PORT}`);
+      console.log(`Environnement: ${env.NODE_ENV}`);
     });
   } catch (error) {
-    console.error('❌ Erreur au démarrage:', error);
+    console.error('Erreur au démarrage:', error);
     process.exit(1);
   }
 };

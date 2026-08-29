@@ -1,4 +1,16 @@
-// backend/src/interfaces/http/routes/documentPatientUploadRoutes.ts
+// backend/src/interfaces/http/routes/documentPatientUpload.routes.ts
+//
+// CHANGEMENTS CUMULES :
+// 1. (deja applique) id_patient valide comme entier positif -> protege contre
+//    le path traversal / ecriture de fichier arbitraire.
+// 2. (nouveau) Apres ecriture sur disque, on verifie le contenu REEL du fichier
+//    (signature / magic bytes) via la librairie "file-type", au lieu de faire
+//    confiance au mimetype declare par le client dans la requete HTTP -- ce
+//    dernier est un simple header, trivialement falsifiable. Si le contenu ne
+//    correspond a aucun type autorise, le fichier est supprime et la requete
+//    rejetee.
+//
+// Necessite : npm install file-type (dans backend/)
 
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -9,22 +21,38 @@ import fs from 'fs';
 
 const router = Router();
 
-router.use(authMiddleware); 
+router.use(authMiddleware);
 
-/**
- * Configuration du stockage disque
- */
+const UPLOADS_BASE_DIR = path.join(__dirname, '../../../../uploads/patients');
+
+function parsePatientId(raw: unknown): number | null {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
-    // Note: id_patient doit être envoyé AVANT le fichier dans le FormData côté client
-    const patientId = req.body.id_patient || 'unknown';
-    const uploadDir = path.join(__dirname, `../../../../uploads/patients/${patientId}`);
-    
-    // Créer le dossier récursivement s'il n'existe pas
+    const patientId = parsePatientId(req.body.id_patient);
+
+    if (patientId === null) {
+      cb(new Error('id_patient invalide : un identifiant numerique est requis'), '');
+      return;
+    }
+
+    const uploadDir = path.join(UPLOADS_BASE_DIR, String(patientId));
+
+    const resolved = path.resolve(uploadDir);
+    if (!resolved.startsWith(path.resolve(UPLOADS_BASE_DIR) + path.sep)) {
+      cb(new Error('Chemin de destination invalide'), '');
+      return;
+    }
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-    
+
     cb(null, uploadDir);
   },
   filename: (req: Request, file: Express.Multer.File, cb) => {
@@ -35,9 +63,9 @@ const storage = multer.diskStorage({
   }
 });
 
-/**
- * Filtre de fichiers et limites
- */
+// Premiere passe, rapide : filtre sur le mimetype declare. Volontairement
+// laisse en l'etat -- c'est juste un premier tri, la vraie verification
+// se fait apres coup sur le contenu reel (voir REAL_ALLOWED_MIMES plus bas).
 const upload = multer({
   storage: storage,
   limits: {
@@ -52,7 +80,7 @@ const upload = multer({
       'video/mp4',
       'video/avi'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -61,13 +89,22 @@ const upload = multer({
   }
 });
 
-/**
- * Route d'upload
- */
-router.post('/upload', upload.single('file'), (req: Request, res: Response) => {
-  try {
-    const uploadedFile = req.file;
+// Types reellement autorises, detectes par signature de fichier (magic bytes),
+// pas par ce que le client pretend. Note : file-type detecte les fichiers AVI
+// sous 'video/x-msvideo', pas 'video/avi' -- c'est le vrai identifiant MIME
+// standard, different de celui utilise dans le fileFilter cote client.
+const REAL_ALLOWED_MIMES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'video/mp4',
+  'video/x-msvideo',
+];
 
+router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
+  const uploadedFile = req.file;
+
+  try {
     if (!uploadedFile) {
       return res.status(400).json({
         success: false,
@@ -75,17 +112,29 @@ router.post('/upload', upload.single('file'), (req: Request, res: Response) => {
       });
     }
 
-    const patientId = req.body.id_patient;
-    if (!patientId) {
+    const patientId = parsePatientId(req.body.id_patient);
+    if (patientId === null) {
+      fs.unlinkSync(uploadedFile.path);
       return res.status(400).json({
         success: false,
-        message: 'ID du patient manquant dans la requête'
+        message: 'ID du patient manquant ou invalide dans la requête'
+      });
+    }
+
+    // file-type est une librairie ESM -- import dynamique pour rester
+    // compatible peu importe la config module du projet (CommonJS ou ESM).
+    const { fileTypeFromFile } = await import('file-type');
+    const detected = await fileTypeFromFile(uploadedFile.path);
+
+    if (!detected || !REAL_ALLOWED_MIMES.includes(detected.mime)) {
+      fs.unlinkSync(uploadedFile.path);
+      return res.status(400).json({
+        success: false,
+        message: 'Le contenu du fichier ne correspond pas à un type autorisé.'
       });
     }
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-    
-    // Construction de l'URL publique du fichier
     const url_fichier = `${baseUrl}/uploads/patients/${patientId}/${uploadedFile.filename}`;
 
     res.status(200).json({
@@ -99,6 +148,11 @@ router.post('/upload', upload.single('file'), (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
+    // Si le fichier a ete ecrit sur disque avant l'erreur, on nettoie pour
+    // ne pas laisser trainer un fichier orphelin non reference en base.
+    if (uploadedFile?.path && fs.existsSync(uploadedFile.path)) {
+      fs.unlinkSync(uploadedFile.path);
+    }
     console.error('Erreur upload:', error);
     res.status(500).json({
       success: false,
