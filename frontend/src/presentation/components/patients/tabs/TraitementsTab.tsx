@@ -45,7 +45,7 @@ function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
       </span>
     );
   }
-  if (statut === 'rejete') {
+  if (statut === 'refuse') {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
         <XCircle className="w-3 h-3" />Rejeté
@@ -61,7 +61,7 @@ function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
 
 function borderColor(statut: string) {
   if (statut === 'valide') return 'border-l-green-500';
-  if (statut === 'rejete') return 'border-l-red-400';
+  if (statut === 'refuse') return 'border-l-red-400';
   return 'border-l-amber-400';
 }
 
@@ -117,7 +117,7 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
   };
 
   // Valide tous les médicaments d'un groupe (ordonnance) en une fois
-  const handleValiderGroupe = async (groupe: typeof groupes[0], statut: 'valide' | 'rejete') => {
+  const handleValiderGroupe = async (groupe: typeof groupes[0], statut: 'valide' | 'refuse') => {
     setValidating(groupe.key);
     try {
       await Promise.all(groupe.items.map(t => validerTraitement(t.id_traitement, statut)));
@@ -314,10 +314,10 @@ export default function TraitementsTab({ patient }: TraitementsTabProps) {
                               : <ShieldCheck className="w-3.5 h-3.5" />}
                             <span className="hidden sm:inline">Valider</span>
                           </button>
-                          <button onClick={() => handleValiderGroupe(groupe, 'rejete')} disabled={isValidating}
+                          <button onClick={() => handleValiderGroupe(groupe, 'refuse')} disabled={isValidating}
                             className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
                             <XCircle className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Rejeter</span>
+                            <span className="hidden sm:inline">Refuser</span>
                           </button>
                         </>
                       )}

@@ -24,4 +24,4 @@ export interface PaginatedResponse<T> {
 }
 
 // ── Validation des actes ──────────────────────────────────────────────────────
-export type StatutValidation = 'en_attente' | 'valide' | 'rejete';
+export type StatutValidation = 'en_attente' | 'valide' | 'refuse';

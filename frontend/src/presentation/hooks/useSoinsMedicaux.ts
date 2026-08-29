@@ -75,7 +75,7 @@ export const useSoinsMedicaux = (patientId?: number) => {
       setLoading(false);
     }
   };
-  const validerSoin = async (id: number, statut: 'valide' | 'rejete'): Promise<boolean> => {
+  const validerSoin = async (id: number, statut: 'valide' | 'refuse'): Promise<boolean> => {
   setLoading(true);
   setError(null);
   try {

@@ -20,7 +20,7 @@ function getStatutInfo(soin: SoinInfirmier): { label: string; color: string; bgC
     return { label: '✅ Validé', color: '#16a34a', bgColor: '#f0fdf4', borderColor: '#bbf7d0' };
   }
   
-  if (statut === 'rejete') {
+  if (statut === 'refuse') {
     return { label: '❌ Rejeté', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fca5a5' };
   }
   

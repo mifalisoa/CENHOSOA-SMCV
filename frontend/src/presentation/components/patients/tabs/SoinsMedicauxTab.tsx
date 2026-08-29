@@ -28,7 +28,7 @@ interface SoinsMedicauxTabProps {
 }
 
 function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
-  statut:          'en_attente' | 'valide' | 'rejete';
+  statut:          'en_attente' | 'valide' | 'refuse';
   valideurNom?:    string;
   valideurPrenom?: string;
   modeGarde?:      boolean;
@@ -43,7 +43,7 @@ function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
       </span>
     );
   }
-  if (statut === 'rejete') {
+  if (statut === 'refuse') {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
         <XCircle className="w-3 h-3" />Rejeté
@@ -59,7 +59,7 @@ function StatutBadge({ statut, valideurNom, valideurPrenom, modeGarde }: {
 
 function borderColor(statut: string) {
   if (statut === 'valide')  return 'border-l-green-500';
-  if (statut === 'rejete')  return 'border-l-red-400';
+  if (statut === 'refuse')  return 'border-l-red-400';
   return 'border-l-amber-400';
 }
 
@@ -91,7 +91,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
   };
 
   // ── Validation par le médecin ─────────────────────────────────────────────
-  const handleValider = async (soin: SoinMedical, statut: 'valide' | 'rejete') => {
+  const handleValider = async (soin: SoinMedical, statut: 'valide' | 'refuse') => {
     setValidating(soin.id_soin_medical);
     try {
       await httpClient.patch(`/soins-medicaux/${soin.id_soin_medical}/valider`, { statut });
@@ -268,7 +268,7 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
 
-                      {/* Boutons valider/rejeter — médecin uniquement, actes en attente */}
+                      {/* Boutons valider/refuser — médecin uniquement, actes en attente */}
                       {isMedecin && statut === 'en_attente' && (
                         <>
                           <button
@@ -281,11 +281,11 @@ export default function SoinsMedicauxTab({ patient }: SoinsMedicauxTabProps) {
                             <span className="hidden sm:inline">Valider</span>
                           </button>
                           <button
-                            onClick={() => handleValider(soin, 'rejete')}
+                            onClick={() => handleValider(soin, 'refuse')}
                             disabled={isValidating}
                             className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-95 transition-all font-medium flex items-center gap-1.5 text-xs disabled:opacity-50">
                             <XCircle className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Rejeter</span>
+                            <span className="hidden sm:inline">Refuser</span>
                           </button>
                         </>
                       )}

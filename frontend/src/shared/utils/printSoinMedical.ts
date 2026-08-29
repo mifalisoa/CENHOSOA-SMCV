@@ -18,8 +18,8 @@ function getStatutInfo(soin: SoinMedical): { label: string; color: string; bgCol
       return { label: `✅ Validé — Dr. ${soin.valideur_prenom ?? ''} ${soin.valideur_nom}`, color: '#16a34a', bgColor: '#f0fdf4', borderColor: '#bbf7d0' };
     return { label: '✅ Validé', color: '#16a34a', bgColor: '#f0fdf4', borderColor: '#bbf7d0' };
   }
-  if (statut === 'rejete')
-    return { label: '❌ Rejeté', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fca5a5' };
+  if (statut === 'refuse')
+    return { label: '❌ Refuseé', color: '#dc2626', bgColor: '#fef2f2', borderColor: '#fca5a5' };
   return { label: '⏳ En attente de validation', color: '#f59e0b', bgColor: '#fefce8', borderColor: '#fde047' };
 }
 
