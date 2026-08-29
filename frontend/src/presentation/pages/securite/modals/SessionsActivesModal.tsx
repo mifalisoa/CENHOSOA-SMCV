@@ -39,11 +39,11 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
   const [sessions,         setSessions]         = useState<Session[]>([]);
   const [selectedSession,  setSelectedSession]  = useState<Session | null>(null);
   const [showDetails,      setShowDetails]      = useState(false);
-  // ✅ Dialog de confirmation intégré — remplace confirm() natif
+ // Dialog de confirmation intégré — remplace confirm() natif
   const [confirmSession,   setConfirmSession]   = useState<Session | null>(null);
   const [disconnecting,    setDisconnecting]    = useState<string | null>(null);
 
-  // ✅ useCallback pour éviter warning exhaustive-deps
+ // useCallback pour éviter warning exhaustive-deps
   const loadSessions = useCallback(async () => {
     try {
       setLoading(true);
@@ -51,7 +51,7 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
       const response = await httpClient.get('/securite/sessions');
       setSessions(response.data.data || []);
     } catch (error) {
-      console.error('❌ [Sessions] Erreur:', error);
+ console.error('[Sessions] Erreur:', error);
       setLoadError('Impossible de charger les sessions actives.');
       toast.error('Erreur lors du chargement des sessions');
     } finally {

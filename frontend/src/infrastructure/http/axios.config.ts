@@ -32,7 +32,7 @@ class HttpClient {
         }
         
         // Log pour debug
-        console.log('📤 [HTTP] Requête:', {
+ console.log('[HTTP] Requête:', {
           method: config.method?.toUpperCase(),
           url: config.url,
           data: config.data instanceof FormData ? 'FormData' : config.data,
@@ -42,7 +42,7 @@ class HttpClient {
         return config;
       },
       (error) => {
-        console.error('❌ [HTTP] Erreur requête:', error);
+ console.error('[HTTP] Erreur requête:', error);
         return Promise.reject(error);
       }
     );
@@ -50,7 +50,7 @@ class HttpClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        console.log('📥 [HTTP] Réponse:', {
+ console.log('[HTTP] Réponse:', {
           status: response.status,
           data: response.data,
         });
@@ -58,7 +58,7 @@ class HttpClient {
         return response;
       },
       (error) => {
-        console.error('❌ [HTTP] Erreur réponse:', {
+ console.error('[HTTP] Erreur réponse:', {
           status: error.response?.status,
           data: error.response?.data,
           message: error.message,

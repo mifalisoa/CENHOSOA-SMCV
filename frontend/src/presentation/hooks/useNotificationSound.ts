@@ -133,7 +133,7 @@ export function useNotificationSound() {
     }
   }, []);
 
-  // ✅ Mise à jour de la ref dans un useEffect — pas pendant le rendu
+ // Mise à jour de la ref dans un useEffect — pas pendant le rendu
   useEffect(() => {
     synthRef.current = playSynthetic;
   }, [playSynthetic]);

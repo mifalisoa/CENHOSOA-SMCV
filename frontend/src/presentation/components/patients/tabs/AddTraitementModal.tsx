@@ -203,7 +203,7 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
     }`;
   };
 
-  // Label avec icône ✓ / ⚠️
+ // Label avec icône ✓ /
   const Lbl = ({
     id, field, children, req,
   }: { id: number; field: keyof MedicamentDTO; children: React.ReactNode; req?: boolean }) => {

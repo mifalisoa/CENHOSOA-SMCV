@@ -65,10 +65,10 @@ export class DocumentPatientExportController {
             archive.file(filePath, { name: zipFileName });
             filesAdded++;
           } else {
-            console.warn(`⚠️ Fichier non trouvé: ${filePath}`);
+ console.warn(`Fichier non trouvé: ${filePath}`);
           }
         } catch (error) {
-          console.error(`❌ Erreur ajout fichier ${doc.nom_fichier}:`, error);
+ console.error(`Erreur ajout fichier ${doc.nom_fichier}:`, error);
         }
       }
 
@@ -81,12 +81,12 @@ export class DocumentPatientExportController {
         });
       }
 
-      console.log(`✅ ZIP généré avec ${filesAdded} fichier(s)`);
+ console.log(`ZIP généré avec ${filesAdded} fichier(s)`);
 
       // Finaliser l'archive
       await archive.finalize();
     } catch (error) {
-      console.error('❌ Erreur génération ZIP:', error);
+ console.error('Erreur génération ZIP:', error);
       next(error);
     }
   }

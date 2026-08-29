@@ -27,7 +27,7 @@ export class ObservationExportController {
         return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       }
 
-      // ✅ Récupérer les évolutions de cette observation
+ // Récupérer les évolutions de cette observation
       const evolutions = await evolutionRepo.findByObservationId(id);
 
       const pdfDoc = pdfService.generatePDF(observation, patient, evolutions);
@@ -71,7 +71,7 @@ export class ObservationExportController {
       archive.pipe(res);
 
       for (const [index, observation] of observations.entries()) {
-        // ✅ Récupérer les évolutions de chaque observation
+ // Récupérer les évolutions de chaque observation
         const evolutions = await evolutionRepo.findByObservationId(observation.id_observation);
 
         const pdfDoc = pdfService.generatePDF(observation, patient, evolutions);

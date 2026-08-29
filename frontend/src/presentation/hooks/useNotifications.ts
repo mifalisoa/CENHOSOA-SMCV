@@ -1,5 +1,5 @@
 // frontend/src/presentation/hooks/useNotifications.ts
-// ✅ N'exporte QUE un hook → Fast Refresh OK
+// N'exporte QUE un hook → Fast Refresh OK
 
 import { useContext } from 'react';
 import { NotificationsContext } from '../context/NotificationsTypes';

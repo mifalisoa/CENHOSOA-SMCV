@@ -102,7 +102,7 @@ export default function TransfererLitModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔍 Données envoyées:', {
+ console.log('Données envoyées:', {
     ancien_lit: litActuel.id_lit,
     nouveau_lit: parseInt(nouveauLit),
     nouveauLit_raw: nouveauLit,

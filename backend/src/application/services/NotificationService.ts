@@ -34,7 +34,7 @@ export class NotificationService {
     }
   }
 
-  // ✅ Envoyer une notification à tous les secrétaires
+ // Envoyer une notification à tous les secrétaires
   async notifySecretaires(data: NotificationData): Promise<void> {
     const secretaires = await utilisateurRepo.findByRole('secretaire');
     for (const secretaire of secretaires) {
@@ -43,7 +43,7 @@ export class NotificationService {
     }
   }
 
-  // ✅ Envoyer à admins ET secrétaires en même temps
+ // Envoyer à admins ET secrétaires en même temps
   async notifyAdminsAndSecretaires(data: NotificationData): Promise<void> {
     await Promise.all([
       this.notifyAdmins(data),

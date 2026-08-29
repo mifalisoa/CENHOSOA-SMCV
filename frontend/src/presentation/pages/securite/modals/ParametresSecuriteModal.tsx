@@ -44,7 +44,7 @@ export default function ParametresSecuriteModal({ isOpen, onClose }: Props) {
       setParametres(response.data.data || {});
       setModifiedValues({});
     } catch (error) {
-      console.error('❌ [Paramètres] Erreur:', error);
+ console.error('[Paramètres] Erreur:', error);
       setLoadError('Impossible de charger les paramètres de sécurité.');
       toast.error('Erreur lors du chargement des paramètres');
     } finally {

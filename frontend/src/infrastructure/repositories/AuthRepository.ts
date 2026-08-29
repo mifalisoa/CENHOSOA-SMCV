@@ -13,7 +13,7 @@ interface ApiResponse<T> {
 export class AuthRepository implements IAuthRepository {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    console.log('🔵 [AuthRepository] login appelé avec:', credentials.email);
+ console.log('[AuthRepository] login appelé avec:', credentials.email);
 
     try {
       const response = await httpClient.post<ApiResponse<{
@@ -25,13 +25,13 @@ export class AuthRepository implements IAuthRepository {
         { email: credentials.email, mot_de_passe: credentials.password }
       );
 
-      console.log('🟢 [AuthRepository] Réponse reçue:', response.data);
+ console.log('[AuthRepository] Réponse reçue:', response.data);
 
       if (response.data.success && response.data.data) {
         const { token, user, premier_connexion } = response.data.data;
 
-        console.log('💾 [AuthRepository] Sauvegarde token pour:', user.email, '| role:', user.role);
-        console.log('🔍 DEBUG premier_connexion:', premier_connexion, '| data complet:', JSON.stringify(response.data.data));
+ console.log('[AuthRepository] Sauvegarde token pour:', user.email, '| role:', user.role);
+ console.log('DEBUG premier_connexion:', premier_connexion, '| data complet:', JSON.stringify(response.data.data));
 
         this.saveToken(token);
 
@@ -40,7 +40,7 @@ export class AuthRepository implements IAuthRepository {
         TokenStorage.saveUser(userAvecFlag);
 
         const persistedToken = TokenStorage.getToken();
-        console.log('💾 [AuthRepository] Token persisté:', persistedToken?.substring(0, 20) + '...');
+ console.log('[AuthRepository] Token persisté:', persistedToken?.substring(0, 20) + '...');
 
         //  Retourne premier_connexion pour que AuthContext puisse rediriger
         return { user: userAvecFlag, token, premier_connexion };
@@ -48,7 +48,7 @@ export class AuthRepository implements IAuthRepository {
 
       throw new Error(response.data.message || 'Erreur de connexion');
     } catch (error: unknown) {
-      console.error('🔴 [AuthRepository] Erreur dans le bloc catch:', error);
+ console.error('[AuthRepository] Erreur dans le bloc catch:', error);
 
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: { message?: string; error?: string } } };
@@ -62,7 +62,7 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async logout(): Promise<void> {
-    console.log('🚪 [AuthRepository] Déconnexion');
+ console.log('[AuthRepository] Déconnexion');
     this.removeToken();
     TokenStorage.removeUser();
   }
@@ -72,7 +72,7 @@ export class AuthRepository implements IAuthRepository {
       const response = await httpClient.get<ApiResponse<User>>('/auth/me');
       return response.data.data;
     } catch (error) {
-      console.error('🔴 [AuthRepository] Erreur getCurrentUser:', error);
+ console.error('[AuthRepository] Erreur getCurrentUser:', error);
       throw error;
     }
   }

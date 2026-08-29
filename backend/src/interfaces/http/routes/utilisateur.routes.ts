@@ -21,7 +21,7 @@ router.put(   '/:id',                        roleMiddleware(['admin']), logActio
 router.patch( '/:id/statut',                 roleMiddleware(['admin']), logAction('update', 'utilisateurs'), (req, res) => controller.changeStatut(req, res));
 router.delete('/:id',                        roleMiddleware(['admin']), logAction('delete', 'utilisateurs'), (req, res) => controller.delete(req, res));
 
-// ✅ Réinitialisation mot de passe — génère nouveau temporaire + envoie email
+// Réinitialisation mot de passe — génère nouveau temporaire + envoie email
 router.post(  '/:id/reinitialiser-mot-de-passe', roleMiddleware(['admin']), logAction('update', 'utilisateurs'), (req, res) => controller.reinitialiserMotDePasse(req, res));
 
 export default router;

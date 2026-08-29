@@ -77,7 +77,7 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
     }`;
   };
 
-  // ── Label avec icône ✓ / ⚠️ ──────────────────────────────────────────────────
+ // ── Label avec icône ✓ / ──────────────────────────────────────────────────
   const Lbl = ({ field, children, req, htmlFor }: {
     field: string; children: React.ReactNode; req?: boolean; htmlFor?: string;
   }) => {

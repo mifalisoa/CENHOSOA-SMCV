@@ -47,7 +47,7 @@ export class PatientDossierExportController {
         return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       }
 
-      console.log(`📦 Génération ZIP complet pour patient ${patient.nom_patient} ${patient.prenom_patient}`);
+ console.log(`Génération ZIP complet pour patient ${patient.nom_patient} ${patient.prenom_patient}`);
 
       // Créer l'archive ZIP
       const archive = archiver('zip', { zlib: { level: 9 } });
@@ -69,7 +69,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const observations = await observationRepo.findByPatientId(patientId);
-        console.log(`📋 ${observations.length} observation(s) trouvée(s)`);
+ console.log(`${observations.length} observation(s) trouvée(s)`);
 
         for (let i = 0; i < observations.length; i++) {
           const obs = observations[i];
@@ -94,7 +94,7 @@ export class PatientDossierExportController {
           totalFiles++;
         }
       } catch (error) {
-        console.error('⚠️ Erreur observations:', error);
+ console.error('Erreur observations:', error);
       }
 
       // ==========================================
@@ -102,7 +102,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const bilans = await bilanRepo.findByPatientId(patientId);
-        console.log(`🧪 ${bilans.length} bilan(s) trouvé(s)`);
+ console.log(`${bilans.length} bilan(s) trouvé(s)`);
 
         for (let i = 0; i < bilans.length; i++) {
           const bilan = bilans[i];
@@ -126,7 +126,7 @@ export class PatientDossierExportController {
           totalFiles++;
         }
       } catch (error) {
-        console.error('⚠️ Erreur bilans:', error);
+ console.error('Erreur bilans:', error);
       }
 
       // ==========================================
@@ -134,7 +134,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const soinsMedicaux = await soinMedicalRepo.findByPatientId(patientId);
-        console.log(`💉 ${soinsMedicaux.length} soin(s) médical/aux trouvé(s)`);
+ console.log(`${soinsMedicaux.length} soin(s) médical/aux trouvé(s)`);
 
         for (let i = 0; i < soinsMedicaux.length; i++) {
           const soin = soinsMedicaux[i];
@@ -158,7 +158,7 @@ export class PatientDossierExportController {
           totalFiles++;
         }
       } catch (error) {
-        console.error('⚠️ Erreur soins médicaux:', error);
+ console.error('Erreur soins médicaux:', error);
       }
 
       // ==========================================
@@ -166,7 +166,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const soinsInfirmiers = await soinInfirmierRepo.findByPatientId(patientId);
-        console.log(`💊 ${soinsInfirmiers.length} soin(s) infirmier(s) trouvé(s)`);
+ console.log(`${soinsInfirmiers.length} soin(s) infirmier(s) trouvé(s)`);
 
         for (let i = 0; i < soinsInfirmiers.length; i++) {
           const soin = soinsInfirmiers[i];
@@ -190,7 +190,7 @@ export class PatientDossierExportController {
           totalFiles++;
         }
       } catch (error) {
-        console.error('⚠️ Erreur soins infirmiers:', error);
+ console.error('Erreur soins infirmiers:', error);
       }
 
       // ==========================================
@@ -198,7 +198,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const traitements = await traitementRepo.findByPatientId(patientId);
-        console.log(`💊 ${traitements.length} traitement(s) trouvé(s)`);
+ console.log(`${traitements.length} traitement(s) trouvé(s)`);
 
         for (let i = 0; i < traitements.length; i++) {
           const traitement = traitements[i];
@@ -222,7 +222,7 @@ export class PatientDossierExportController {
           totalFiles++;
         }
       } catch (error) {
-        console.error('⚠️ Erreur traitements:', error);
+ console.error('Erreur traitements:', error);
       }
 
       // ==========================================
@@ -230,7 +230,7 @@ export class PatientDossierExportController {
       // ==========================================
       try {
         const documents = await documentRepo.findByPatientId(patientId);
-        console.log(`📄 ${documents.length} document(s) trouvé(s)`);
+ console.log(`${documents.length} document(s) trouvé(s)`);
 
         for (let i = 0; i < documents.length; i++) {
           const doc = documents[i];
@@ -248,14 +248,14 @@ export class PatientDossierExportController {
               archive.file(filePath, { name: `6_Documents/${fileName}` });
               totalFiles++;
             } else {
-              console.warn(`⚠️ Fichier non trouvé: ${filePath}`);
+ console.warn(`Fichier non trouvé: ${filePath}`);
             }
           } catch (error) {
-            console.error(`❌ Erreur ajout document ${doc.nom_fichier}:`, error);
+ console.error(`Erreur ajout document ${doc.nom_fichier}:`, error);
           }
         }
       } catch (error) {
-        console.error('⚠️ Erreur documents:', error);
+ console.error('Erreur documents:', error);
       }
 
       // Vérifier qu'au moins un fichier a été ajouté
@@ -267,12 +267,12 @@ export class PatientDossierExportController {
         });
       }
 
-      console.log(`✅ ZIP complet généré avec ${totalFiles} fichier(s)`);
+ console.log(`ZIP complet généré avec ${totalFiles} fichier(s)`);
 
       // Finaliser l'archive
       await archive.finalize();
     } catch (error) {
-      console.error('❌ Erreur génération ZIP complet:', error);
+ console.error('Erreur génération ZIP complet:', error);
       next(error);
     }
   }

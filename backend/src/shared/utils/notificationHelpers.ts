@@ -21,10 +21,10 @@ export async function notifyMedecinTraitant(
   data:        NotificationData
 ): Promise<void> {
   // ── Logs de diagnostic — à retirer une fois le bug trouvé ────────────────
-  console.log('🔔 [notifyMedecinTraitant]', { id_patient, auteurRole, titre: data.titre });
+ console.log('[notifyMedecinTraitant]', { id_patient, auteurRole, titre: data.titre });
 
   if (!['interne', 'stagiaire', 'infirmier'].includes(auteurRole)) {
-    console.log('⛔ [notifyMedecinTraitant] Rôle non autorisé:', auteurRole);
+ console.log('[notifyMedecinTraitant] Rôle non autorisé:', auteurRole);
     return;
   }
 
@@ -34,15 +34,15 @@ export async function notifyMedecinTraitant(
       [id_patient]
     );
     const id_medecin = result.rows[0]?.id_medecin_traitant;
-    console.log('👨‍⚕️ [notifyMedecinTraitant] Médecin trouvé:', id_medecin, '| patient:', id_patient);
+ console.log('[notifyMedecinTraitant] Médecin trouvé:', id_medecin, '| patient:', id_patient);
 
     if (!id_medecin) {
-      console.log('⚠️ [notifyMedecinTraitant] Aucun médecin traitant pour patient', id_patient);
+ console.log('[notifyMedecinTraitant] Aucun médecin traitant pour patient', id_patient);
       return;
     }
 
     await notificationService.notifyUser(id_medecin, data);
-    console.log('✅ [notifyMedecinTraitant] Notif envoyée au médecin', id_medecin);
+ console.log('[notifyMedecinTraitant] Notif envoyée au médecin', id_medecin);
   } catch (err) {
     console.error('[notifyMedecinTraitant] Erreur:', err);
   }

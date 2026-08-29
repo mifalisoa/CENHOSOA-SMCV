@@ -11,7 +11,7 @@ export class LoginUseCase {
   }
 
   async execute(credentials: LoginCredentials): Promise<AuthResponse> {
-    console.log('🔵 [LoginUseCase] Execute avec:', credentials);
+ console.log('[LoginUseCase] Execute avec:', credentials);
     
     // Valider les credentials
     if (!credentials.email || !credentials.password) {
@@ -21,7 +21,7 @@ export class LoginUseCase {
     // Appeler le repository
     const response = await this.authRepository.login(credentials);
     
-    console.log('✅ [LoginUseCase] Login réussi');
+ console.log('[LoginUseCase] Login réussi');
     
     return response;
   }

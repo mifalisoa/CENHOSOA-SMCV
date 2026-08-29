@@ -296,7 +296,7 @@ export class StatsController {
         },
       });
     } catch (error: unknown) {
-      console.error('❌ [StatsController] getStats:', error);
+ console.error('[StatsController] getStats:', error);
       res.status(500).json({ success: false, message: 'Erreur lors du chargement des statistiques' });
     }
   }

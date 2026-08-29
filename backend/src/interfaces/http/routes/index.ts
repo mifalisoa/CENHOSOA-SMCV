@@ -39,7 +39,7 @@ import pieceJointeRoutes from './piece-jointe.routes';
 const router = Router();
 
 router.use((req, res, next) => {
-    console.log(`📡 [API] ${req.method} ${req.path}`);
+ console.log(`[API] ${req.method} ${req.path}`);
     next();
 });
 

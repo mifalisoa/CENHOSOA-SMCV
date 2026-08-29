@@ -1,5 +1,5 @@
 // frontend/src/presentation/hooks/useAuth.ts
-// ✅ N'exporte QUE un hook → Fast Refresh OK
+// N'exporte QUE un hook → Fast Refresh OK
 
 import { useContext } from 'react';
 import { AuthContext } from '../store/AuthTypes';

@@ -72,11 +72,11 @@ export class LitTransferService {
       }
 
       await client.query('COMMIT');
-      console.log(`✅ Patient ${patient.nom_patient} transféré du lit ${data.ancien_lit} au lit ${data.nouveau_lit}`);
+ console.log(`Patient ${patient.nom_patient} transféré du lit ${data.ancien_lit} au lit ${data.nouveau_lit}`);
 
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('❌ ROLLBACK transfert lit:', error);
+ console.error('ROLLBACK transfert lit:', error);
       throw error;
     } finally {
       client.release();

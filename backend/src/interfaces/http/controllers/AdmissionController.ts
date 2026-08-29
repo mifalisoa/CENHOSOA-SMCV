@@ -27,7 +27,7 @@ export class AdmissionController {
       const admission = await this.createAdmissionUseCase.execute(req.body);
       const auteur    = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Nouvelle admission',
         message:  `Nouvelle admission enregistrée par ${auteur} pour le patient #${admission.id_patient}`,
@@ -83,7 +83,7 @@ export class AdmissionController {
 
       await this.assignLitUseCase.execute(id, req.body.id_lit);
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Lit assigné',
         message:  `Un lit a été assigné à l'admission #${id} par ${auteur}`,
@@ -107,7 +107,7 @@ export class AdmissionController {
 
       await this.cloturerAdmissionUseCase.execute(id);
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Admission clôturée',
         message:  `L'admission #${id} a été clôturée par ${auteur}`,

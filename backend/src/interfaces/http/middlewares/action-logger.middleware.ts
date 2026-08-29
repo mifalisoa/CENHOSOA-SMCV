@@ -99,7 +99,7 @@ export function logAction(action: string, module: string) {
         );
       } catch (err) {
         // Le logging ne doit jamais faire planter l'app
-        console.error('⚠️ [ActionLogger] Erreur log:', err);
+ console.error('[ActionLogger] Erreur log:', err);
       }
     });
 
@@ -133,7 +133,7 @@ export async function createSession(
       [sessionId, userId, ip, ua.substring(0, 500), parsed.device_type, parsed.browser, parsed.os, timeoutMins]
     );
   } catch (err) {
-    console.error('⚠️ [ActionLogger] createSession erreur:', err);
+ console.error('[ActionLogger] createSession erreur:', err);
   }
 }
 
@@ -157,7 +157,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
       [sessionId]
     );
   } catch (err) {
-    console.error('⚠️ [ActionLogger] deleteSession erreur:', err);
+ console.error('[ActionLogger] deleteSession erreur:', err);
   }
 }
 
@@ -211,7 +211,7 @@ export async function logLoginFailed(
       );
     }
   } catch (err) {
-    console.error('⚠️ [ActionLogger] logLoginFailed erreur:', err);
+ console.error('[ActionLogger] logLoginFailed erreur:', err);
   }
 }
 
@@ -228,6 +228,6 @@ export async function logLoginSuccess(
       [userId, ip, userAgent.substring(0, 500)]
     );
   } catch (err) {
-    console.error('⚠️ [ActionLogger] logLoginSuccess erreur:', err);
+ console.error('[ActionLogger] logLoginSuccess erreur:', err);
   }
 }

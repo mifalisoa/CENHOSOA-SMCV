@@ -25,7 +25,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     const token   = authHeader.substring(7);
     const payload = JwtService.verifyToken(token);
 
-    // ✅ Lit le rôle réel depuis la base — évite les tokens avec rôle périmé
+ // Lit le rôle réel depuis la base — évite les tokens avec rôle périmé
     const result = await pool.query(
       `SELECT id_user, email, role, nom, prenom
        FROM utilisateurs

@@ -15,7 +15,7 @@ export class SetupController {
       const setupDone = result.rows[0]?.setup_done ?? false;
       res.json({ success: true, data: { setup_done: setupDone } });
     } catch (error) {
-      console.error('❌ [SetupController] Erreur status:', error);
+ console.error('[SetupController] Erreur status:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur serveur' } });
     }
   };
@@ -78,14 +78,14 @@ export class SetupController {
         [email]
       );
 
-      console.log(`✅ [SetupController] Admin créé : ${email}`);
+ console.log(`[SetupController] Admin créé : ${email}`);
 
       res.status(201).json({
         success: true,
         message: 'Configuration initiale terminée — vous pouvez vous connecter',
       });
     } catch (error) {
-      console.error('❌ [SetupController] Erreur setup:', error);
+ console.error('[SetupController] Erreur setup:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la configuration' } });
     }
   };
@@ -136,14 +136,14 @@ export class SetupController {
           nom:    user.nom,
           token,
         });
-        console.log(`📧 [SetupController] Email reset envoyé à ${email}`);
+ console.log(`[SetupController] Email reset envoyé à ${email}`);
       } catch (emailError) {
-        console.error('⚠️ [SetupController] Email reset non envoyé:', emailError);
+ console.error('[SetupController] Email reset non envoyé:', emailError);
       }
 
       res.json({ success: true, message: 'Si cet email existe, un lien vous a été envoyé' });
     } catch (error) {
-      console.error('❌ [SetupController] Erreur motDePasseOublie:', error);
+ console.error('[SetupController] Erreur motDePasseOublie:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur serveur' } });
     }
   };
@@ -206,11 +206,11 @@ export class SetupController {
         [tokenData.id]
       );
 
-      console.log(`✅ [SetupController] Mot de passe réinitialisé pour ${tokenData.email}`);
+ console.log(`[SetupController] Mot de passe réinitialisé pour ${tokenData.email}`);
 
       res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
     } catch (error) {
-      console.error('❌ [SetupController] Erreur resetPassword:', error);
+ console.error('[SetupController] Erreur resetPassword:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur serveur' } });
     }
   };
@@ -245,7 +245,7 @@ export class SetupController {
         data: { prenom: tokenData.prenom, nom: tokenData.nom },
       });
     } catch (error) {
-      console.error('❌ [SetupController] Erreur verifyResetToken:', error);
+ console.error('[SetupController] Erreur verifyResetToken:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur serveur' } });
     }
   };

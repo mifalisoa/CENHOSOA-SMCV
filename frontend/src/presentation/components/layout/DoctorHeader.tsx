@@ -50,7 +50,7 @@ export function DoctorHeader({ userRole, toggleMobileMenu }: DoctorHeaderProps) 
         const fullName   = `${patient.nom_patient} ${patient.prenom_patient}`.toLowerCase();
         const numDossier = (patient.num_dossier ?? '').toLowerCase();
         if (fullName.includes(terms) || numDossier.includes(terms)) {
-          // ✅ Navigation correcte selon le statut du patient
+ // Navigation correcte selon le statut du patient
           const destination = patient.statut_patient === 'hospitalise'
             ? '/doctor/patients-hospitalises'
             : '/doctor/patients-externes';

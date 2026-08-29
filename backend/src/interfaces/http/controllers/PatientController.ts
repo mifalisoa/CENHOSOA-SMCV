@@ -21,7 +21,7 @@ export class PatientController {
         assurance: req.query.assurance as string | undefined,
         search:    req.query.search    as string | undefined,
       };
-      // ✅ Tous les rôles voient tous les patients
+ // Tous les rôles voient tous les patients
       const result = await patientRepository.findAll({ page, limit }, filters);
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -90,7 +90,7 @@ export class PatientController {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      // ✅ Tous les rôles voient tous les patients externes
+ // Tous les rôles voient tous les patients externes
       const result = await patientRepository.findByStatus('externe', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -100,7 +100,7 @@ export class PatientController {
     try {
       const page  = parseInt(req.query.page  as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      // ✅ Tous les rôles voient tous les patients hospitalisés
+ // Tous les rôles voient tous les patients hospitalisés
       const result = await patientRepository.findByStatus('hospitalise', { page, limit });
       res.json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) { next(error); }
@@ -110,7 +110,7 @@ export class PatientController {
     try {
       const query = req.query.q as string;
       if (!query) return res.status(400).json({ success: false, message: 'Paramètre de recherche requis' });
-      // ✅ Tous les rôles voient tous les résultats de recherche
+ // Tous les rôles voient tous les résultats de recherche
       const patients = await patientRepository.search(query);
       res.json({ success: true, data: patients });
     } catch (error) { next(error); }

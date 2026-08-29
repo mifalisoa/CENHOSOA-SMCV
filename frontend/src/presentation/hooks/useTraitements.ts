@@ -42,7 +42,7 @@ export const useTraitements = (patientId?: number) => {
     }
   };
 
-  // ✅ Crée une ordonnance avec N médicaments — insère tous en tête de liste
+ // Crée une ordonnance avec N médicaments — insère tous en tête de liste
   const createOrdonnance = async (data: CreateOrdonnanceDTO): Promise<Traitement[] | null> => {
     setLoading(true);
     setError(null);

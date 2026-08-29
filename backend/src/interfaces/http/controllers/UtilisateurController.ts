@@ -28,7 +28,7 @@ export class UtilisateursController {
   // GET /api/utilisateurs
   async getAll(req: AuthRequest, res: Response): Promise<void> {
     try {
-      console.log('📋 [UtilisateursController] getAll');
+ console.log('[UtilisateursController] getAll');
       const { role, statut } = req.query;
       const conditions: string[] = [];
       const params: unknown[]    = [];
@@ -39,10 +39,10 @@ export class UtilisateursController {
       const result = await pool.query(
         `SELECT ${SELECT_COLS} FROM utilisateurs ${where} ORDER BY nom, prenom`, params
       );
-      console.log(`✅ [UtilisateursController] ${result.rows.length} utilisateurs trouvés`);
+ console.log(`[UtilisateursController] ${result.rows.length} utilisateurs trouvés`);
       res.json({ success: true, data: result.rows });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur getAll:', error);
+ console.error('[UtilisateursController] Erreur getAll:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la récupération' } });
     }
   }
@@ -60,7 +60,7 @@ export class UtilisateursController {
       }
       res.json({ success: true, data: result.rows[0] });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur getById:', error);
+ console.error('[UtilisateursController] Erreur getById:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la récupération' } });
     }
   }
@@ -69,7 +69,7 @@ export class UtilisateursController {
   async create(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { nom, prenom, email, role, telephone, specialite, statut } = req.body;
-      console.log('➕ [UtilisateursController] create:', { nom, prenom, email, role });
+ console.log('[UtilisateursController] create:', { nom, prenom, email, role });
 
       if (!nom || !prenom || !email || !role) {
         res.status(400).json({ success: false, error: { message: 'Champs obligatoires manquants' } });
@@ -95,13 +95,13 @@ export class UtilisateursController {
       );
 
       const nouvelUtilisateur = result.rows[0];
-      console.log(`✅ [UtilisateursController] Utilisateur créé - ID: ${nouvelUtilisateur.id_user}`);
+ console.log(`[UtilisateursController] Utilisateur créé - ID: ${nouvelUtilisateur.id_user}`);
 
       try {
         await sendCompteCreé({ to: email, prenom, nom, role, motDePasseTemporaire });
-        console.log(`📧 [UtilisateursController] Email envoyé à ${email}`);
+ console.log(`[UtilisateursController] Email envoyé à ${email}`);
       } catch (emailError) {
-        console.error('⚠️ [UtilisateursController] Email non envoyé:', emailError);
+ console.error('[UtilisateursController] Email non envoyé:', emailError);
       }
 
       res.status(201).json({
@@ -109,7 +109,7 @@ export class UtilisateursController {
         message: 'Utilisateur créé avec succès — email envoyé avec les identifiants',
       });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur create:', error);
+ console.error('[UtilisateursController] Erreur create:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la création' } });
     }
   }
@@ -156,7 +156,7 @@ export class UtilisateursController {
       const result  = await pool.query(updateQuery, params);
       res.json({ success: true, data: result.rows[0], message: 'Utilisateur modifié avec succès' });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur update:', error);
+ console.error('[UtilisateursController] Erreur update:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la modification' } });
     }
   }
@@ -168,7 +168,7 @@ export class UtilisateursController {
       const { statut }  = req.body;
       const currentUser = req.user;
 
-      // ✅ Protection : l'admin ne peut pas modifier son propre statut
+ // Protection : l'admin ne peut pas modifier son propre statut
       if (currentUser && String(currentUser.id_user) === String(id)) {
         res.status(400).json({
           success: false,
@@ -195,7 +195,7 @@ export class UtilisateursController {
 
       res.json({ success: true, data: result.rows[0], message: 'Statut modifié avec succès' });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur changeStatut:', error);
+ console.error('[UtilisateursController] Erreur changeStatut:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors du changement de statut' } });
     }
   }
@@ -206,7 +206,7 @@ export class UtilisateursController {
       const { id }      = req.params;
       const currentUser = req.user;
 
-      // ✅ Protection : l'admin ne peut pas supprimer son propre compte
+ // Protection : l'admin ne peut pas supprimer son propre compte
       if (currentUser && String(currentUser.id_user) === String(id)) {
         res.status(400).json({
           success: false,
@@ -226,7 +226,7 @@ export class UtilisateursController {
 
       res.json({ success: true, message: 'Utilisateur supprimé avec succès' });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur delete:', error);
+ console.error('[UtilisateursController] Erreur delete:', error);
       const pgError = error as { code?: string };
       if (pgError.code === '23503') {
         res.status(400).json({
@@ -270,14 +270,14 @@ export class UtilisateursController {
           to: user.email, prenom: user.prenom, nom: user.nom,
           role: user.role, motDePasseTemporaire,
         });
-        console.log(`📧 [UtilisateursController] Email réinitialisation envoyé à ${user.email}`);
+ console.log(`[UtilisateursController] Email réinitialisation envoyé à ${user.email}`);
       } catch (emailError) {
-        console.error('⚠️ [UtilisateursController] Email non envoyé:', emailError);
+ console.error('[UtilisateursController] Email non envoyé:', emailError);
       }
 
       res.json({ success: true, message: 'Mot de passe réinitialisé — email envoyé' });
     } catch (error: unknown) {
-      console.error('❌ [UtilisateursController] Erreur reinitialiserMotDePasse:', error);
+ console.error('[UtilisateursController] Erreur reinitialiserMotDePasse:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur lors de la réinitialisation' } });
     }
   }

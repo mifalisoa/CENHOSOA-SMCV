@@ -19,7 +19,7 @@ export const createSoinMedicalSchema = z.object({
   { message: "Au moins un type de soin (ETT, ETO ou Autre) doit être renseigné" }
 );
 
-// ✅ CORRECTION : Schéma pour la mise à jour (sans .refine())
+// CORRECTION : Schéma pour la mise à jour (sans .refine())
 export const updateSoinMedicalSchema = z.object({
   date_soin: z.string().datetime().or(z.date()).optional(),
   heure_soin: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),

@@ -18,7 +18,7 @@ function getRoleRedirect(role: string): string {
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   const { isAuthenticated, isInitializing, user } = useAuth();
 
-  // ✅ isInitializing au lieu de isLoading — attend la vérification du token
+ // isInitializing au lieu de isLoading — attend la vérification du token
   if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -34,7 +34,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  // ✅ Vérifie le rôle — gère tous les rôles médicaux correctement
+ // Vérifie le rôle — gère tous les rôles médicaux correctement
   if (roles && roles.length > 0 && user && !roles.includes(user.role)) {
     return <Navigate to={getRoleRedirect(user.role)} replace />;
   }

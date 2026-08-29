@@ -11,7 +11,7 @@ export class TokenStorage {
     try {
       localStorage.setItem(TOKEN_KEY, token);
     } catch (error) {
-      console.error('❌ [TokenStorage] Erreur sauvegarde token:', error);
+ console.error('[TokenStorage] Erreur sauvegarde token:', error);
     }
   }
 
@@ -35,7 +35,7 @@ export class TokenStorage {
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     } catch (error) {
-      console.error('❌ [TokenStorage] Erreur sauvegarde user:', error);
+ console.error('[TokenStorage] Erreur sauvegarde user:', error);
     }
   }
 

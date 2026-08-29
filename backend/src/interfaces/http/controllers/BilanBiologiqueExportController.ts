@@ -13,7 +13,7 @@ export class BilanBiologiqueExportController {
   // Télécharger un bilan en PDF
   async downloadPDF(req: Request, res: Response, next: NextFunction) {
     try {
-      // ✅ Correction : Cast en string pour parseInt
+ // Correction : Cast en string pour parseInt
       const id = parseInt(req.params.id as string);
       
       const bilan = await bilanRepo.findById(id);
@@ -45,7 +45,7 @@ export class BilanBiologiqueExportController {
   // Télécharger tous les bilans d'un patient en ZIP
   async downloadAllZIP(req: Request, res: Response, next: NextFunction) {
     try {
-      // ✅ Correction : Cast en string
+ // Correction : Cast en string
       const patientId = parseInt(req.params.patientId as string);
 
       const patient = await patientRepo.findById(patientId);
@@ -53,7 +53,7 @@ export class BilanBiologiqueExportController {
         return res.status(404).json({ success: false, message: 'Patient non trouvé' });
       }
 
-      // ✅ Correction : Utilisation du bon nom de méthode (findByPatientId)
+ // Correction : Utilisation du bon nom de méthode (findByPatientId)
       const bilans = await bilanRepo.findByPatientId(patientId);
       
       if (bilans.length === 0) {
@@ -81,7 +81,7 @@ export class BilanBiologiqueExportController {
           pdfDoc.end();
         });
 
-        // ✅ Formatage sécurisé de la date pour le nom de fichier
+ // Formatage sécurisé de la date pour le nom de fichier
         const dateFormatted = bilan.date_prelevement 
           ? new Date(bilan.date_prelevement).toLocaleDateString('fr-FR').replace(/\//g, '-')
           : `inconnue-${index}`;

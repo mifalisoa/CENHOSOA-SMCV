@@ -25,17 +25,17 @@ export function initSocketIO(httpServer: HttpServer): Server {
   });
 
   io.on('connection', (socket) => {
-    console.log(`🔌 [Socket.io] Client connecté: ${socket.id}`);
+ console.log(`[Socket.io] Client connecté: ${socket.id}`);
 
     // LEÇON : Chaque utilisateur rejoint sa propre "room" identifiée par son id_user.
     // On peut ainsi émettre des notifications ciblées à un utilisateur spécifique.
     socket.on('join', (userId: number) => {
       socket.join(`user_${userId}`);
-      console.log(`👤 [Socket.io] User ${userId} a rejoint sa room`);
+ console.log(`[Socket.io] User ${userId} a rejoint sa room`);
     });
 
     socket.on('disconnect', () => {
-      console.log(`🔌 [Socket.io] Client déconnecté: ${socket.id}`);
+ console.log(`[Socket.io] Client déconnecté: ${socket.id}`);
     });
   });
 

@@ -23,7 +23,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(currentUser);
         }
       } catch (error) {
-        console.error('❌ [AuthProvider] Échec restauration session:', error);
+ console.error('[AuthProvider] Échec restauration session:', error);
         TokenStorage.removeToken();
         setUser(null);
       } finally {
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await logoutUseCase.execute();
       setUser(null);
     } catch (error) {
-      console.error('❌ [AuthContext] Erreur lors du logout:', error);
+ console.error('[AuthContext] Erreur lors du logout:', error);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const currentUser = await getCurrentUserUseCase.execute();
       setUser(currentUser);
     } catch (error) {
-      console.error('❌ [AuthContext] Erreur refresh user:', error);
+ console.error('[AuthContext] Erreur refresh user:', error);
       setUser(null);
     }
   };

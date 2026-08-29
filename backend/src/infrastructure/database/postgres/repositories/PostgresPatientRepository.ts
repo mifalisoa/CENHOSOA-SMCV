@@ -32,7 +32,7 @@ export class PostgresPatientRepository implements IPatientRepository {
         data.lit                  || null, (data as any).id_createur ?? null,
       ]
     );
-    console.log('✅ [Repository] Patient créé avec succès');
+ console.log('[Repository] Patient créé avec succès');
     return result.rows[0];
   }
 

@@ -51,9 +51,9 @@ export class PatientRepository {
   }
 
   async create(data: CreatePatientDTO): Promise<Patient> {
-    console.log('🔵 [Repository] Création patient:', data);
+ console.log('[Repository] Création patient:', data);
     const response = await httpClient.post(API_ENDPOINTS.PATIENTS, data);
-    console.log('✅ [Repository] Patient créé:', response.data);
+ console.log('[Repository] Patient créé:', response.data);
     return response.data.data;
   }
 

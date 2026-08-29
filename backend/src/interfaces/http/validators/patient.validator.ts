@@ -15,7 +15,7 @@ export const createPatientSchema = z.object({
     tel_patient: z.string().max(20).optional(),
     assurance: z.string().max(100).optional(),
     medecin_traitant: z.string().min(1, 'Le médecin traitant est requis').max(150),
-    // ✅ Accepte 'hospitalise' et 'hospitalisé', convertit automatiquement
+ // Accepte 'hospitalise' et 'hospitalisé', convertit automatiquement
     statut_patient: z.string().optional().refine(
       (val) => !val || ['externe', 'hospitalisé', 'hospitalise'].includes(val),
       { message: 'Le statut doit être externe ou hospitalisé' }
@@ -40,7 +40,7 @@ export const updatePatientSchema = z.object({
     tel_patient: z.string().max(20).optional(),
     assurance: z.string().max(100).optional(),
     medecin_traitant: z.string().max(150).optional(),
-    // ✅ Accepte aussi 'hospitalise' et 'hospitalisé'
+ // Accepte aussi 'hospitalise' et 'hospitalisé'
     statut_patient: z.string().optional().refine(
       (val) => !val || ['externe', 'hospitalisé', 'hospitalise', 'sorti'].includes(val),
       { message: 'Le statut doit être externe, hospitalisé ou sorti' }

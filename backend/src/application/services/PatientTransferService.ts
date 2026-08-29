@@ -14,7 +14,7 @@ export interface HospitalisationData {
   id_lit?:                 number;
   date_admission?:         string;
   type_admission?:         'urgence' | 'programmee' | 'transfert';
-  // ✅ L'acteur est maintenant explicite — plus jamais hardcodé
+ // L'acteur est maintenant explicite — plus jamais hardcodé
   id_medecin:              number;
 }
 
@@ -167,7 +167,7 @@ export class PatientTransferService {
       );
 
       await client.query('COMMIT');
-      console.log(`✅ Patient ${patient.nom_patient} rendu externe`);
+ console.log(`Patient ${patient.nom_patient} rendu externe`);
       return updatedPatient.rows[0];
 
     } catch (error) {

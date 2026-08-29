@@ -62,7 +62,7 @@ export class RendezVousController {
       const rdv    = await this.rendezVousService.createRendezVous(req.body);
       const auteur = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Nouveau rendez-vous planifié',
         message:  `RDV planifié le ${rdv.date_rdv} à ${rdv.heure_rdv} — créé par ${auteur}`,
@@ -124,7 +124,7 @@ export class RendezVousController {
 
       const auteur = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Rendez-vous confirmé',
         message:  `RDV du ${rdv.date_rdv} à ${rdv.heure_rdv} confirmé par ${auteur}`,
@@ -154,7 +154,7 @@ export class RendezVousController {
       const auteur    = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
       const raisonMsg = raison ? ` — Raison : ${raison}` : '';
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Rendez-vous annulé',
         message:  `RDV du ${rdv.date_rdv} à ${rdv.heure_rdv} annulé par ${auteur}${raisonMsg}`,
@@ -222,7 +222,7 @@ export class RendezVousController {
 
       const auteur = `${req.user?.prenom ?? ''} ${req.user?.nom ?? ''}`;
 
-      // ✅ Notifier admins ET secrétaires
+ // Notifier admins ET secrétaires
       notificationService.notifyAdminsAndSecretaires({
         titre:    'Rendez-vous reporté',
         message:  `RDV reporté au ${nouvelle_date} à ${nouvelle_heure} par ${auteur}`,

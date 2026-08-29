@@ -7,7 +7,7 @@ export interface IPatientRepository {
   findAll(params: PaginationParams, filters?: PatientFilters): Promise<PaginatedResponse<Patient>>;
   findById(id: number): Promise<Patient | null>;
   findByNumDossier(numDossier: string): Promise<Patient | null>;
-  // ✅ FIX: Utiliser 'hospitalisé' avec accent
+ // FIX: Utiliser 'hospitalisé' avec accent
   findByStatus(status: 'externe' | 'hospitalisé', params: PaginationParams): Promise<PaginatedResponse<Patient>>;
   search(query: string): Promise<Patient[]>;
   create(data: CreatePatientDTO): Promise<Patient>;

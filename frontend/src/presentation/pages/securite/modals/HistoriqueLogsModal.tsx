@@ -65,7 +65,7 @@ export default function HistoriqueLogsModal({ isOpen, onClose }: Props) {
       setLogs(response.data.data || []);
       setTotal(response.data.pagination?.total || 0);
     } catch (error) {
-      console.error('❌ [Logs] Erreur:', error);
+ console.error('[Logs] Erreur:', error);
       setLoadError('Impossible de charger les logs. Vérifiez votre connexion.');
       toast.error('Erreur lors du chargement des logs');
     } finally {

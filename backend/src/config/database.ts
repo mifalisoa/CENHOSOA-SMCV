@@ -18,11 +18,11 @@ export const pool = new Pool({
 // (é, é, ô...) ne correspondent pas aux valeurs stockées en UTF8
 pool.on('connect', (client) => {
     client.query("SET client_encoding = 'UTF8'");
-    console.log('✅ Connecté à PostgreSQL');
+ console.log('Connecté à PostgreSQL');
 });
 
 pool.on('error', (err) => {
-    console.error('❌ Erreur de connexion PostgreSQL:', err.message);
+ console.error('Erreur de connexion PostgreSQL:', err.message);
 });
 
 // Fonction pour tester la connexion
@@ -31,10 +31,10 @@ export const testConnection = async (): Promise<boolean> => {
         const client = await pool.connect();
         await client.query('SELECT NOW()');
         client.release();
-        console.log('✅ Test de connexion PostgreSQL réussi');
+ console.log('Test de connexion PostgreSQL réussi');
         return true;
     } catch (error) {
-        console.error('❌ Échec du test de connexion PostgreSQL:', error);
+ console.error('Échec du test de connexion PostgreSQL:', error);
         throw error;
     }
 };

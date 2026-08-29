@@ -32,7 +32,7 @@ export class CompteRenduRepository implements ICompteRenduRepository {
       );
       return response.data.data;
     } catch (error: unknown) {
-      // ✅ Correction du type 'any' pour ESLint
+ // Correction du type 'any' pour ESLint
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { status?: number } };
         if (axiosError.response?.status === 404) {

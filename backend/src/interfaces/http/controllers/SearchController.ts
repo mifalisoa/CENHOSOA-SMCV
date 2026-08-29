@@ -169,7 +169,7 @@ export class SearchController {
       res.json({ data: results, total: results.length });
 
     } catch (error) {
-      console.error('❌ [Search] Erreur:', error);
+ console.error('[Search] Erreur:', error);
       res.status(500).json({ message: 'Erreur lors de la recherche' });
     }
   }

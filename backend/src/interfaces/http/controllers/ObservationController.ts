@@ -72,7 +72,7 @@ export class ObservationController {
       const observations = await getObservationsByPatient.execute(patientId, type);
       res.status(200).json({ success: true, data: observations, count: observations.length });
     } catch (error: any) {
-      console.error('❌ ERREUR BACKEND DÉTECTÉE :');
+ console.error('ERREUR BACKEND DÉTECTÉE :');
       console.error('Message:', error.message);
       console.error('Stack:', error.stack);
       res.status(500).json({ success: false, message: 'Erreur serveur lors de la récupération des observations', error: error.message, stack: error.stack });

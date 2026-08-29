@@ -37,7 +37,7 @@ router.get('/admission/:admissionId',
   compteRenduController.getByAdmissionId
 );
 
-// ✅ Route PDF — avant /:id pour éviter conflit
+// Route PDF — avant /:id pour éviter conflit
 router.get('/:id/pdf',
   roleMiddleware(LECTURE),
   permissionMiddleware('compte-rendu.read'),

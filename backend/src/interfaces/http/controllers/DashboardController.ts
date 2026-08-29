@@ -60,7 +60,7 @@ export class DashboardController {
         }
       });
     } catch (error: unknown) {
-      console.error('❌ [DashboardController] getStats:', error);
+ console.error('[DashboardController] getStats:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur stats dashboard' } });
     }
   }
@@ -148,7 +148,7 @@ export class DashboardController {
 
       res.json({ success: true, data: rows });
     } catch (error: unknown) {
-      console.error('❌ [DashboardController] getDetail:', error);
+ console.error('[DashboardController] getDetail:', error);
       res.status(500).json({ success: false, error: { message: 'Erreur détail dashboard' } });
     }
   }

@@ -36,7 +36,7 @@ export function usePatients(type?: 'externe' | 'hospitalise') {
     } catch (err: unknown) {
       const message = getErrorMessage(err);
       setError(message);
-      console.error('❌ [usePatients] Erreur:', err);
+ console.error('[usePatients] Erreur:', err);
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export function usePatients(type?: 'externe' | 'hospitalise') {
     }
   }, []);
 
-  // ✅ Correction de l'avertissement exhaustive-deps
+ // Correction de l'avertissement exhaustive-deps
   useEffect(() => {
     fetchPatients(page);
   }, [type, page, fetchPatients]); 

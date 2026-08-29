@@ -35,7 +35,7 @@ export class SecuriteController {
         },
       });
     } catch (error) {
-      console.error('❌ [Sécurité] getStats:', error);
+ console.error('[Sécurité] getStats:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -46,7 +46,7 @@ export class SecuriteController {
       const result = await pool.query(`SELECT * FROM v_sessions_actives`);
       res.json({ success: true, data: result.rows });
     } catch (error) {
-      console.error('❌ [Sécurité] getSessions:', error);
+ console.error('[Sécurité] getSessions:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -76,7 +76,7 @@ export class SecuriteController {
       );
       res.json({ success: true, message: 'Session déconnectée avec succès' });
     } catch (error) {
-      console.error('❌ [Sécurité] disconnectSession:', error);
+ console.error('[Sécurité] disconnectSession:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -144,7 +144,7 @@ export class SecuriteController {
         },
       });
     } catch (error) {
-      console.error('❌ [Sécurité] getLogs:', error);
+ console.error('[Sécurité] getLogs:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -164,7 +164,7 @@ export class SecuriteController {
       `);
       res.json({ success: true, data: result.rows });
     } catch (error) {
-      console.error('❌ [Sécurité] getAlertes:', error);
+ console.error('[Sécurité] getAlertes:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -180,7 +180,7 @@ export class SecuriteController {
       );
       res.json({ success: true, message: 'Alerte marquée comme lue' });
     } catch (error) {
-      console.error('❌ [Sécurité] updateAlerte:', error);
+ console.error('[Sécurité] updateAlerte:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -199,7 +199,7 @@ export class SecuriteController {
       }
       res.json({ success: true, data: grouped });
     } catch (error) {
-      console.error('❌ [Sécurité] getParametres:', error);
+ console.error('[Sécurité] getParametres:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -231,7 +231,7 @@ export class SecuriteController {
       );
       res.json({ success: true, data: result.rows[0], message: 'Paramètre mis à jour' });
     } catch (error) {
-      console.error('❌ [Sécurité] updateParametre:', error);
+ console.error('[Sécurité] updateParametre:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -248,7 +248,7 @@ export class SecuriteController {
       `);
       res.json({ success: true, data: result.rows });
     } catch (error) {
-      console.error('❌ [Sécurité] getIPsBloquees:', error);
+ console.error('[Sécurité] getIPsBloquees:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -276,7 +276,7 @@ export class SecuriteController {
       );
       res.json({ success: true, message: `IP ${ip_address} bloquée` });
     } catch (error) {
-      console.error('❌ [Sécurité] bloquerIP:', error);
+ console.error('[Sécurité] bloquerIP:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
@@ -291,7 +291,7 @@ export class SecuriteController {
       );
       res.json({ success: true, message: 'IP débloquée' });
     } catch (error) {
-      console.error('❌ [Sécurité] debloquerIP:', error);
+ console.error('[Sécurité] debloquerIP:', error);
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }

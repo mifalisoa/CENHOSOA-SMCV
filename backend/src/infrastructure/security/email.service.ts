@@ -253,5 +253,5 @@ export async function sendResetPassword(params: {
 
 export async function verifySmtpConnection(): Promise<void> {
   await transporter.verify();
-  console.log('✅ [Email] Connexion SMTP Brevo OK');
+ console.log('[Email] Connexion SMTP Brevo OK');
 }
