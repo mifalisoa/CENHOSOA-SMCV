@@ -139,8 +139,8 @@ update = async (req: AuthRequest, res: Response): Promise<void> => {
       if (!req.user) { res.status(401).json({ success: false, message: 'Non authentifié' }); return; }
 
       const { statut } = req.body;
-      if (!statut || !['valide', 'rejete'].includes(statut)) {
-        res.status(400).json({ success: false, message: 'Statut invalide — valeurs acceptées : valide, rejete' });
+      if (!statut || !['valide', 'refuse'].includes(statut)) {
+        res.status(400).json({ success: false, message: 'Statut invalide — valeurs acceptées : valide, refuse' });
         return;
       }
 

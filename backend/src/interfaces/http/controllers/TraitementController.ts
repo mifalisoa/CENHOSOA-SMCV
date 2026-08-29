@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { CreateTraitement }          from '../../../application/use-cases/traitement/CreateTraitement';
 import { CreateManyTraitements, CreateOrdonnanceDTOWithRole } from '../../../application/use-cases/traitement/CreateManyTraitements';
+import { AddMedicamentToOrdonnance } from '../../../application/use-cases/traitement/AddMedicamentToOrdonnance';
 import { GetTraitementsByPatient }   from '../../../application/use-cases/traitement/GetTraitementsByPatient';
 import { GetTraitementsByAdmission } from '../../../application/use-cases/traitement/GetTraitementsByAdmission';
 import { ValiderTraitement }         from '../../../application/use-cases/traitement/ValiderTraitement';
@@ -98,6 +99,29 @@ export class TraitementController {
     }
   };
 
+  // Ajoute un medicament a une ordonnance existante en attente (docteur/admin uniquement)
+  addMedicament = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const idOrdonnance = getParam(req, 'idOrdonnance');
+      const addMedicament = new AddMedicamentToOrdonnance(this.traitementRepository);
+      const traitement = await addMedicament.execute({
+        id_ordonnance:       idOrdonnance,
+        cree_par_id:         req.user?.id_user,
+        medicament:          req.body.medicament,
+        dosage:              req.body.dosage,
+        voie_administration: req.body.voie_administration,
+        frequence:           req.body.frequence,
+        duree:               req.body.duree,
+        instructions:        req.body.instructions,
+      });
+      res.status(201).json({ success: true, message: 'Médicament ajouté avec succès', data: traitement });
+    } catch (error) {
+      if (error instanceof Error) { res.status(400).json({ success: false, message: error.message }); return; }
+      console.error('Erreur ajout médicament:', error);
+      res.status(500).json({ success: false, message: 'Erreur serveur' });
+    }
+  };
+
   getByPatientId = async (req: Request, res: Response): Promise<void> => {
     try {
       const patientId = parseInt(getParam(req, 'patientId'), 10);
@@ -165,8 +189,8 @@ export class TraitementController {
       if (!req.user) { res.status(401).json({ success: false, message: 'Non authentifié' }); return; }
 
       const { statut } = req.body;
-      if (!statut || !['valide', 'rejete'].includes(statut)) {
-        res.status(400).json({ success: false, message: 'Statut invalide — valeurs acceptées : valide, rejete' });
+      if (!statut || !['valide', 'refuse'].includes(statut)) {
+        res.status(400).json({ success: false, message: 'Statut invalide — valeurs acceptées : valide, refuse' });
         return;
       }
 
@@ -199,6 +223,16 @@ export class TraitementController {
       if (isNaN(id)) { res.status(400).json({ success: false, message: 'ID traitement invalide' }); return; }
       const existing = await this.traitementRepository.findById(id);
       if (!existing) throw new NotFoundError('Traitement non trouvé');
+
+      // Impossible de supprimer un medicament deja valide ou refuse
+      if (existing.statut !== 'en_attente') {
+        res.status(400).json({
+          success: false,
+          message: 'Impossible de supprimer un médicament déjà validé ou rejeté',
+        });
+        return;
+      }
+
       await this.traitementRepository.delete(id);
       res.status(200).json({ success: true, message: 'Traitement supprimé avec succès' });
     } catch (error) {
@@ -207,4 +241,4 @@ export class TraitementController {
       res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   };
-} 
+}

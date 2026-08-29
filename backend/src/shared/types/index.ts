@@ -43,7 +43,7 @@ export const ROLES_VALIDATEURS: RoleType[] = ['medecin', 'admin'];
 export const ROLES_NECESSITANT_VALIDATION: RoleType[] = ['interne', 'stagiaire'];
 
 // ── Validation des actes ──────────────────────────────────────────────────────
-export type StatutValidation = 'en_attente' | 'valide' | 'rejete';
+export type StatutValidation = 'en_attente' | 'valide' | 'refuse';   // ← cette ligne
 
 export interface ValidateurInfo {
   valide_par?: number;
