@@ -24,6 +24,7 @@ import { initSocketIO }   from './config/socket';
 import routes         from './interfaces/http/routes';
 import { errorMiddleware } from './interfaces/http/middlewares/error.middleware';
 import { apiRateLimiter, uploadsReadRateLimiter } from './interfaces/http/middlewares/rateLimiter.middleware';
+import { ipBlockMiddleware } from './interfaces/http/middlewares/ipBlock.middleware';
 import path           from 'path';
 
 checkCriticalSecrets();
@@ -33,6 +34,11 @@ const app = express();
 // ── Middlewares globaux ───────────────────────────────────────────────────────
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+// NOUVEAU : verifie ips_bloquees en tout premier, avant meme le parsing du
+// body. Une IP bloquee est rejetee avant que quoi que ce soit d'autre ne
+// s'execute -- y compris sur /auth/login.
+app.use(ipBlockMiddleware);
 
 app.use(cors({
   origin: (origin, callback) => {

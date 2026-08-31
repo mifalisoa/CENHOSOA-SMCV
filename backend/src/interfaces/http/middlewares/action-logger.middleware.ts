@@ -1,16 +1,19 @@
 // backend/src/interfaces/http/middlewares/action-logger.middleware.ts
 //
-// Middleware qui enregistre automatiquement les actions dans logs_action
-// et gère les sessions actives (création à la connexion, MAJ last_activity)
-//
-// Usage dans les routes :
-//   router.post('/patients', authMiddleware, logAction('create', 'patients'), controller.create)
+// CHANGEMENTS :
+// 1. getIP() est maintenant exportee (au lieu d'une copie privee dupliquee
+//    dans AuthController.ts et ce fichier) -- reutilisee par le nouveau
+//    ipBlock.middleware.ts sans tripler le code.
+// 2. updateSessionActivity() prolonge desormais reellement expires_at
+//    (timeout d'inactivite glissant), en plus de mettre a jour last_activity.
+//    Avant ce correctif, la fonction existait mais n'etait appelee nulle
+//    part -- maintenant appelee depuis auth.middleware.ts a chaque requete
+//    authentifiee.
 
 import { Request, Response, NextFunction } from 'express';
 import { pool } from '../../../config/database';
 import { AuthRequest } from './auth.middleware';
 
-// ── Détection device/browser simplifiée ──────────────────────────────────────
 function parseUserAgent(ua: string): { device_type: string; browser: string; os: string } {
   const device_type = /mobile/i.test(ua) ? 'mobile'
     : /tablet|ipad/i.test(ua) ? 'tablet'
@@ -32,7 +35,7 @@ function parseUserAgent(ua: string): { device_type: string; browser: string; os:
   return { device_type, browser, os };
 }
 
-function getIP(req: Request): string {
+export function getIP(req: Request): string {
   return (
     (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
     req.socket?.remoteAddress ||
@@ -41,12 +44,10 @@ function getIP(req: Request): string {
   );
 }
 
-// ── Middleware principal de log ───────────────────────────────────────────────
 export function logAction(action: string, module: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authReq = req as AuthRequest;
 
-    // Intercepte la fin de la réponse pour connaître le statut
     const originalJson = res.json.bind(res);
     let responseBody: Record<string, unknown> = {};
 
@@ -61,10 +62,8 @@ export function logAction(action: string, module: string) {
         const statut  = res.statusCode < 400 ? 'success' : 'error';
         const ip      = getIP(req);
 
-        // Ne log pas si pas d'utilisateur (accès non authentifié)
         if (!userId) return;
 
-        // Vérifie si le logging est activé
         const settingRes = await pool.query(
           `SELECT valeur FROM parametres_securite WHERE cle = 'log_all_actions'`
         );
@@ -77,7 +76,6 @@ export function logAction(action: string, module: string) {
           params:  req.params,
         };
 
-        // N'inclut pas le body pour éviter de logguer des données sensibles (mots de passe)
         if (module !== 'auth') {
           details.body_keys = Object.keys(req.body || {});
         }
@@ -98,8 +96,7 @@ export function logAction(action: string, module: string) {
           ]
         );
       } catch (err) {
-        // Le logging ne doit jamais faire planter l'app
- console.error('[ActionLogger] Erreur log:', err);
+        console.error('[ActionLogger] Erreur log:', err);
       }
     });
 
@@ -107,7 +104,6 @@ export function logAction(action: string, module: string) {
   };
 }
 
-// ── Gestion session — à appeler après login réussi ────────────────────────────
 export async function createSession(
   userId: number,
   sessionId: string,
@@ -118,7 +114,6 @@ export async function createSession(
     const ua     = req.headers['user-agent'] || '';
     const parsed = parseUserAgent(ua);
 
-    // Durée de session depuis les paramètres (défaut 180 min)
     const settingRes = await pool.query(
       `SELECT valeur FROM parametres_securite WHERE cle = 'session_timeout_minutes'`
     );
@@ -133,23 +128,32 @@ export async function createSession(
       [sessionId, userId, ip, ua.substring(0, 500), parsed.device_type, parsed.browser, parsed.os, timeoutMins]
     );
   } catch (err) {
- console.error('[ActionLogger] createSession erreur:', err);
+    console.error('[ActionLogger] createSession erreur:', err);
   }
 }
 
-// ── Mise à jour last_activity à chaque requête authentifiée ──────────────────
+// CHANGEMENT : prolonge desormais expires_at en plus de last_activity --
+// timeout d'inactivite glissant. Relit session_timeout_minutes a chaque
+// appel (pas mis en cache) pour qu'un changement de parametre par l'admin
+// prenne effet immediatement, sans attendre une reconnexion.
 export async function updateSessionActivity(sessionId: string): Promise<void> {
   try {
+    const settingRes = await pool.query(
+      `SELECT valeur FROM parametres_securite WHERE cle = 'session_timeout_minutes'`
+    );
+    const timeoutMins = parseInt(settingRes.rows[0]?.valeur || '180');
+
     await pool.query(
-      `UPDATE sessions_actives SET last_activity = NOW() WHERE session_id = $1`,
-      [sessionId]
+      `UPDATE sessions_actives
+       SET last_activity = NOW(), expires_at = NOW() + ($2 || ' minutes')::INTERVAL
+       WHERE session_id = $1`,
+      [sessionId, timeoutMins]
     );
   } catch (err) {
-    // silencieux
+    // silencieux -- ne doit jamais faire echouer la requete en cours
   }
 }
 
-// ── Supprime une session (logout) ─────────────────────────────────────────────
 export async function deleteSession(sessionId: string): Promise<void> {
   try {
     await pool.query(
@@ -157,18 +161,16 @@ export async function deleteSession(sessionId: string): Promise<void> {
       [sessionId]
     );
   } catch (err) {
- console.error('[ActionLogger] deleteSession erreur:', err);
+    console.error('[ActionLogger] deleteSession erreur:', err);
   }
 }
 
-// ── Log tentative de connexion échouée + alerte si seuil atteint ─────────────
 export async function logLoginFailed(
   email: string,
   ip: string,
   userAgent: string
 ): Promise<void> {
   try {
-    // Trouve l'utilisateur si il existe
     const userRes = await pool.query(
       `SELECT id_user FROM utilisateurs WHERE email = $1`,
       [email]
@@ -181,7 +183,6 @@ export async function logLoginFailed(
       [userId, ip, userAgent.substring(0, 500), JSON.stringify({ email, reason: 'invalid_credentials' })]
     );
 
-    // Compte les échecs récents depuis cette IP
     const failsRes = await pool.query(
       `SELECT COUNT(*) FROM logs_action
        WHERE action = 'login' AND statut = 'error' AND ip_address = $1
@@ -190,14 +191,12 @@ export async function logLoginFailed(
     );
     const failCount = parseInt(failsRes.rows[0].count);
 
-    // Récupère le seuil d'alerte
     const thresholdRes = await pool.query(
       `SELECT valeur FROM parametres_securite WHERE cle = 'alert_threshold_fails'`
     );
     const threshold = parseInt(thresholdRes.rows[0]?.valeur || '3');
 
     if (failCount >= threshold) {
-      // Crée une alerte sécurité
       await pool.query(
         `INSERT INTO alertes_securite (type_alerte, severite, titre, message, ip_address, id_utilisateur)
          VALUES ('brute_force', 'high', $1, $2, $3, $4)
@@ -211,11 +210,10 @@ export async function logLoginFailed(
       );
     }
   } catch (err) {
- console.error('[ActionLogger] logLoginFailed erreur:', err);
+    console.error('[ActionLogger] logLoginFailed erreur:', err);
   }
 }
 
-// ── Log connexion réussie ─────────────────────────────────────────────────────
 export async function logLoginSuccess(
   userId: number,
   ip: string,
@@ -228,6 +226,6 @@ export async function logLoginSuccess(
       [userId, ip, userAgent.substring(0, 500)]
     );
   } catch (err) {
- console.error('[ActionLogger] logLoginSuccess erreur:', err);
+    console.error('[ActionLogger] logLoginSuccess erreur:', err);
   }
 }
