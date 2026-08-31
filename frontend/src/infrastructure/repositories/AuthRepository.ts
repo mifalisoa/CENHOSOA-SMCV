@@ -31,7 +31,7 @@ export class AuthRepository implements IAuthRepository {
         const { token, user, premier_connexion } = response.data.data;
 
  console.log('[AuthRepository] Sauvegarde token pour:', user.email, '| role:', user.role);
- console.log('DEBUG premier_connexion:', premier_connexion, '| data complet:', JSON.stringify(response.data.data));
+ 
 
         this.saveToken(token);
 

@@ -1,23 +1,32 @@
 // backend/src/main.ts
 //
-// CHANGEMENT : apiRateLimiter branche sur toutes les routes /api.
-// Le fichier existait deja (rateLimiter.middleware.ts) mais n'etait
-// importe nulle part, donc totalement inactif.
-// loginRateLimiter (plus strict, 5/15min) reste sur /auth/login specifiquement
-// (voir auth.routes.ts) : les deux se cumulent sans probleme, apiRateLimiter
-// couvre le reste de l'API que loginRateLimiter ne voit pas.
+// CHANGEMENT : la liste d'origines CORS vient maintenant de env.ts
+// (getAllowedOrigins(), lui-meme derive de CORS_ORIGIN dans .env) au lieu
+// d'un tableau ecrit en dur. Changer d'environnement (dev -> prod) ne
+// demande plus de modifier le code, juste le .env du serveur.
+//
+// Retire au passage l'origine 'null' de la liste (cas special rarement
+// necessaire, jamais identifie comme utile dans ce projet). Si quelque
+// chose casse a cause de ca, ajouter 'null' dans CORS_ORIGIN suffit --
+// pas besoin de retoucher ce fichier.
+//
+// Ajoute aussi checkCriticalSecrets() au demarrage : bloque le lancement
+// en production si JWT_SECRET ou DB_PASSWORD sont restes a leur valeur
+// par defaut non securisee.
 
 import express        from 'express';
 import cors           from 'cors';
 import helmet         from 'helmet';
 import { createServer } from 'http';
-import { env }        from './config/env';
+import { env, getAllowedOrigins, checkCriticalSecrets } from './config/env';
 import { testConnection } from './config/database';
 import { initSocketIO }   from './config/socket';
 import routes         from './interfaces/http/routes';
 import { errorMiddleware } from './interfaces/http/middlewares/error.middleware';
 import { apiRateLimiter, uploadsReadRateLimiter } from './interfaces/http/middlewares/rateLimiter.middleware';
 import path           from 'path';
+
+checkCriticalSecrets();
 
 const app = express();
 
@@ -27,12 +36,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:3000',
-      'null',
-    ];
+    const allowed = getAllowedOrigins();
     if (!origin || allowed.includes(origin)) callback(null, true);
     else callback(new Error('Not allowed by CORS'));
   },
@@ -47,8 +51,6 @@ app.use(express.urlencoded({ extended: true }));
 // accessibles sans authentification -- voir l'audit securite pour le
 // chantier complet, volontairement reporte apres la livraison de septembre
 // vu son impact sur le frontend (affichage des documents/images).
-// En attendant, ce rate limiter ralentit au moins le scraping automatise
-// en masse d'URLs de fichiers.
 app.use('/uploads', uploadsReadRateLimiter, express.static(path.join(__dirname, '../uploads')));
 
 app.use((req, _res, next) => {
@@ -96,6 +98,7 @@ const start = async () => {
       console.log(`Serveur démarré sur http://localhost:${env.PORT}`);
       console.log(`Socket.io activé sur ws://localhost:${env.PORT}`);
       console.log(`Environnement: ${env.NODE_ENV}`);
+      console.log(`Origines CORS autorisées: ${getAllowedOrigins().join(', ')}`);
     });
   } catch (error) {
     console.error('Erreur au démarrage:', error);
