@@ -13,12 +13,13 @@ export interface CreateTraitementInput {
   prescripteur?:          string;
   lieu_prescription?:     string;
   medicament:             string;
-  dosage:                 string;
-  voie_administration:    string;
-  frequence:              string;
-  duree:                  string;
+  dosage?:                string;
+  voie_administration?:   string;
+  frequence?:             string;
+  duree?:                 string;
   instructions?:          string;
   observations_speciales?: string;
+  description_libre?:     string;
   cree_par_id?:           number;
   role_createur?:         RoleType;
 }
@@ -27,17 +28,9 @@ export class CreateTraitement {
   constructor(private traitementRepository: ITraitementRepository) {}
 
   async execute(input: CreateTraitementInput): Promise<Traitement> {
-    // Validation metier
-    if (!input.medicament) {
+    // Seul le nom du medicament reste obligatoire
+    if (!input.medicament?.trim()) {
       throw new Error('Le médicament est requis');
-    }
-
-    if (!input.dosage || !input.voie_administration || !input.frequence || !input.duree) {
-      throw new Error('Dosage, voie d\'administration, fréquence et durée sont requis');
-    }
-
-    if (input.type_document === 'ordonnance' && !input.prescripteur) {
-      throw new Error('Le prescripteur est requis pour une ordonnance');
     }
 
     // Regle metier : statut selon le role du createur
@@ -64,6 +57,7 @@ export class CreateTraitement {
       duree:                  input.duree,
       instructions:           input.instructions,
       observations_speciales: input.observations_speciales,
+      description_libre:      input.description_libre,
       cree_par_id:            input.cree_par_id,
       statut:                 statutInitial,
     });
