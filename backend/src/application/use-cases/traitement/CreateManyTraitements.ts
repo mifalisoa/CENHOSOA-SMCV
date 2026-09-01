@@ -16,15 +16,11 @@ export class CreateManyTraitements {
       throw new Error('Au moins un médicament est requis');
     }
 
-    for (let i = 0; i < data.medicaments.length; i++) {
-      const med = data.medicaments[i];
-      const num = i + 1;
-      if (!med.medicament?.trim())          throw new Error(`Médicament #${num} : le nom est requis`);
-      if (!med.dosage?.trim())              throw new Error(`Médicament #${num} : le dosage est requis`);
-      if (!med.voie_administration?.trim()) throw new Error(`Médicament #${num} : la voie d'administration est requise`);
-      if (!med.frequence?.trim())           throw new Error(`Médicament #${num} : la fréquence est requise`);
-      if (!med.duree?.trim())               throw new Error(`Médicament #${num} : la durée est requise`);
-    }
+   for (let i = 0; i < data.medicaments.length; i++) {
+  const med = data.medicaments[i];
+  const num = i + 1;
+  if (!med.medicament?.trim()) throw new Error(`Médicament #${num} : le nom est requis`);
+}
 
     // Regle metier : statut selon le role du createur
     // Medecin/admin cree une ordonnance deja validee, interne/stagiaire en attente
@@ -54,6 +50,7 @@ export class CreateManyTraitements {
       frequence:              med.frequence,
       duree:                  med.duree,
       instructions:           med.instructions,
+      description_libre:      med.description_libre,
     }));
 
     return await this.traitementRepository.createMany(traitements);
