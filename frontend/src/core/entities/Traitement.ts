@@ -16,14 +16,14 @@ export interface Traitement {
   prescripteur?:      string;
   lieu_prescription?: string;
 
-  medicament:          string;
-  dosage:              string;
-  voie_administration: string;
-  frequence:           string;
-  duree:               string;
-
+  medicament:              string;
+  dosage?:                 string;
+  voie_administration?:    string;
+  frequence?:              string;
+  duree?:                  string;
   instructions?:           string;
   observations_speciales?: string;
+  description_libre?:      string;
 
   cree_par_id?: number;
   statut:       StatutValidation;
@@ -47,12 +47,13 @@ export interface CreateTraitementDTO {
   prescripteur?:       string;
   lieu_prescription?:  string;
   medicament:          string;
-  dosage:              string;
-  voie_administration: string;
-  frequence:           string;
-  duree:               string;
+  dosage?:             string;
+  voie_administration?: string;
+  frequence?:          string;
+  duree?:              string;
   instructions?:       string;
   observations_speciales?: string;
+  description_libre?:  string;
 }
 
 export interface UpdateTraitementDTO {
@@ -69,15 +70,17 @@ export interface UpdateTraitementDTO {
   duree?:               string;
   instructions?:        string;
   observations_speciales?: string;
+  description_libre?:   string;
 }
 
 export interface MedicamentDTO {
   medicament:          string;
-  dosage:              string;
-  voie_administration: string;
-  frequence:           string;
-  duree:               string;
+  dosage?:             string;
+  voie_administration?: string;
+  frequence?:          string;
+  duree?:              string;
   instructions?:       string;
+  description_libre?:  string;
 }
 
 export interface CreateOrdonnanceDTO {
