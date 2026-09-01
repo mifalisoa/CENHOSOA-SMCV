@@ -119,14 +119,14 @@ export async function createSession(
     );
     const timeoutMins = parseInt(settingRes.rows[0]?.valeur || '180');
 
-    await pool.query(
-      `INSERT INTO sessions_actives
-         (session_id, id_utilisateur, ip_address, user_agent, device_type, browser, os, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + ($8 || ' minutes')::INTERVAL)
-       ON CONFLICT (session_id)
-       DO UPDATE SET last_activity = NOW(), expires_at = NOW() + ($8 || ' minutes')::INTERVAL`,
-      [sessionId, userId, ip, ua.substring(0, 500), parsed.device_type, parsed.browser, parsed.os, timeoutMins]
-    );
+   await pool.query(
+  `INSERT INTO sessions_actives
+     (session_id, id_user, ip_address, user_agent, device_type, browser, os, expires_at)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + ($8 || ' minutes')::INTERVAL)
+   ON CONFLICT (session_id)
+   DO UPDATE SET last_activity = NOW(), expires_at = NOW() + ($8 || ' minutes')::INTERVAL`,
+  [sessionId, userId, ip, ua.substring(0, 500), parsed.device_type, parsed.browser, parsed.os, timeoutMins]
+);
   } catch (err) {
     console.error('[ActionLogger] createSession erreur:', err);
   }
