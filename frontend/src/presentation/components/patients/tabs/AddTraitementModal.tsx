@@ -9,39 +9,27 @@ interface AddTraitementModalProps {
   onSubmit:  (data: CreateOrdonnanceDTO) => Promise<void>;
 }
 
-// ── Liste médicaments courants (cardiologie / médecine interne) ───────────────
 const MEDICAMENTS_SUGGESTIONS = [
-  // Antihypertenseurs
   'Amlodipine', 'Atenolol', 'Bisoprolol', 'Captopril', 'Carvedilol',
   'Enalapril', 'Hydrochlorothiazide', 'Irbesartan', 'Lisinopril',
   'Losartan', 'Metoprolol', 'Nifedipine', 'Ramipril', 'Valsartan',
-  // Antiagrégants / anticoagulants
   'Acide acétylsalicylique', 'Aspirine', 'Clopidogrel', 'Héparine',
   'Rivaroxaban', 'Warfarine', 'Dabigatran', 'Apixaban',
-  // Statines
   'Atorvastatine', 'Rosuvastatine', 'Simvastatine', 'Pravastatine',
-  // Diurétiques
   'Furosémide', 'Spironolactone', 'Indapamide', 'Torasémide',
-  // Antidiabétiques
   'Metformine', 'Glibenclamide', 'Insuline', 'Sitagliptine',
-  // Antalgiques / anti-inflammatoires
   'Paracétamol', 'Ibuprofène', 'Diclofénac', 'Tramadol', 'Morphine',
-  // Antibiotiques
   'Amoxicilline', 'Amoxicilline-Acide clavulanique', 'Azithromycine',
   'Ciprofloxacine', 'Doxycycline', 'Métronidazole', 'Ceftriaxone',
-  // Cardio spécifiques
   'Digoxine', 'Amiodarone', 'Diltiazem', 'Vérapamil', 'Nitroglycérine',
   'Isosorbide dinitrate', 'Dobutamine', 'Dopamine', 'Adrénaline',
-  // Autres courants
   'Oméprazole', 'Pantoprazole', 'Salbutamol', 'Prednisolone',
   'Dexaméthasone', 'Lévothyroxine', 'Fer sulfate', 'Acide folique',
 ];
 
-// ── Raccourcis ────────────────────────────────────────────────────────────────
 const FREQUENCES = ['1x/j', '2x/j', '3x/j', 'toutes les 6h', 'toutes les 8h', 'toutes les 12h', 'si besoin'];
 const DUREES     = ['3 jours', '5 jours', '7 jours', '10 jours', '14 jours', '1 mois', '3 mois', 'à vie'];
 
-// ── Médicament vide ───────────────────────────────────────────────────────────
 const emptyMed = (): MedicamentDTO & { _id: number } => ({
   _id:                 Date.now() + Math.random(),
   medicament:          '',
@@ -50,9 +38,9 @@ const emptyMed = (): MedicamentDTO & { _id: number } => ({
   frequence:           '',
   duree:               '',
   instructions:        '',
+  description_libre:   '',
 });
 
-// ── Composant suggestion médicament ──────────────────────────────────────────
 interface MedAutocompleteProps {
   id:       number;
   value:    string;
@@ -60,7 +48,7 @@ interface MedAutocompleteProps {
   isOk:     boolean;
   onChange: (val: string) => void;
   onBlur:   () => void;
-  allMeds:  string[]; // pour détecter les doublons
+  allMeds:  string[];
 }
 
 function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds }: MedAutocompleteProps) {
@@ -68,7 +56,6 @@ function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Ferme le dropdown si clic en dehors
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -98,7 +85,6 @@ function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds 
     onBlur();
   };
 
-  // Détecte si ce médicament est déjà utilisé ailleurs dans l'ordonnance
   const isDuplicate = value.trim() &&
     allMeds.filter(m => m.toLowerCase() === value.toLowerCase()).length > 1;
 
@@ -126,7 +112,6 @@ function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds 
         />
       </div>
 
-      {/* ✅ Avertissement doublon */}
       {isDuplicate && (
         <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
           <AlertTriangle className="w-3 h-3" />
@@ -134,13 +119,12 @@ function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds 
         </p>
       )}
 
-      {/* Dropdown suggestions */}
       {open && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
           {suggestions.map(s => (
             <li key={s}>
               <button type="button"
-                onMouseDown={() => select(s)} // mousedown avant blur
+                onMouseDown={() => select(s)}
                 className="w-full text-left px-4 py-2.5 text-sm hover:bg-cyan-50 hover:text-cyan-800 transition-colors flex items-center gap-2">
                 <Pill className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 {s}
@@ -152,8 +136,6 @@ function MedAutocomplete({ id, value, hasError, isOk, onChange, onBlur, allMeds 
     </div>
   );
 }
-
-// ── Composant principal ───────────────────────────────────────────────────────
 
 export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTraitementModalProps) {
   const [loading,     setLoading]     = useState(false);
@@ -173,25 +155,23 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
   const [meds, setMeds] = useState<(MedicamentDTO & { _id: number })[]>([emptyMed()]);
   const mark = (key: string) => setTouched(p => ({ ...p, [key]: true }));
 
-  // ── Validation ────────────────────────────────────────────────────────────────
+  // Seul le nom du medicament reste obligatoire
   const getMedError = (id: number, field: keyof MedicamentDTO): string | null => {
+    if (field !== 'medicament') return null;
     if (!touched[`med_${id}_${field}`]) return null;
     const med = meds.find(m => m._id === id);
     if (!med) return null;
-    const required: (keyof MedicamentDTO)[] = ['medicament', 'dosage', 'frequence', 'duree'];
-    if (required.includes(field) && !String(med[field] || '').trim()) return 'Champ obligatoire';
+    if (!String(med.medicament || '').trim()) return 'Champ obligatoire';
     return null;
   };
 
   const isMedValid = (med: MedicamentDTO & { _id: number }) =>
-    med.medicament.trim() && med.dosage.trim() && med.frequence.trim() && med.duree.trim();
+    med.medicament.trim().length > 0;
 
-  // Formulaire valide si tous les médicaments sont valides et pas de doublon
   const allMedNames = meds.map(m => m.medicament.toLowerCase().trim()).filter(Boolean);
   const hasDuplicate = allMedNames.length !== new Set(allMedNames).size;
   const isFormValid  = meds.length > 0 && meds.every(isMedValid) && !hasDuplicate;
 
-  // ── Classes input standard ────────────────────────────────────────────────────
   const cx = (id: number, field: keyof MedicamentDTO) => {
     const err = getMedError(id, field);
     const med = meds.find(m => m._id === id);
@@ -203,7 +183,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
     }`;
   };
 
- // Label avec icône ✓ /
   const Lbl = ({
     id, field, children, req,
   }: { id: number; field: keyof MedicamentDTO; children: React.ReactNode; req?: boolean }) => {
@@ -227,20 +206,15 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
       : null;
   };
 
-  // ── Actions médicaments ───────────────────────────────────────────────────────
   const addMed    = () => setMeds(prev => [...prev, emptyMed()]);
   const removeMed = (id: number) => { if (meds.length > 1) setMeds(prev => prev.filter(m => m._id !== id)); };
   const updateMed = (id: number, field: keyof MedicamentDTO, value: string) =>
     setMeds(prev => prev.map(m => m._id === id ? { ...m, [field]: value } : m));
 
-  // ── Soumission ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Marque tous les champs obligatoires
     const newTouched: Record<string, boolean> = {};
-    meds.forEach(m => ['medicament', 'dosage', 'frequence', 'duree'].forEach(f => {
-      newTouched[`med_${m._id}_${f}`] = true;
-    }));
+    meds.forEach(m => { newTouched[`med_${m._id}_medicament`] = true; });
     setTouched(prev => ({ ...prev, ...newTouched }));
     if (!isFormValid) return;
 
@@ -256,7 +230,17 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
         prescripteur:           infos.prescripteur   || undefined,
         lieu_prescription:      infos.lieu_prescription || undefined,
         observations_speciales: infos.observations_speciales || undefined,
-        medicaments: meds.map(({ _id, ...med }) => { void _id; return med; }),
+        medicaments: meds.map(({ _id, ...med }) => {
+          void _id;
+          return {
+            ...med,
+            dosage:              med.dosage              || undefined,
+            voie_administration: med.voie_administration || undefined,
+            frequence:           med.frequence            || undefined,
+            duree:               med.duree                || undefined,
+            description_libre:   med.description_libre    || undefined,
+          };
+        }),
       };
       await onSubmit(payload);
       onClose();
@@ -269,12 +253,10 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
 
   const inputBase = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-cyan-400 focus:ring-cyan-100';
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
-        {/* Header — cyan */}
         <div className="bg-cyan-600 px-5 py-4 sm:px-6 sm:py-5 text-white flex justify-between items-start shrink-0">
           <div>
             <h2 className="text-lg sm:text-xl font-bold">Nouvelle prescription</h2>
@@ -292,7 +274,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
           </button>
         </div>
 
-        {/* Erreur globale */}
         {submitError && (
           <div className="mx-5 mt-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -300,7 +281,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
           </div>
         )}
 
-        {/* ✅ Avertissement doublon global */}
         {hasDuplicate && (
           <div className="mx-5 mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -310,11 +290,9 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
 
         <form id="traitement-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
 
-          {/* ── Section 1 : Infos prescription ── */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Informations de la prescription</h3>
 
-            {/* Type */}
             <div className="grid grid-cols-2 gap-3">
               {[
                 { value: 'ordonnance', emoji: '📋', label: 'Ordonnance' },
@@ -387,7 +365,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
             </div>
           </div>
 
-          {/* ── Section 2 : Médicaments ── */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -409,7 +386,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
               return (
                 <div key={med._id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
 
-                  {/* En-tête carte médicament */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 bg-cyan-100 rounded-lg flex items-center justify-center shrink-0">
@@ -434,7 +410,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
 
                   <div className="grid grid-cols-2 gap-3">
 
-                    {/* ── Nom du médicament avec autocomplétion ── */}
                     <div className="col-span-2">
                       <label htmlFor={`medicament_${med._id}`}
                         className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1.5">
@@ -442,7 +417,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                         {medOk  && <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />}
                         {medErr && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
                       </label>
-                      {/* ✅ Autocomplétion */}
                       <MedAutocomplete
                         id={med._id}
                         value={med.medicament}
@@ -459,27 +433,27 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       )}
                     </div>
 
-                    {/* ── Dosage ── */}
+                    {/* Dosage — desormais optionnel */}
                     <div>
-                      <Lbl id={med._id} field="dosage" req>Dosage</Lbl>
-                      <input id={`dosage_${med._id}`} type="text" title="Dosage"
-                        value={med.dosage} placeholder="Ex: 500mg, 1g..."
+                      <Lbl id={med._id} field="dosage">Dosage</Lbl>
+                      <input id={`dosage_${med._id}`} type="text" title="Dosage (optionnel)"
+                        value={med.dosage} placeholder="Ex: 500mg, 1g... (optionnel)"
                         onChange={e => updateMed(med._id, 'dosage', e.target.value)}
                         onBlur={() => mark(`med_${med._id}_dosage`)}
                         className={cx(med._id, 'dosage')} />
                       <FieldErr id={med._id} field="dosage" />
                     </div>
 
-                    {/* ── Voie d'administration ── */}
                     <div>
                       <label htmlFor={`voie_${med._id}`}
                         className="text-sm font-medium text-gray-700 mb-1.5 block">
                         Voie d'administration
                       </label>
-                      <select id={`voie_${med._id}`} title="Voie d'administration"
+                      <select id={`voie_${med._id}`} title="Voie d'administration (optionnel)"
                         value={med.voie_administration}
                         onChange={e => updateMed(med._id, 'voie_administration', e.target.value)}
                         className={cx(med._id, 'voie_administration')}>
+                        <option value="">— Non précisé —</option>
                         <option value="per os">Per os (orale)</option>
                         <option value="IV">IV (intraveineuse)</option>
                         <option value="IM">IM (intramusculaire)</option>
@@ -491,11 +465,11 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       </select>
                     </div>
 
-                    {/* ── Fréquence avec raccourcis ── */}
+                    {/* Frequence — desormais optionnelle */}
                     <div>
-                      <Lbl id={med._id} field="frequence" req>Fréquence</Lbl>
-                      <input id={`frequence_${med._id}`} type="text" title="Fréquence de prise"
-                        value={med.frequence} placeholder="Ex: 3x/jour..."
+                      <Lbl id={med._id} field="frequence">Fréquence</Lbl>
+                      <input id={`frequence_${med._id}`} type="text" title="Fréquence de prise (optionnel)"
+                        value={med.frequence} placeholder="Ex: 3x/jour... (optionnel)"
                         onChange={e => updateMed(med._id, 'frequence', e.target.value)}
                         onBlur={() => mark(`med_${med._id}_frequence`)}
                         className={cx(med._id, 'frequence')} />
@@ -513,11 +487,11 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       <FieldErr id={med._id} field="frequence" />
                     </div>
 
-                    {/* ── Durée avec raccourcis ── */}
+                    {/* Duree — desormais optionnelle */}
                     <div>
-                      <Lbl id={med._id} field="duree" req>Durée</Lbl>
-                      <input id={`duree_${med._id}`} type="text" title="Durée du traitement"
-                        value={med.duree} placeholder="Ex: 7 jours..."
+                      <Lbl id={med._id} field="duree">Durée</Lbl>
+                      <input id={`duree_${med._id}`} type="text" title="Durée du traitement (optionnel)"
+                        value={med.duree} placeholder="Ex: 7 jours... (optionnel)"
                         onChange={e => updateMed(med._id, 'duree', e.target.value)}
                         onBlur={() => mark(`med_${med._id}_duree`)}
                         className={cx(med._id, 'duree')} />
@@ -535,7 +509,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       <FieldErr id={med._id} field="duree" />
                     </div>
 
-                    {/* ── Instructions ── */}
                     <div className="col-span-2">
                       <label htmlFor={`instructions_${med._id}`}
                         className="text-sm font-medium text-gray-700 mb-1.5 block">
@@ -548,12 +521,26 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                         onChange={e => updateMed(med._id, 'instructions', e.target.value)}
                         className={`${inputBase} resize-none`} />
                     </div>
+
+                    {/* Nouveau champ texte libre, demande par le docteur */}
+                    <div className="col-span-2">
+                      <label htmlFor={`description_libre_${med._id}`}
+                        className="text-sm font-medium text-gray-700 mb-1.5 block">
+                        Description libre
+                        <span className="text-gray-400 font-normal ml-1 text-xs">(pour tout ce qui ne rentre pas dans les champs ci-dessus)</span>
+                      </label>
+                      <textarea id={`description_libre_${med._id}`} rows={2}
+                        title="Description libre complementaire"
+                        value={med.description_libre || ''}
+                        placeholder="Ex: 1 comprimé le matin puis 1/2 le soir pendant 3 jours, puis revoir..."
+                        onChange={e => updateMed(med._id, 'description_libre', e.target.value)}
+                        className={`${inputBase} resize-none`} />
+                    </div>
                   </div>
                 </div>
               );
             })}
 
-            {/* Bouton ajouter en bas si plusieurs médicaments */}
             {meds.length >= 2 && (
               <button type="button" onClick={addMed}
                 className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-cyan-400 hover:text-cyan-600 transition-all flex items-center justify-center gap-2">
@@ -563,10 +550,9 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
             )}
           </div>
 
-          <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Champs obligatoires</p>
+          <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Champ obligatoire — les autres sont libres</p>
         </form>
 
-        {/* Footer */}
         <div className="border-t bg-gray-50 px-5 py-4 flex justify-between items-center shrink-0">
           <p className="text-xs text-gray-500">
             {meds.length} médicament{meds.length > 1 ? 's' : ''} dans cette prescription
@@ -576,7 +562,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
               className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium">
               Annuler
             </button>
-            {/* ✅ Grisé si formulaire invalide ou doublon */}
             <button type="submit" form="traitement-form" disabled={loading}
               className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                 isFormValid && !loading
