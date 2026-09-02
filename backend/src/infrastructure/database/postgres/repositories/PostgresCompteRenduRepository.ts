@@ -9,10 +9,10 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
     const query = `
       INSERT INTO comptes_rendus (
         id_patient, id_admission, date_admission, date_sortie,
-        resume_observation, diagnostic_sortie, traitement_sortie, prochain_rdv,
-        modalite_sortie, lieu_transfert, medecin, cree_par_id
+        contexte, resume_observation, examens_paracliniques, diagnostic,
+        traitement_sortie, evolution, prochain_rdv, medecin, cree_par_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
       ) RETURNING *
     `;
 
@@ -21,12 +21,13 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
       compteRendu.id_admission,
       compteRendu.date_admission,
       compteRendu.date_sortie,
+      compteRendu.contexte || null,
       compteRendu.resume_observation,
-      compteRendu.diagnostic_sortie,
+      compteRendu.examens_paracliniques || null,
+      compteRendu.diagnostic,
       compteRendu.traitement_sortie,
+      compteRendu.evolution || null,
       compteRendu.prochain_rdv || null,
-      compteRendu.modalite_sortie,
-      compteRendu.lieu_transfert || null,
       compteRendu.medecin,
       compteRendu.cree_par_id || null,
     ];
@@ -102,12 +103,13 @@ export class PostgresCompteRenduRepository implements ICompteRenduRepository {
       id_admission: row.id_admission,
       date_admission: row.date_admission,
       date_sortie: row.date_sortie,
+      contexte: row.contexte,
       resume_observation: row.resume_observation,
-      diagnostic_sortie: row.diagnostic_sortie,
+      examens_paracliniques: row.examens_paracliniques,
+      diagnostic: row.diagnostic,
       traitement_sortie: row.traitement_sortie,
+      evolution: row.evolution,
       prochain_rdv: row.prochain_rdv,
-      modalite_sortie: row.modalite_sortie,
-      lieu_transfert: row.lieu_transfert,
       medecin: row.medecin,
       cree_par_id: row.cree_par_id,
       modifie_par_id: row.modifie_par_id,

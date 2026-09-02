@@ -10,16 +10,12 @@ export class CreateCompteRendu {
       throw new Error('L\'ID d\'admission est requis pour créer un compte rendu');
     }
 
-    if (!compteRenduData.resume_observation || !compteRenduData.diagnostic_sortie || !compteRenduData.traitement_sortie) {
+    if (!compteRenduData.resume_observation || !compteRenduData.diagnostic || !compteRenduData.traitement_sortie) {
       throw new Error('Résumé, diagnostic et traitement de sortie sont requis');
     }
 
     if (!compteRenduData.medecin) {
       throw new Error('Le médecin est requis');
-    }
-
-    if (compteRenduData.modalite_sortie === 'transfert' && !compteRenduData.lieu_transfert) {
-      throw new Error('Le lieu de transfert est requis pour une sortie en transfert');
     }
 
     // Vérifier qu'il n'y a pas déjà un compte rendu pour cette admission
