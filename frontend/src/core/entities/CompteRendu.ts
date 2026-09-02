@@ -2,21 +2,21 @@ export interface CompteRendu {
   id_compte_rendu: number;
   id_patient: number;
   id_admission: number;
-  
+
   date_admission: Date | string;
   date_sortie: Date | string;
-  
+
+  contexte?: string;
   resume_observation: string;
-  diagnostic_sortie: string;
+  examens_paracliniques?: string;
+  diagnostic: string;
   traitement_sortie: string;
+  evolution?: string;
   prochain_rdv?: string;
-  
-  modalite_sortie: 'gueri' | 'ameliore' | 'transfert' | 'deces';
-  lieu_transfert?: string;
-  
+
   medecin: string;
-  cree_par_id?: number;      //  nouveau — aligné avec le backend
-  modifie_par_id?: number;   //  nouveau — aligné avec le backend
+  cree_par_id?: number;
+  modifie_par_id?: number;
   created_at: Date | string;
   updated_at: Date | string;
 }
@@ -26,11 +26,12 @@ export interface CreateCompteRenduDTO {
   id_admission: number;
   date_admission: string;
   date_sortie: string;
+  contexte?: string;
   resume_observation: string;
-  diagnostic_sortie: string;
+  examens_paracliniques?: string;
+  diagnostic: string;
   traitement_sortie: string;
+  evolution?: string;
   prochain_rdv?: string;
-  modalite_sortie: 'gueri' | 'ameliore' | 'transfert' | 'deces';
-  lieu_transfert?: string;
-  medecin?: string;   //  optionnel — toujours dérivé du backend, jamais saisi par l'utilisateur
+  medecin?: string;
 }

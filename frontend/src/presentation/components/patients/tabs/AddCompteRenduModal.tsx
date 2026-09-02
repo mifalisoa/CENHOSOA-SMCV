@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, FileText, Pill, MapPin, CheckCircle2, TrendingUp, ArrowRight, Skull, AlertTriangle } from 'lucide-react';
+import { X, Calendar, FileText, Pill, CheckCircle2, TrendingUp, AlertTriangle } from 'lucide-react';
 import type { CreateCompteRenduDTO } from '../../../../core/entities/CompteRendu';
 import type { Patient } from '../../../../core/entities/Patient';
 
@@ -10,11 +10,8 @@ interface AddCompteRenduModalProps {
   onSubmit: (data: CreateCompteRenduDTO) => Promise<void>;
 }
 
-type ModaliteSortie = 'gueri' | 'ameliore' | 'transfert' | 'deces';
-
-// ── Champs obligatoires ───────────────────────────────────────────────────────
-const REQUIRED = ['resume_observation', 'diagnostic_sortie', 'traitement_sortie'] as const;
-
+// Champs obligatoires
+const REQUIRED = ['resume_observation', 'diagnostic', 'traitement_sortie'] as const;
 
 export default function AddCompteRenduModal({ patient, idAdmission, onClose, onSubmit }: AddCompteRenduModalProps) {
   const [loading,     setLoading]     = useState(false);
@@ -26,29 +23,21 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
     id_admission:    idAdmission,
     date_admission:  new Date().toISOString().split('T')[0],
     date_sortie:     new Date().toISOString().split('T')[0],
-    modalite_sortie: 'ameliore',
   });
 
-  // ── Validation ────────────────────────────────────────────────────────────────
+  // Validation
   const getError = (field: string): string | null => {
     if (!touched[field]) return null;
 
-    // Champs texte obligatoires
     if (REQUIRED.includes(field as typeof REQUIRED[number])) {
       const val = formData[field as keyof typeof formData];
       if (!val || String(val).trim() === '') return 'Champ obligatoire';
     }
 
-    // Date sortie >= date admission
     if (field === 'date_sortie' && formData.date_admission && formData.date_sortie) {
       if (new Date(formData.date_sortie) < new Date(formData.date_admission)) {
         return 'La date de sortie doit être après la date d\'admission';
       }
-    }
-
-    // Lieu de transfert requis si modalité = transfert
-    if (field === 'lieu_transfert' && formData.modalite_sortie === 'transfert') {
-      if (!formData.lieu_transfert?.trim()) return 'Lieu de transfert obligatoire';
     }
 
     return null;
@@ -60,12 +49,10 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
       return val && String(val).trim() !== '';
     }) &&
     (!formData.date_sortie || !formData.date_admission ||
-      new Date(formData.date_sortie) >= new Date(formData.date_admission)) &&
-    (formData.modalite_sortie !== 'transfert' || !!formData.lieu_transfert?.trim());
+      new Date(formData.date_sortie) >= new Date(formData.date_admission));
 
   const mark = (field: string) => setTouched(p => ({ ...p, [field]: true }));
 
-  // ── Classes input ─────────────────────────────────────────────────────────────
   const cx = (field: string) => {
     const err = getError(field);
     const val = formData[field as keyof typeof formData];
@@ -77,7 +64,6 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
     }`;
   };
 
- // ── Label avec icône ✓ / ──────────────────────────────────────────────────
   const Lbl = ({ field, children, req, htmlFor }: {
     field: string; children: React.ReactNode; req?: boolean; htmlFor?: string;
   }) => {
@@ -101,54 +87,43 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
       : null;
   };
 
-  // ── Soumission ────────────────────────────────────────────────────────────────
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!idAdmission) {
-    setSubmitError("Impossible de créer un compte rendu : aucune admission active trouvée pour ce patient.");
-    return;
-  }
+    if (!idAdmission) {
+      setSubmitError("Impossible de créer un compte rendu : aucune admission active trouvée pour ce patient.");
+      return;
+    }
 
-  // Marque tous les champs obligatoires + dates + lieu transfert si applicable
-  const fields = [...REQUIRED, 'date_sortie'];
-  if (formData.modalite_sortie === 'transfert') fields.push('lieu_transfert');
-  setTouched(Object.fromEntries(fields.map(f => [f, true])));
-  if (!isFormValid) return;
+    const fields = [...REQUIRED, 'date_sortie'];
+    setTouched(Object.fromEntries(fields.map(f => [f, true])));
+    if (!isFormValid) return;
 
-  setLoading(true);
-  setSubmitError(null);
-  try {
-    // Le backend attend des dates ISO complètes (avec heure), pas juste YYYY-MM-DD
-    const payload = {
-      ...formData,
-      date_admission: new Date(formData.date_admission + 'T00:00:00').toISOString(),
-      date_sortie:    new Date(formData.date_sortie + 'T00:00:00').toISOString(),
-    };
-    await onSubmit(payload as CreateCompteRenduDTO);
-    onClose();
-  } catch (err: unknown) {
-    setSubmitError(err instanceof Error ? err.message : 'Erreur lors de la création');
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setSubmitError(null);
+    try {
+      const payload = {
+        ...formData,
+        date_admission: new Date(formData.date_admission + 'T00:00:00').toISOString(),
+        date_sortie:    new Date(formData.date_sortie + 'T00:00:00').toISOString(),
+      };
+      await onSubmit(payload as CreateCompteRenduDTO);
+      onClose();
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Erreur lors de la création');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const inputBase = 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-cyan-400 focus:ring-cyan-100';
-
-  const modaliteOptions = [
-    { value: 'gueri',     label: 'Guéri',     icon: CheckCircle2, emoji: '✅' },
-    { value: 'ameliore',  label: 'Amélioré',  icon: TrendingUp,   emoji: '📈' },
-    { value: 'transfert', label: 'Transféré', icon: ArrowRight,   emoji: '🚑' },
-    { value: 'deces',     label: 'Décès',     icon: Skull,        emoji: '⚫' },
-  ] as const;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4"
       role="dialog" aria-modal="true">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
-        {/* ── Header — cyan uniforme ── */}
+        {/* Header */}
         <div className="bg-cyan-600 px-5 py-4 sm:px-6 sm:py-5 text-white flex justify-between items-start shrink-0">
           <div>
             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
@@ -165,7 +140,6 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
           </button>
         </div>
 
-        {/* Erreur globale */}
         {submitError && (
           <div className="mx-5 mt-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -175,7 +149,7 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
 
         <form id="add-cr-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
 
-          {/* ── Section 1 : Dates d'hospitalisation ── */}
+          {/* Periode d'hospitalisation */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5" />
@@ -193,7 +167,6 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
                   className={inputBase} />
               </div>
               <div>
-                {/* ✅ Validation date sortie >= admission */}
                 <Lbl field="date_sortie" htmlFor="date_sortie" req>Date de sortie</Lbl>
                 <input id="date_sortie" type="date" required title="Date de sortie"
                   min={formData.date_admission || ''}
@@ -206,9 +179,35 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
             </div>
           </div>
 
-          
+          {/* Contexte */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" />
+              Contexte
+              <span className="text-gray-400 font-normal normal-case text-[11px]">(optionnel)</span>
+            </h3>
+            <textarea rows={4}
+              value={formData.contexte || ''}
+              placeholder="Antecedents, facteurs de risque, hospitalisations precedentes..."
+              onChange={e => setFormData({ ...formData, contexte: e.target.value })}
+              className={`${inputBase} resize-none`} />
+          </div>
 
-          {/* ── Section 3 : Résumé ── */}
+          {/* Examens paracliniques */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" />
+              Examens paracliniques
+              <span className="text-gray-400 font-normal normal-case text-[11px]">(optionnel)</span>
+            </h3>
+            <textarea rows={5}
+              value={formData.examens_paracliniques || ''}
+              placeholder="Biologie, radiographie, ECG, echocardiographie..."
+              onChange={e => setFormData({ ...formData, examens_paracliniques: e.target.value })}
+              className={`${inputBase} resize-none`} />
+          </div>
+
+          {/* Resume */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <FileText className="w-3.5 h-3.5" />
@@ -229,26 +228,26 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
             </div>
           </div>
 
-          {/* ── Section 4 : Diagnostic de sortie ── */}
+          {/* Diagnostic */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Diagnostic de sortie
+              Diagnostic
             </h3>
             <div>
-              <Lbl field="diagnostic_sortie" htmlFor="diag_sortie" req>Diagnostic final</Lbl>
-              <input id="diag_sortie" type="text" required
-                title="Diagnostic de sortie"
-                value={formData.diagnostic_sortie || ''}
-                placeholder="Ex: Insuffisance cardiaque décompensée, Pneumonie communautaire..."
-                onChange={e => setFormData({ ...formData, diagnostic_sortie: e.target.value })}
-                onBlur={() => mark('diagnostic_sortie')}
-                className={cx('diagnostic_sortie')} />
-              <FieldErr field="diagnostic_sortie" />
+              <Lbl field="diagnostic" htmlFor="diagnostic" req>Diagnostic</Lbl>
+              <input id="diagnostic" type="text" required
+                title="Diagnostic"
+                value={formData.diagnostic || ''}
+                placeholder="Ex: Cardiopathie ischemique avec dysfonction systolique severe du VG..."
+                onChange={e => setFormData({ ...formData, diagnostic: e.target.value })}
+                onBlur={() => mark('diagnostic')}
+                className={cx('diagnostic')} />
+              <FieldErr field="diagnostic" />
             </div>
           </div>
 
-          {/* ── Section 5 : Traitement de sortie ── */}
+          {/* Traitement de sortie */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <Pill className="w-3.5 h-3.5" />
@@ -269,57 +268,21 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
             </div>
           </div>
 
-          {/* ── Section 6 : Modalité de sortie ── */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+          {/* Evolution */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
-              <ArrowRight className="w-3.5 h-3.5" />
-              Modalité de sortie
+              <TrendingUp className="w-3.5 h-3.5" />
+              Evolution
+              <span className="text-gray-400 font-normal normal-case text-[11px]">(optionnel)</span>
             </h3>
-
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">
-                État du patient à la sortie<span className="text-red-500 ml-0.5">*</span>
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {modaliteOptions.map(({ value, label, emoji }) => (
-                  <button key={value} type="button"
-                    onClick={() => setFormData({ ...formData, modalite_sortie: value as ModaliteSortie })}
-                    className={`p-3 rounded-xl border-2 transition-all flex items-center gap-2 ${
-                      formData.modalite_sortie === value
-                        ? value === 'gueri'
-                          ? 'border-green-500 bg-green-50 text-green-900'
-                          : 'border-cyan-500 bg-cyan-50 text-cyan-900'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                    }`}>
-                    <span className="text-xl">{emoji}</span>
-                    <span className="font-semibold text-sm">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ✅ Champ lieu de transfert conditionnel avec validation */}
-            {formData.modalite_sortie === 'transfert' && (
-              <div>
-                <Lbl field="lieu_transfert" htmlFor="lieu_transfert" req>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    Lieu de transfert
-                  </span>
-                </Lbl>
-                <input id="lieu_transfert" type="text" required
-                  title="Lieu de transfert"
-                  value={formData.lieu_transfert || ''}
-                  placeholder="Ex: CHU d'Antananarivo, Hôpital régional..."
-                  onChange={e => setFormData({ ...formData, lieu_transfert: e.target.value })}
-                  onBlur={() => mark('lieu_transfert')}
-                  className={cx('lieu_transfert')} />
-                <FieldErr field="lieu_transfert" />
-              </div>
-            )}
+            <textarea rows={3}
+              value={formData.evolution || ''}
+              placeholder="Evolution clinique, pronostic, orientation..."
+              onChange={e => setFormData({ ...formData, evolution: e.target.value })}
+              className={`${inputBase} resize-none`} />
           </div>
 
-          {/* ── Section 7 : Suivi ── */}
+          {/* Suivi */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5" />
@@ -341,13 +304,11 @@ export default function AddCompteRenduModal({ patient, idAdmission, onClose, onS
           <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Champs obligatoires</p>
         </form>
 
-        {/* ── Footer ── */}
         <div className="border-t bg-gray-50 px-5 py-4 flex justify-end items-center gap-3 shrink-0">
           <button type="button" onClick={onClose}
             className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium">
             Annuler
           </button>
-          {/* ✅ Bouton grisé si formulaire invalide */}
           <button type="submit" form="add-cr-form" disabled={loading}
             className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
               isFormValid && !loading
