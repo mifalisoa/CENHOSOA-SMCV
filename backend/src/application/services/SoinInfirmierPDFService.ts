@@ -98,7 +98,7 @@ export class SoinInfirmierPDFService {
 
     const badgeColor = soin.verifie ? '#dcfce7' : '#f1f5f9';
     const textColor  = soin.verifie ? '#15803d' : '#64748b';
-    const badgeText  = soin.verifie ? 'Document verifie et valide' : 'En attente de verification';
+    const badgeText  = soin.verifie ? 'Document verifié et validé' : 'En attente de verification';
 
     doc.roundedRect(boxX + 30, boxY + 54, boxW - 60, 14, 3)
        .fillColor(badgeColor).fill();

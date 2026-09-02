@@ -281,7 +281,7 @@ export class ObservationPDFService {
     doc.roundedRect(boxX + 30, boxY + 48, boxW - 60, 14, 3)
        .fillColor('#dcfce7').fill();
     doc.fontSize(7).font('Helvetica-Bold').fillColor('#15803d')
-       .text('Document verifie et valide', boxX + 10, boxY + 51, { width: boxW - 20, align: 'center' });
+       .text('Document verifié et validé', boxX + 10, boxY + 51, { width: boxW - 20, align: 'center' });
 
     doc.fillColor('#000000');
     doc.y = boxY + 90;
