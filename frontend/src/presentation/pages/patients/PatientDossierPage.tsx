@@ -20,6 +20,7 @@ import SoinsInfirmiersTab   from '../../components/patients/tabs/SoinsInfirmiers
 import TraitementsTab       from '../../components/patients/tabs/TraitementsTab';
 import DocumentsTab         from '../../components/patients/tabs/DocumentsTab';
 import ComptesRendusTab     from '../../components/patients/tabs/ComptesRendusTab';
+import ComptesRendusConsultationTab from '../../components/patients/tabs/ComptesRendusConsultationTab';
 import HospitaliserModal    from '../../components/modals/HospitaliserModal';
 import RendreExterneModal   from '../../components/modals/RendreExterneModal';
 import TransfererLitModal   from '../../components/patients/modals/TransfererLitModal';
@@ -29,7 +30,7 @@ import TransfererLitModal   from '../../components/patients/modals/TransfererLit
 type TabType =
   | 'observation-medicale' | 'biologie'   | 'soins-medicaux'
   | 'soins-infirmiers'     | 'traitement' | 'document'
-  | 'compte-rendu';
+  | 'compte-rendu'         | 'compte-rendu-consultation';
 
 interface TabConfig {
   id:           TabType;
@@ -68,8 +69,10 @@ const TABS_CONFIG: TabConfig[] = [
   { id: 'soins-infirmiers',     label: 'Soins infirmiers',shortLabel: 'S. Infirmiers',     icon: Syringe,     rolesAllowed: ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'] },
   { id: 'traitement',           label: 'Traitement',                                        icon: Pill,        rolesAllowed: ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'] },
   { id: 'document',             label: 'Document',                                          icon: FileText    },
-  { id: 'compte-rendu',         label: "Compte Rendu d'Hospitalisation", shortLabel: 'C. Rendu', icon: FileCheck, rolesAllowed: ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'] },
+    { id: 'compte-rendu',         label: "Compte Rendu d'Hospitalisation", shortLabel: 'C. Rendu', icon: FileCheck, rolesAllowed: ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'] },
+  { id: 'compte-rendu-consultation', label: 'Compte Rendu de Consultation', shortLabel: 'C. Rendu Consult.', icon: FileCheck, rolesAllowed: ['admin', 'medecin', 'interne', 'stagiaire', 'infirmier'] },
 ];
+
 
 // ── Composant ─────────────────────────────────────────────────────────────────
 
@@ -95,6 +98,7 @@ export default function PatientDossierPage() {
   const tabs = useMemo((): TabConfig[] => {
     return TABS_CONFIG.filter(tab => {
       if (tab.id === 'compte-rendu' && !isHospitalise) return false;
+      if (tab.id === 'compte-rendu-consultation' && isHospitalise) return false;
       if (tab.rolesAllowed && user?.role) return tab.rolesAllowed.includes(user.role);
       return true;
     });
@@ -371,8 +375,11 @@ export default function PatientDossierPage() {
   {activeTab === 'soins-infirmiers'     && <SoinsInfirmiersTab   patient={patient} />}
   {activeTab === 'traitement'           && <TraitementsTab        patient={patient} />}
   {activeTab === 'document'             && <DocumentsTab          patient={patient} />}
-  {activeTab === 'compte-rendu' && (
+    {activeTab === 'compte-rendu' && (
     <ComptesRendusTab patient={patient} idAdmission={litActuel?.id_admission} />
+  )}
+  {activeTab === 'compte-rendu-consultation' && (
+    <ComptesRendusConsultationTab patient={patient} />
   )}
 </div>
       </div>
