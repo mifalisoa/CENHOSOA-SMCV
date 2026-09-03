@@ -34,6 +34,8 @@ import evolutionPatientRoutes from './evolution-patient.routes';
 
 import pieceJointeRoutes from './piece-jointe.routes';
 
+import compteRenduConsultationRoutes from './compte-rendu-consultation.routes';
+
 
 
 const router = Router();
@@ -93,5 +95,6 @@ router.use('/search', searchRoutes);
 
 router.use('/pieces-jointes', pieceJointeRoutes);
 
+router.use('/comptes-rendus-consultation', compteRenduConsultationRoutes);
 
 export default router;
