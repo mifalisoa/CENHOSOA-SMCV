@@ -145,17 +145,13 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
   const [infos, setInfos] = useState({
     date_prescription:      new Date().toISOString().split('T')[0],
     heure_prescription:     new Date().toTimeString().slice(0, 5),
-    type_document:          'ordonnance' as 'ordonnance' | 'traitement',
-    diagnostic:             '',
     prescripteur:           '',
-    lieu_prescription:      '',
     observations_speciales: '',
   });
 
   const [meds, setMeds] = useState<(MedicamentDTO & { _id: number })[]>([emptyMed()]);
   const mark = (key: string) => setTouched(p => ({ ...p, [key]: true }));
 
-  // Seul le nom du medicament reste obligatoire
   const getMedError = (id: number, field: keyof MedicamentDTO): string | null => {
     if (field !== 'medicament') return null;
     if (!touched[`med_${id}_${field}`]) return null;
@@ -225,10 +221,8 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
         id_patient:             patient.id_patient,
         date_prescription:      infos.date_prescription,
         heure_prescription:     infos.heure_prescription,
-        type_document:          infos.type_document,
-        diagnostic:             infos.diagnostic     || undefined,
+        type_document:          'ordonnance', // fixe — le formulaire ne saisit que des ordonnances
         prescripteur:           infos.prescripteur   || undefined,
-        lieu_prescription:      infos.lieu_prescription || undefined,
         observations_speciales: infos.observations_speciales || undefined,
         medicaments: meds.map(({ _id, ...med }) => {
           void _id;
@@ -294,24 +288,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Informations de la prescription</h3>
 
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: 'ordonnance', emoji: '📋', label: 'Ordonnance' },
-                { value: 'traitement', emoji: '💊', label: 'Traitement' },
-              ].map(({ value, emoji, label }) => (
-                <button key={value} type="button"
-                  onClick={() => setInfos({ ...infos, type_document: value as 'ordonnance' | 'traitement' })}
-                  className={`p-3 rounded-xl border-2 transition-all text-center ${
-                    infos.type_document === value
-                      ? 'border-cyan-500 bg-cyan-50 text-cyan-900'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                  }`}>
-                  <div className="text-2xl mb-1">{emoji}</div>
-                  <div className="text-sm font-semibold">{label}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="date_prescription" className="text-sm font-medium text-gray-700 mb-1.5 block">
                   Date<span className="text-red-500 ml-0.5">*</span>
@@ -330,25 +306,11 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                   onChange={e => setInfos({ ...infos, heure_prescription: e.target.value })}
                   className={inputBase} />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label htmlFor="prescripteur" className="text-sm font-medium text-gray-700 mb-1.5 block">Prescripteur</label>
                 <input id="prescripteur" type="text" placeholder="Dr. Nom Prénom"
                   value={infos.prescripteur}
                   onChange={e => setInfos({ ...infos, prescripteur: e.target.value })}
-                  className={inputBase} />
-              </div>
-              <div>
-                <label htmlFor="lieu_prescription" className="text-sm font-medium text-gray-700 mb-1.5 block">Lieu</label>
-                <input id="lieu_prescription" type="text" placeholder="Hôpital, Cabinet..."
-                  value={infos.lieu_prescription}
-                  onChange={e => setInfos({ ...infos, lieu_prescription: e.target.value })}
-                  className={inputBase} />
-              </div>
-              <div className="col-span-2">
-                <label htmlFor="diagnostic" className="text-sm font-medium text-gray-700 mb-1.5 block">Diagnostic</label>
-                <input id="diagnostic" type="text" placeholder="Ex: HTA, Diabète type 2..."
-                  value={infos.diagnostic}
-                  onChange={e => setInfos({ ...infos, diagnostic: e.target.value })}
                   className={inputBase} />
               </div>
               <div className="col-span-2">
@@ -433,7 +395,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       )}
                     </div>
 
-                    {/* Dosage — desormais optionnel */}
                     <div>
                       <Lbl id={med._id} field="dosage">Dosage</Lbl>
                       <input id={`dosage_${med._id}`} type="text" title="Dosage (optionnel)"
@@ -465,7 +426,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       </select>
                     </div>
 
-                    {/* Frequence — desormais optionnelle */}
                     <div>
                       <Lbl id={med._id} field="frequence">Fréquence</Lbl>
                       <input id={`frequence_${med._id}`} type="text" title="Fréquence de prise (optionnel)"
@@ -487,7 +447,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                       <FieldErr id={med._id} field="frequence" />
                     </div>
 
-                    {/* Duree — desormais optionnelle */}
                     <div>
                       <Lbl id={med._id} field="duree">Durée</Lbl>
                       <input id={`duree_${med._id}`} type="text" title="Durée du traitement (optionnel)"
@@ -522,7 +481,6 @@ export default function AddTraitementModal({ patient, onClose, onSubmit }: AddTr
                         className={`${inputBase} resize-none`} />
                     </div>
 
-                    {/* Nouveau champ texte libre, demande par le docteur */}
                     <div className="col-span-2">
                       <label htmlFor={`description_libre_${med._id}`}
                         className="text-sm font-medium text-gray-700 mb-1.5 block">
