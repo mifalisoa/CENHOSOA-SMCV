@@ -1,5 +1,5 @@
 import type { IAuthRepository } from '../../core/repositories/IAuthRepository';
-import type { User, LoginCredentials, AuthResponse } from '../../core/entities/User';
+import type { Utilisateur, LoginCredentials, AuthResponse } from '../../core/entities/Utilisateur';
 import { httpClient } from '../http/axios.config';
 import { TokenStorage } from '../storage/TokenStorage';
 
@@ -18,7 +18,7 @@ export class AuthRepository implements IAuthRepository {
     try {
       const response = await httpClient.post<ApiResponse<{
         token:             string;
-        user:              User;
+        user:              Utilisateur;
         premier_connexion?: boolean; //  ajouté
       }>>(
         '/auth/login',
@@ -36,7 +36,7 @@ export class AuthRepository implements IAuthRepository {
         this.saveToken(token);
 
         //  Sauvegarde premier_connexion dans l'objet user pour le contexte
-        const userAvecFlag: User = { ...user, premier_connexion: premier_connexion ?? false };
+        const userAvecFlag: Utilisateur = { ...user, premier_connexion: premier_connexion ?? false };
         TokenStorage.saveUser(userAvecFlag);
 
         const persistedToken = TokenStorage.getToken();
@@ -67,9 +67,9 @@ export class AuthRepository implements IAuthRepository {
     TokenStorage.removeUser();
   }
 
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(): Promise<Utilisateur> {
     try {
-      const response = await httpClient.get<ApiResponse<User>>('/auth/me');
+      const response = await httpClient.get<ApiResponse<Utilisateur>>('/auth/me');
       return response.data.data;
     } catch (error) {
  console.error('[AuthRepository] Erreur getCurrentUser:', error);

@@ -1,6 +1,6 @@
 // frontend/src/core/entities/User.ts
 
-export type UserRole =
+export type UtilisateurRole =
   | 'admin'
   | 'medecin'
   | 'interne'
@@ -8,17 +8,17 @@ export type UserRole =
   | 'infirmier'
   | 'secretaire';
 
-export interface User {
+export interface Utilisateur {
   id_user:             number;
   nom:                 string;
   prenom:              string;
   email:               string;
-  role:                UserRole;
+  role:                UtilisateurRole;
   specialite?:         string | null;
   telephone?:          string | null;
   actif?:              boolean;
   statut?:             'actif' | 'inactif' | 'suspendu';
-  premier_connexion?:  boolean; // ✅ true = doit changer son mot de passe
+  premier_connexion?:  boolean; //  true = doit changer son mot de passe
   created_at?:         Date;
   updated_at?:         Date;
 }
@@ -29,7 +29,7 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
-  user:              User;
+  user:              Utilisateur;
   token:             string;
-  premier_connexion?: boolean; // ✅ retourné par le backend au login
+  premier_connexion?: boolean; //  retourné par le backend au login
 }

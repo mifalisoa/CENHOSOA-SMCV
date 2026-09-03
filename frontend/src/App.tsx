@@ -7,7 +7,7 @@ import { ProtectedRoute } from './presentation/pages/auth/ProtectedRoute';
 import { useAuth }        from './presentation/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import axios              from 'axios';
-import type { UserRole }  from './core/entities/User';
+import type { UtilisateurRole }  from './core/entities/Utilisateur';
 
 // Auth
 import LoginPage            from './presentation/pages/auth/LoginPage';
@@ -39,7 +39,7 @@ import PatientsPage        from './presentation/pages/patients/PatientsPage';
 import { SecretaryLayout }    from './presentation/components/layout/SecretaryLayout';
 import SecretaryDashboardHome from './presentation/pages/dashboard/sections/SecretaryDashboardHome';
 
-const MEDICAL_ROLES: UserRole[] = ['medecin', 'interne', 'stagiaire', 'infirmier'];
+const MEDICAL_ROLES: UtilisateurRole[] = ['medecin', 'interne', 'stagiaire', 'infirmier'];
 
 const ROLE_DISPLAY_LABELS: Record<string, 'docteur' | 'interne' | 'stagiaire'> = {
   medecin: 'docteur', interne: 'interne', stagiaire: 'stagiaire', infirmier: 'docteur',

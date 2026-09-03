@@ -9,7 +9,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user,           setUser]           = useState<import('../../core/entities/User').User | null>(null);
+  const [user,           setUser]           = useState<import('../../core/entities/Utilisateur').Utilisateur | null>(null);
   const [isLoading,      setIsLoading]      = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 

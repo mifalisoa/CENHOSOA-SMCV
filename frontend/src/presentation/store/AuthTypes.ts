@@ -1,10 +1,10 @@
 // frontend/src/presentation/store/AuthTypes.ts
 
 import { createContext } from 'react';
-import type { User } from '../../core/entities/User';
+import type { Utilisateur } from '../../core/entities/Utilisateur';
 
 export interface AuthContextType {
-  user:            User | null;
+  user:            Utilisateur | null;
   isAuthenticated: boolean;
   isLoading:       boolean;
   isInitializing:  boolean;

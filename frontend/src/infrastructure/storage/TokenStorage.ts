@@ -1,4 +1,4 @@
-import type { User } from '../../core/entities/User';
+import type { Utilisateur } from '../../core/entities/Utilisateur';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
@@ -31,7 +31,7 @@ export class TokenStorage {
   /**
    * Sauvegarder les données utilisateur (Type User strict)
    */
-  static saveUser(user: User): void {
+  static saveUser(user: Utilisateur): void {
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     } catch (error) {
@@ -42,10 +42,10 @@ export class TokenStorage {
   /**
    * Récupérer les données utilisateur typées
    */
-  static getUser(): User | null {
+  static getUser(): Utilisateur | null {
     try {
       const user = localStorage.getItem(USER_KEY);
-      return user ? (JSON.parse(user) as User) : null;
+      return user ? (JSON.parse(user) as Utilisateur) : null;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return null;

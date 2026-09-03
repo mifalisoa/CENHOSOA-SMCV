@@ -1,5 +1,5 @@
 import type { IAuthRepository } from '../../repositories/IAuthRepository';
-import type { LoginCredentials, AuthResponse } from '../../entities/User';
+import type { LoginCredentials, AuthResponse } from '../../entities/Utilisateur';
 
 export class LoginUseCase {
   // 1. Déclarer explicitement la propriété

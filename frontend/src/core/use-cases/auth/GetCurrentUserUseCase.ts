@@ -1,5 +1,5 @@
 import type { IAuthRepository } from '../../repositories/IAuthRepository';
-import type { User } from '../../entities/User';
+import type { Utilisateur } from '../../entities/Utilisateur';
 
 export class GetCurrentUserUseCase {
   private authRepository: IAuthRepository;
@@ -8,7 +8,7 @@ export class GetCurrentUserUseCase {
     this.authRepository = authRepository;
   }
 
-  async execute(): Promise<User> {
+  async execute(): Promise<Utilisateur> {
     return this.authRepository.getCurrentUser();
   }
 }
