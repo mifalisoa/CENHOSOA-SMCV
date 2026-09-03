@@ -1,17 +1,26 @@
 // frontend/src/presentation/pages/securite/DashboardSecuritePage.tsx
+//
+// CHANGEMENTS :
+// 1. ParametresSecuriteModal retire (fonctionnalite retiree du module, voir
+//    SecuriteController.ts pour le detail), remplace par AlertesSecuriteModal.
+// 2. La carte KPI "Alertes" routait vers setActiveModal('logs') -- bug :
+//    elle ouvrait l'historique des actions, pas les alertes elles-memes.
+//    Corrige vers setActiveModal('alertes').
+// 3. Le 3e bouton d'acces rapide (etait "Parametres de Securite") devient
+//    "Alertes de Securite".
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   Shield, ArrowLeft, RefreshCw, Users, AlertTriangle,
-  Activity, Lock, Info, Settings, AlertCircle,
+  Activity, Lock, Info, AlertCircle,
 } from 'lucide-react';
 import { useNavigate }  from 'react-router-dom';
 import { httpClient }   from '../../../infrastructure/http/axios.config';
 import { toast }        from 'sonner';
 
-import HistoriqueLogsModal     from './modals/HistoriqueLogsModal';
-import SessionsActivesModal    from './modals/SessionsActivesModal';
-import ParametresSecuriteModal from './modals/ParametresSecuriteModal';
+import HistoriqueLogsModal  from './modals/HistoriqueLogsModal';
+import SessionsActivesModal from './modals/SessionsActivesModal';
+import AlertesSecuriteModal from './modals/AlertesSecuriteModal';
 
 interface SessionActive {
   session_id:         string;
@@ -31,7 +40,7 @@ interface Stats {
   alertes_non_lues:        number;
 }
 
-type ModalType = null | 'logs' | 'sessions' | 'parametres';
+type ModalType = null | 'logs' | 'sessions' | 'alertes';
 
 export default function DashboardSecuritePage() {
   const navigate = useNavigate();
@@ -72,11 +81,9 @@ export default function DashboardSecuritePage() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="bg-cyan-600 text-white shadow-lg">
         <div className="p-4 sm:p-6">
-
-          {/* Titre + bouton */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <button onClick={() => navigate('/dashboard')}
@@ -101,7 +108,6 @@ export default function DashboardSecuritePage() {
             </button>
           </div>
 
-          {/* Info box */}
           <div className="bg-white/10 rounded-xl p-3 sm:p-4 border border-white/20">
             <div className="flex items-start gap-2.5">
               <Info className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-100 shrink-0 mt-0.5" />
@@ -115,7 +121,6 @@ export default function DashboardSecuritePage() {
 
       <div className="p-3 sm:p-6">
 
-        {/* Chargement */}
         {loading && (
           <div className="flex items-center justify-center py-24">
             <div className="text-center">
@@ -125,7 +130,6 @@ export default function DashboardSecuritePage() {
           </div>
         )}
 
-        {/* Erreur */}
         {loadError && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center max-w-md mx-auto mt-10">
             <AlertCircle className="w-14 h-14 text-red-400 mx-auto mb-4" />
@@ -138,14 +142,12 @@ export default function DashboardSecuritePage() {
           </div>
         )}
 
-        {/* Contenu */}
         {!loading && !loadError && (
           <div className="space-y-4 sm:space-y-6">
 
-            {/* ── KPI Cards — 2 colonnes sur mobile, 4 sur desktop ── */}
+            {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
-              {/* Sessions actives */}
               <button onClick={() => setActiveModal('sessions')} className="text-left">
                 <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-3 sm:p-6 hover:border-cyan-400 hover:shadow-md transition-all h-full">
                   <div className="p-2 bg-green-100 rounded-lg w-fit mb-2 sm:mb-3">
@@ -157,7 +159,6 @@ export default function DashboardSecuritePage() {
                 </div>
               </button>
 
-              {/* Tentatives échouées */}
               <button onClick={() => setActiveModal('logs')} className="text-left">
                 <div className={`bg-white rounded-xl shadow-sm border-2 p-3 sm:p-6 hover:shadow-md transition-all h-full ${
                   stats.tentatives_echouees_24h > 5 ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-cyan-400'
@@ -177,7 +178,6 @@ export default function DashboardSecuritePage() {
                 </div>
               </button>
 
-              {/* Actions aujourd'hui */}
               <button onClick={() => setActiveModal('logs')} className="text-left">
                 <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-3 sm:p-6 hover:border-cyan-400 hover:shadow-md transition-all h-full">
                   <div className="p-2 bg-blue-100 rounded-lg w-fit mb-2 sm:mb-3">
@@ -189,8 +189,8 @@ export default function DashboardSecuritePage() {
                 </div>
               </button>
 
-              {/* Alertes */}
-              <button onClick={() => setActiveModal('logs')} className="text-left">
+              {/* CORRIGE : routait vers 'logs' avant, route vers 'alertes' maintenant */}
+              <button onClick={() => setActiveModal('alertes')} className="text-left">
                 <div className={`bg-white rounded-xl shadow-sm border-2 p-3 sm:p-6 hover:shadow-md transition-all h-full ${
                   stats.alertes_non_lues > 0 ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-cyan-400'
                 }`}>
@@ -208,7 +208,7 @@ export default function DashboardSecuritePage() {
               </button>
             </div>
 
-            {/* ── Boutons accès rapide — 1 colonne sur mobile, 3 sur desktop ── */}
+            {/* Boutons acces rapide */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               {[
                 {
@@ -224,10 +224,10 @@ export default function DashboardSecuritePage() {
                   description: 'Voir et déconnecter les utilisateurs',
                 },
                 {
-                  modal:       'parametres' as ModalType,
-                  icon:        Settings,
-                  title:       'Paramètres de Sécurité',
-                  description: 'Configurer les règles et seuils',
+                  modal:       'alertes' as ModalType,
+                  icon:        AlertTriangle,
+                  title:       'Alertes de Sécurité',
+                  description: 'Tentatives de connexion suspectes',
                 },
               ].map(({ modal, icon: Icon, title, description }) => (
                 <button key={modal} onClick={() => setActiveModal(modal)}
@@ -241,7 +241,7 @@ export default function DashboardSecuritePage() {
               ))}
             </div>
 
-            {/* ── Aperçu sessions ── */}
+            {/* Apercu sessions */}
             {sessions.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                 <h2 className="text-sm sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
@@ -292,7 +292,7 @@ export default function DashboardSecuritePage() {
       {/* Modals */}
       <HistoriqueLogsModal isOpen={activeModal === 'logs'} onClose={() => setActiveModal(null)} />
       <SessionsActivesModal isOpen={activeModal === 'sessions'} onClose={() => setActiveModal(null)} onSessionDisconnected={loadDashboard} />
-      <ParametresSecuriteModal isOpen={activeModal === 'parametres'} onClose={() => setActiveModal(null)} />
+      <AlertesSecuriteModal isOpen={activeModal === 'alertes'} onClose={() => setActiveModal(null)} />
     </div>
   );
 }

@@ -1,9 +1,14 @@
 // frontend/src/presentation/pages/securite/modals/SessionsActivesModal.tsx
+//
+// CHANGEMENT : location_city/location_country retires de l'interface et de
+// l'affichage -- jamais fournis par le backend (aucune geolocalisation IP
+// n'a ete implementee), le fallback 'Inconnu' masquait une fonctionnalite
+// jamais construite plutot qu'une vraie absence de donnee.
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   X, Users, LogOut, Globe, Clock,
-  Monitor, Smartphone, Tablet, MapPin, Eye,
+  Monitor, Smartphone, Tablet, Eye,
   RefreshCw, AlertTriangle, ShieldAlert
 } from 'lucide-react';
 import { httpClient } from '../../../../infrastructure/http/axios.config';
@@ -19,8 +24,6 @@ interface Session {
   device_type:        string;
   browser:            string;
   os:                 string;
-  location_city:      string;
-  location_country:   string;
   created_at:         string;
   last_activity:      string;
   activity_status:    string;
@@ -39,11 +42,9 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
   const [sessions,         setSessions]         = useState<Session[]>([]);
   const [selectedSession,  setSelectedSession]  = useState<Session | null>(null);
   const [showDetails,      setShowDetails]      = useState(false);
- // Dialog de confirmation intégré — remplace confirm() natif
   const [confirmSession,   setConfirmSession]   = useState<Session | null>(null);
   const [disconnecting,    setDisconnecting]    = useState<string | null>(null);
 
- // useCallback pour éviter warning exhaustive-deps
   const loadSessions = useCallback(async () => {
     try {
       setLoading(true);
@@ -51,7 +52,7 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
       const response = await httpClient.get('/securite/sessions');
       setSessions(response.data.data || []);
     } catch (error) {
- console.error('[Sessions] Erreur:', error);
+      console.error('[Sessions] Erreur:', error);
       setLoadError('Impossible de charger les sessions actives.');
       toast.error('Erreur lors du chargement des sessions');
     } finally {
@@ -84,7 +85,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
     }
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   const getStatusColor = (status: string) => ({
     active: 'bg-green-100 text-green-700 border-green-300',
     idle:   'bg-yellow-100 text-yellow-700 border-yellow-300',
@@ -126,11 +126,9 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
 
   return (
     <>
-      {/* ── Modal principal ── */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
 
-          {/* Header — cyan uniforme */}
           <div className="bg-cyan-600 text-white p-4 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
               <Users className="w-6 h-6" />
@@ -156,7 +154,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
             </div>
           </div>
 
-          {/* Stats */}
           <div className="bg-gray-50 border-b border-gray-200 p-4 shrink-0">
             <div className="grid grid-cols-4 gap-4">
               {[
@@ -173,10 +170,8 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
             </div>
           </div>
 
-          {/* Contenu */}
           <div className="flex-1 overflow-y-auto p-5">
 
-            {/* Erreur */}
             {loadError && !loading && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
                 <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-3" />
@@ -189,7 +184,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
               </div>
             )}
 
-            {/* Chargement */}
             {loading && sessions.length === 0 && (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -199,7 +193,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
               </div>
             )}
 
-            {/* Aucune session */}
             {!loading && !loadError && sessions.length === 0 && (
               <div className="text-center py-20">
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -208,7 +201,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
               </div>
             )}
 
-            {/* Liste sessions */}
             {!loadError && sessions.length > 0 && (
               <div className="space-y-3">
                 {sessions.map(session => {
@@ -223,7 +215,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
                       }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          {/* Avatar */}
                           <div className="w-11 h-11 bg-cyan-600 rounded-full flex items-center justify-center shrink-0">
                             <span className="text-white font-bold text-sm">
                               {session.utilisateur_prenom?.charAt(0)}{session.utilisateur_nom?.charAt(0)}
@@ -243,15 +234,12 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-500">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-gray-500">
                               <span className="flex items-center gap-1">
                                 <Globe className="w-3 h-3" />{session.ip_address || '—'}
                               </span>
                               <span className="flex items-center gap-1">
                                 <DeviceIcon className="w-3 h-3" />{session.browser || 'Inconnu'}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />{session.location_city || 'Inconnu'}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />{formatLastActivity(session.last_activity)}
@@ -264,7 +252,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
                           </div>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex items-center gap-2 shrink-0">
                           <button onClick={() => { setSelectedSession(session); setShowDetails(true); }}
                             title="Voir les détails de la session"
@@ -290,7 +277,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
             )}
           </div>
 
-          {/* Footer */}
           <div className="bg-gray-50 border-t border-gray-200 px-5 py-3 flex justify-between items-center shrink-0">
             <p className="text-sm text-gray-500">
               {sessions.length} session{sessions.length > 1 ? 's' : ''} active{sessions.length > 1 ? 's' : ''}
@@ -304,7 +290,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
         </div>
       </div>
 
-      {/* ── Dialog confirmation déconnexion — remplace confirm() natif ── */}
       {confirmSession && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
@@ -341,7 +326,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
         </div>
       )}
 
-      {/* ── Modal détails session ── */}
       {showDetails && selectedSession && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[80vh]">
@@ -363,7 +347,6 @@ export default function SessionsActivesModal({ isOpen, onClose, onSessionDisconn
                   { label: 'Type d\'appareil',       value: selectedSession.device_type || 'Inconnu' },
                   { label: 'Navigateur',             value: selectedSession.browser || 'Inconnu' },
                   { label: 'Système d\'exploitation', value: selectedSession.os || 'Inconnu' },
-                  { label: 'Localisation',           value: [selectedSession.location_city, selectedSession.location_country].filter(Boolean).join(', ') || 'Inconnue' },
                   { label: 'Connecté depuis',        value: formatDuration(selectedSession.duration_seconds) },
                   { label: 'Dernière activité',      value: formatLastActivity(selectedSession.last_activity) },
                 ].map(({ label, value }) => (
